@@ -1,0 +1,215 @@
+export type AccentColor = 'blue' | 'purple' | 'emerald'
+export type AppMode = 'basic' | 'advanced'
+export type EventStatus = 'draft' | 'outline' | 'written' | 'revised' | 'final'
+export type LayerType = 'main' | 'character' | 'subplot' | 'theme' | 'custom'
+export type AppTheme = 'light' | 'dark' | 'system'
+
+export interface Profile {
+  id: string
+  username: string | null
+  display_name: string | null
+  avatar_url: string | null
+  accent_color: AccentColor
+  app_mode: AppMode
+  theme: AppTheme
+  created_at: string
+  updated_at: string
+}
+
+export interface Project {
+  id: string
+  owner_id: string
+  title: string
+  description: string | null
+  cover_image_url: string | null
+  mode: AppMode
+  settings: ProjectSettings
+  timeline_start: string | null
+  timeline_end: string | null
+  archived: boolean
+  created_at: string
+  updated_at: string
+}
+
+export interface ProjectSettings {
+  defaultView?: 'timeline' | 'outline' | 'board'
+  snapToGrid?: boolean
+  showDependencies?: boolean
+  savedViews?: SavedView[]
+}
+
+export interface SavedView {
+  id: string
+  name: string
+  filters: EventFilters
+  zoom: number
+}
+
+export interface LayerGroup {
+  id: string
+  project_id: string
+  name: string
+  color: string | null
+  position: number
+  collapsed: boolean
+  created_at: string
+}
+
+export interface Layer {
+  id: string
+  project_id: string
+  group_id: string | null
+  name: string
+  type: LayerType
+  color: string
+  position: number
+  visible: boolean
+  locked: boolean
+  metadata: LayerMetadata
+  created_at: string
+  updated_at: string
+}
+
+export interface LayerMetadata {
+  opacity?: number
+  pattern?: 'solid' | 'dashed' | 'dotted'
+}
+
+export interface Character {
+  id: string
+  project_id: string
+  name: string
+  role: string | null
+  description: string | null
+  color: string | null
+  avatar_url: string | null
+  notes: string | null
+  custom_fields: Record<string, unknown>
+  created_at: string
+  updated_at: string
+}
+
+export interface Event {
+  id: string
+  project_id: string
+  layer_id: string
+  title: string
+  description: string | null
+  notes: string | null
+  start_date: string | null
+  end_date: string | null
+  position: number
+  duration: number
+  color: string | null
+  icon: string | null
+  status: EventStatus
+  tension_level: number | null
+  word_count: number | null
+  custom_fields: Record<string, unknown>
+  attachments: Attachment[]
+  tags: string[]
+  created_at: string
+  updated_at: string
+}
+
+export interface Attachment {
+  name: string
+  url: string
+  type: string
+}
+
+export interface EventCharacter {
+  event_id: string
+  character_id: string
+  role: string | null
+}
+
+export interface EventDependency {
+  id: string
+  project_id: string
+  source_id: string
+  target_id: string
+  label: string | null
+  style: 'solid' | 'dashed' | 'dotted'
+  color: string | null
+  created_at: string
+}
+
+export interface LayerWithEvents extends Layer {
+  events: Event[]
+}
+
+export interface ProjectWithLayers extends Project {
+  layers: LayerWithEvents[]
+  layer_groups: LayerGroup[]
+  characters: Character[]
+}
+
+export interface EventWithCharacters extends Event {
+  characters: Character[]
+}
+
+export interface EventFilters {
+  status?: EventStatus[]
+  tags?: string[]
+  character_ids?: string[]
+  layer_ids?: string[]
+  date_from?: string
+  date_to?: string
+  tension_min?: number
+  tension_max?: number
+  search?: string
+}
+
+export interface Database {
+  public: {
+    Tables: {
+      profiles: {
+        Row: Profile
+        Insert: Partial<Profile> & Pick<Profile, 'id'>
+        Update: Partial<Profile>
+      }
+      projects: {
+        Row: Project
+        Insert: Omit<Project, 'id' | 'created_at' | 'updated_at'> & { id?: string }
+        Update: Partial<Omit<Project, 'id' | 'created_at'>>
+      }
+      layer_groups: {
+        Row: LayerGroup
+        Insert: Omit<LayerGroup, 'id' | 'created_at'> & { id?: string }
+        Update: Partial<Omit<LayerGroup, 'id' | 'created_at'>>
+      }
+      layers: {
+        Row: Layer
+        Insert: Omit<Layer, 'id' | 'created_at' | 'updated_at'> & { id?: string }
+        Update: Partial<Omit<Layer, 'id' | 'created_at'>>
+      }
+      characters: {
+        Row: Character
+        Insert: Omit<Character, 'id' | 'created_at' | 'updated_at'> & { id?: string }
+        Update: Partial<Omit<Character, 'id' | 'created_at'>>
+      }
+      events: {
+        Row: Event
+        Insert: Omit<Event, 'id' | 'created_at' | 'updated_at'> & { id?: string }
+        Update: Partial<Omit<Event, 'id' | 'created_at'>>
+      }
+      event_characters: {
+        Row: EventCharacter
+        Insert: EventCharacter
+        Update: Partial<EventCharacter>
+      }
+      event_dependencies: {
+        Row: EventDependency
+        Insert: Omit<EventDependency, 'id' | 'created_at'> & { id?: string }
+        Update: Partial<Omit<EventDependency, 'id' | 'created_at'>>
+      }
+    }
+    Enums: {
+      accent_color: AccentColor
+      app_mode: AppMode
+      event_status: EventStatus
+      layer_type: LayerType
+    }
+  }
+}

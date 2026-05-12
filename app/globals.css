@@ -1,26 +1,172 @@
 @import "tailwindcss";
+@import "tw-animate-css";
 
-:root {
-  --background: #ffffff;
-  --foreground: #171717;
-}
+@custom-variant dark (&:is(.dark *));
 
 @theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);
   --font-sans: var(--font-geist-sans);
   --font-mono: var(--font-geist-mono);
+  --color-sidebar-ring: var(--sidebar-ring);
+  --color-sidebar-border: var(--sidebar-border);
+  --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
+  --color-sidebar-accent: var(--sidebar-accent);
+  --color-sidebar-primary-foreground: var(--sidebar-primary-foreground);
+  --color-sidebar-primary: var(--sidebar-primary);
+  --color-sidebar-foreground: var(--sidebar-foreground);
+  --color-sidebar: var(--sidebar);
+  --color-chart-5: var(--chart-5);
+  --color-chart-4: var(--chart-4);
+  --color-chart-3: var(--chart-3);
+  --color-chart-2: var(--chart-2);
+  --color-chart-1: var(--chart-1);
+  --color-ring: var(--ring);
+  --color-input: var(--input);
+  --color-border: var(--border);
+  --color-destructive: var(--destructive);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-accent: var(--accent);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-muted: var(--muted);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-secondary: var(--secondary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-primary: var(--primary);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-popover: var(--popover);
+  --color-card-foreground: var(--card-foreground);
+  --color-card: var(--card);
+  --radius-sm: calc(var(--radius) - 4px);
+  --radius-md: calc(var(--radius) - 2px);
+  --radius-lg: var(--radius);
+  --radius-xl: calc(var(--radius) + 4px);
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
+:root {
+  --radius: 0.5rem;
+
+  /* Base colors */
+  --background:         0 0% 99%;
+  --foreground:         220 20% 10%;
+  --card:               0 0% 100%;
+  --card-foreground:    220 20% 10%;
+  --popover:            0 0% 100%;
+  --popover-foreground: 220 20% 10%;
+  --primary:            220 20% 10%;
+  --primary-foreground: 0 0% 99%;
+  --secondary:          220 14% 96%;
+  --secondary-foreground: 220 20% 20%;
+  --muted:              220 14% 96%;
+  --muted-foreground:   220 10% 50%;
+  --destructive:        0 84% 60%;
+  --border:             220 13% 91%;
+  --input:              220 13% 91%;
+  --ring:               217 91% 60%;
+
+  /* Accent — default blue (overridden by ThemeProvider) */
+  --accent:             hsl(217 91% 60%);
+  --accent-foreground:  0 0% 100%;
+  --accent-hover:       hsl(217 91% 53%);
+  --accent-muted:       hsl(217 91% 95%);
+  --accent-border:      hsl(217 91% 80%);
+
+  /* Sidebar */
+  --sidebar:            220 20% 98%;
+  --sidebar-foreground: 220 20% 10%;
+  --sidebar-primary:    220 20% 10%;
+  --sidebar-primary-foreground: 0 0% 99%;
+  --sidebar-accent:     220 14% 94%;
+  --sidebar-accent-foreground: 220 20% 10%;
+  --sidebar-border:     220 13% 91%;
+  --sidebar-ring:       217 91% 60%;
+
+  /* Charts */
+  --chart-1: 217 91% 60%;
+  --chart-2: 262 83% 63%;
+  --chart-3: 158 64% 46%;
+  --chart-4: 35 92% 55%;
+  --chart-5: 0 84% 60%;
+
+  /* Timeline */
+  --timeline-track-bg:   220 14% 96%;
+  --timeline-grid-line:  220 13% 88%;
+  --event-card-radius:   0.375rem;
+}
+
+.dark {
+  --background:         222 25% 9%;
+  --foreground:         210 20% 92%;
+  --card:               222 25% 12%;
+  --card-foreground:    210 20% 92%;
+  --popover:            222 25% 12%;
+  --popover-foreground: 210 20% 92%;
+  --primary:            210 20% 92%;
+  --primary-foreground: 222 25% 9%;
+  --secondary:          222 20% 16%;
+  --secondary-foreground: 210 20% 80%;
+  --muted:              222 20% 16%;
+  --muted-foreground:   210 10% 55%;
+  --destructive:        0 72% 51%;
+  --border:             222 20% 20%;
+  --input:              222 20% 20%;
+  --ring:               217 91% 65%;
+
+  --sidebar:            222 25% 7%;
+  --sidebar-foreground: 210 20% 92%;
+  --sidebar-primary:    217 91% 65%;
+  --sidebar-primary-foreground: 0 0% 100%;
+  --sidebar-accent:     222 20% 14%;
+  --sidebar-accent-foreground: 210 20% 92%;
+  --sidebar-border:     222 20% 14%;
+  --sidebar-ring:       217 91% 65%;
+
+  --timeline-track-bg:  222 20% 14%;
+  --timeline-grid-line: 222 20% 18%;
+}
+
+* {
+  border-color: hsl(var(--border));
 }
 
 body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  background-color: hsl(var(--background));
+  color: hsl(var(--foreground));
+  -webkit-font-smoothing: antialiased;
+}
+
+/* Scrollbar */
+.scrollbar-thin {
+  scrollbar-width: thin;
+  scrollbar-color: hsl(var(--border)) transparent;
+}
+.scrollbar-thin::-webkit-scrollbar { width: 6px; height: 6px; }
+.scrollbar-thin::-webkit-scrollbar-track { background: transparent; }
+.scrollbar-thin::-webkit-scrollbar-thumb {
+  background-color: hsl(var(--border));
+  border-radius: 3px;
+}
+
+/* Timeline */
+.timeline-track {
+  background-color: hsl(var(--timeline-track-bg));
+  position: relative;
+  overflow: hidden;
+}
+
+.event-card {
+  position: absolute;
+  border-radius: var(--event-card-radius);
+  padding: 4px 8px;
+  font-size: 0.75rem;
+  font-weight: 500;
+  cursor: pointer;
+  user-select: none;
+  transition: all 100ms;
+}
+
+.event-card:hover {
+  filter: brightness(1.1);
+  box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+  transform: translateY(-1px);
 }
