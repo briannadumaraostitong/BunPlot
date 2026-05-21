@@ -22,13 +22,16 @@ const THEME_OPTIONS: {
 ]
 
 export function ThemeToggle() {
-  const { theme, setTheme, isDark } = useTheme()
+  const { theme, setTheme } = useTheme()
 
+  // Always render Sun on server, swap after hydration via CSS
+  // This avoids the server/client mismatch entirely
   return (
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
         <Button variant="ghost" size="icon" className="h-9 w-9">
-          {isDark ? <Moon className="h-4 w-4" /> : <Sun className="h-4 w-4" />}
+          <Sun className="h-4 w-4 dark:hidden" />
+          <Moon className="h-4 w-4 hidden dark:block" />
           <span className="sr-only">Toggle theme</span>
         </Button>
       </DropdownMenuTrigger>
@@ -42,7 +45,7 @@ export function ThemeToggle() {
             <Icon className="h-4 w-4" />
             <span>{label}</span>
             {theme === value && (
-              <span className="ml-auto h-1.5 w-1.5 rounded-full bg-[hsl(var(--accent))]" />
+              <span className="ml-auto h-1.5 w-1.5 rounded-full bg-primary" />
             )}
           </DropdownMenuItem>
         ))}

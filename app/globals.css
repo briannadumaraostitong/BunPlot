@@ -170,3 +170,23 @@ body {
   box-shadow: 0 4px 12px rgba(0,0,0,0.15);
   transform: translateY(-1px);
 }
+
+/* Accent color applied to primary interactive elements */
+[data-accent="blue"] .accent-apply,
+[data-accent="blue"] [data-slot="button"]:not([data-variant]),
+[data-accent="blue"] [data-variant="default"] {
+  background-color: hsl(217 91% 60%);
+}
+
+[data-accent="purple"] [data-variant="default"] {
+  background-color: hsl(262 83% 63%);
+}
+
+[data-accent="emerald"] [data-variant="default"] {
+  background-color: hsl(158 64% 46%);
+}
+
+/* Sidebar active state uses accent */
+[data-accent="blue"] .bg-primary { background-color: hsl(217 91% 60%); }
+[data-accent="purple"] .bg-primary { background-color: hsl(262 83% 63%); }
+[data-accent="emerald"] .bg-primary { background-color: hsl(158 64% 46%); }

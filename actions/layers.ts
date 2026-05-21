@@ -19,7 +19,8 @@ export async function createLayer(
     .order('position', { ascending: false })
     .limit(1)
 
-  const nextPosition = (existing?.[0]?.position ?? -1) + 1
+  const existingLayer = existing?.[0] as { position: number } | undefined
+  const nextPosition = (existingLayer?.position ?? -1) + 1
   const color = LAYER_COLORS[nextPosition % LAYER_COLORS.length]
 
   const { data, error } = await supabase

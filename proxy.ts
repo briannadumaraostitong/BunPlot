@@ -1,7 +1,7 @@
 import { createServerClient } from '@supabase/ssr'
 import { NextResponse, type NextRequest } from 'next/server'
 
-export async function middleware(request: NextRequest) {
+export async function proxy(request: NextRequest) {
   let supabaseResponse = NextResponse.next({ request })
 
   const supabase = createServerClient(
@@ -25,10 +25,8 @@ export async function middleware(request: NextRequest) {
     }
   )
 
-  // Refresh session — do not remove this
   const { data: { user } } = await supabase.auth.getUser()
 
-  // Protect /dashboard and /projects routes
   const isProtected =
     request.nextUrl.pathname.startsWith('/dashboard') ||
     request.nextUrl.pathname.startsWith('/projects')
@@ -40,7 +38,6 @@ export async function middleware(request: NextRequest) {
     return NextResponse.redirect(url)
   }
 
-  // Redirect logged-in users away from auth pages
   const isAuthPage = ['/login', '/signup'].includes(request.nextUrl.pathname)
   if (isAuthPage && user) {
     return NextResponse.redirect(new URL('/dashboard', request.url))
