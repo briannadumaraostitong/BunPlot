@@ -12,30 +12,49 @@ interface CreateProjectInput {
 
 export async function createProject(input: CreateProjectInput) {
   const supabase = await createClient()
-  const { data: { user } } = await supabase.auth.getUser()
 
-  if (!user) return { error: 'Not authenticated' }
+  const { data: { user }, error: authError } = await supabase.auth.getUser()
 
-  const { data: project, error } = await supabase
+  if (authError || !user) {
+    return { error: 'Not authenticated — please sign in again' }
+  }
+
+  const { data: projectData, error: projectError } = await supabase
     .from('projects')
     .insert({
       owner_id: user.id,
       title: input.title,
       description: input.description || null,
       mode: input.mode ?? 'basic',
+      settings: {},
+      archived: false,
     } as never)
     .select()
     .single()
 
-  if (error) return { error: error.message }
+  if (projectError) {
+    console.error('Project insert error:', projectError)
+    return { error: projectError.message }
+  }
 
-  await supabase.from('layers').insert({
-    project_id: project.id,
-    name: 'Main Timeline',
-    type: 'main',
-    color: '#6366F1',
-    position: 0,
-  } as never)
+  const project = projectData as { id: string; [key: string]: unknown }
+
+  const { error: layerError } = await supabase
+    .from('layers')
+    .insert({
+      project_id: project.id,
+      name: 'Main Timeline',
+      type: 'main',
+      color: '#6366F1',
+      position: 0,
+      visible: true,
+      locked: false,
+      metadata: {},
+    } as never)
+
+  if (layerError) {
+    console.error('Layer insert error:', layerError)
+  }
 
   revalidatePath('/dashboard')
   return project
