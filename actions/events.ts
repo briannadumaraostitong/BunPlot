@@ -7,9 +7,10 @@ import type { EventStatus } from '@/types/database'
 interface CreateEventInput {
   project_id: string
   layer_id: string
+  chapter_id?: string | null
   title: string
   description?: string
-  position: number
+  position?: number
   duration?: number
   color?: string
   start_date?: string
@@ -22,6 +23,7 @@ export async function createEvent(input: CreateEventInput) {
     .from('events')
     .insert({
       ...input,
+      position: input.position ?? 0,
       duration: input.duration ?? 0.05,
     } as never)
     .select()
@@ -49,6 +51,7 @@ export async function updateEvent(
     start_date: string
     end_date: string
     layer_id: string
+    chapter_id: string | null
     custom_fields: Record<string, unknown>
   }>
 ) {
@@ -75,15 +78,15 @@ export async function deleteEvent(id: string, projectId: string) {
   return { success: true }
 }
 
-export async function moveEvent(
+export async function moveEventToChapter(
   id: string,
   projectId: string,
-  newPosition: number,
-  newLayerId?: string
+  chapterId: string,
+  layerId?: string
 ) {
   const supabase = await createClient()
-  const updates: Record<string, unknown> = { position: newPosition }
-  if (newLayerId) updates.layer_id = newLayerId
+  const updates: Record<string, unknown> = { chapter_id: chapterId }
+  if (layerId) updates.layer_id = layerId
 
   const { error } = await supabase
     .from('events')
@@ -91,5 +94,51 @@ export async function moveEvent(
     .eq('id', id)
 
   if (error) return { error: error.message }
+  revalidatePath(`/projects/${projectId}`)
   return { success: true }
+}
+
+export async function duplicateEvent(eventId: string, projectId: string) {
+  const supabase = await createClient()
+
+  const { data: original, error: fetchError } = await supabase
+    .from('events')
+    .select('*')
+    .eq('id', eventId)
+    .single()
+
+  if (fetchError || !original) return { error: 'Event not found' }
+
+  const orig = original as {
+    layer_id: string
+    chapter_id: string | null
+    title: string
+    description: string | null
+    notes: string | null
+    status: string
+    color: string | null
+    position: number
+    duration: number
+  }
+
+  const { data, error } = await supabase
+    .from('events')
+    .insert({
+      project_id: projectId,
+      layer_id: orig.layer_id,
+      chapter_id: orig.chapter_id,
+      title: `${orig.title} (Copy)`,
+      description: orig.description,
+      notes: orig.notes,
+      status: orig.status,
+      color: orig.color,
+      position: orig.position,
+      duration: orig.duration,
+    } as never)
+    .select()
+    .single()
+
+  if (error) return { error: error.message }
+  revalidatePath(`/projects/${projectId}`)
+  return data
 }

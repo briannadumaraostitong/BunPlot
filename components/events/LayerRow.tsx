@@ -1,32 +1,52 @@
 'use client'
 
+import { useState, useRef } from 'react'
 import { useSortable } from '@dnd-kit/sortable'
 import { CSS } from '@dnd-kit/utilities'
-import { Eye, EyeOff, GripVertical } from 'lucide-react'
+import { Eye, EyeOff, GripVertical, Trash2, Check, X } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { EventCard } from '@/components/events/EventCard'
-import type { Layer, Event } from '@/types/database'
+import { deleteLayer, updateLayer } from '@/actions/layers'
+import type { Layer, Event, Chapter } from '@/types/database'
+import { CHAPTER_WIDTH } from '@/components/timeline/ChapterHeader'
 
 interface LayerRowProps {
   layer: Layer
   events: Event[]
+  chapters: Chapter[]
   height: number
   selectedEventId: string | null
   onSelectEvent: (id: string | null) => void
   projectId: string
   variant?: 'timeline' | 'sidebar'
   onToggleVisibility?: () => void
+  onDeleted?: () => void
+  onRenamed?: (newName: string) => void
+  onColorChanged?: (color: string) => void
+  onChapterCellClick?: (chapter: Chapter) => void
 }
 
 export function LayerRow({
   layer,
   events,
+  chapters,
   height,
   selectedEventId,
   onSelectEvent,
+  projectId,
   variant = 'timeline',
   onToggleVisibility,
+  onDeleted,
+  onRenamed,
+  onColorChanged,
+  onChapterCellClick,
 }: LayerRowProps) {
+  const [deleting, setDeleting] = useState(false)
+  const [editing, setEditing] = useState(false)
+  const [name, setName] = useState(layer.name)
+  const [showColorPicker, setShowColorPicker] = useState(false)
+  const colorInputRef = useRef<HTMLInputElement>(null)
+
   const {
     attributes,
     listeners,
@@ -45,6 +65,39 @@ export function LayerRow({
         }
       : {}
 
+  async function handleDelete(e: React.MouseEvent) {
+    e.stopPropagation()
+    if (layer.type === 'main') return
+    setDeleting(true)
+    await deleteLayer(layer.id, projectId)
+    onDeleted?.()
+    setDeleting(false)
+  }
+
+  async function handleRename() {
+    if (!name.trim() || name === layer.name) {
+      setName(layer.name)
+      setEditing(false)
+      return
+    }
+    await updateLayer(layer.id, projectId, { name: name.trim() })
+    onRenamed?.(name.trim())
+    setEditing(false)
+  }
+
+  async function handleColorChange(color: string) {
+    await updateLayer(layer.id, projectId, { color })
+    onColorChanged?.(color)
+  }
+
+  function handleKeyDown(e: React.KeyboardEvent) {
+    if (e.key === 'Enter') handleRename()
+    if (e.key === 'Escape') {
+      setName(layer.name)
+      setEditing(false)
+    }
+  }
+
   if (variant === 'sidebar') {
     return (
       <div
@@ -52,72 +105,142 @@ export function LayerRow({
         style={style}
         className="flex items-center gap-1.5 px-2 py-1.5 hover:bg-secondary/50 group"
       >
+        {/* Drag handle */}
         <button
           {...attributes}
           {...listeners}
-          className="cursor-grab active:cursor-grabbing text-muted-foreground opacity-0 group-hover:opacity-100 transition-opacity"
+          className="cursor-grab active:cursor-grabbing text-muted-foreground opacity-0 group-hover:opacity-100 transition-opacity shrink-0"
         >
           <GripVertical className="h-3.5 w-3.5" />
         </button>
 
-        <span
-          className="h-2.5 w-2.5 rounded-full shrink-0"
-          style={{ backgroundColor: layer.color }}
-        />
+        {/* Color dot — click to open color picker */}
+        <div className="relative shrink-0">
+          <button
+            onClick={() => colorInputRef.current?.click()}
+            className="h-3 w-3 rounded-full transition-transform hover:scale-125 focus:outline-none focus:ring-2 focus:ring-offset-1 focus:ring-border"
+            style={{ backgroundColor: layer.color }}
+            title="Click to change color"
+          />
+          <input
+            ref={colorInputRef}
+            type="color"
+            value={layer.color}
+            onChange={(e) => handleColorChange(e.target.value)}
+            className="absolute opacity-0 w-0 h-0 pointer-events-none"
+            tabIndex={-1}
+          />
+        </div>
 
-        <span className="text-xs flex-1 truncate" title={layer.name}>
-          {layer.name}
-        </span>
+        {/* Name / edit input */}
+        {editing ? (
+          <div className="flex items-center gap-1 flex-1 min-w-0">
+            <input
+              autoFocus
+              value={name}
+              onChange={(e) => setName(e.target.value)}
+              onKeyDown={handleKeyDown}
+              onBlur={handleRename}
+              className="flex-1 min-w-0 text-xs bg-background border border-border rounded px-1.5 py-0.5 outline-none focus:border-primary"
+            />
+            <button onClick={handleRename} className="text-primary shrink-0">
+              <Check className="h-3 w-3" />
+            </button>
+            <button
+              onClick={() => { setName(layer.name); setEditing(false) }}
+              className="text-muted-foreground shrink-0"
+            >
+              <X className="h-3 w-3" />
+            </button>
+          </div>
+        ) : (
+          <span
+            className="text-xs flex-1 truncate cursor-pointer"
+            title={`${layer.name} — double-click to rename`}
+            onDoubleClick={() => setEditing(true)}
+          >
+            {layer.name}
+          </span>
+        )}
 
-        <button
-          onClick={onToggleVisibility}
-          className="opacity-0 group-hover:opacity-100 transition-opacity text-muted-foreground hover:text-foreground"
-        >
-          {layer.visible ? (
-            <Eye className="h-3.5 w-3.5" />
-          ) : (
-            <EyeOff className="h-3.5 w-3.5" />
-          )}
-        </button>
+        {/* Actions */}
+        {!editing && (
+          <div className="flex items-center gap-0.5 opacity-0 group-hover:opacity-100 transition-opacity">
+            <button
+              onClick={onToggleVisibility}
+              className="text-muted-foreground hover:text-foreground p-0.5"
+            >
+              {layer.visible ? (
+                <Eye className="h-3.5 w-3.5" />
+              ) : (
+                <EyeOff className="h-3.5 w-3.5" />
+              )}
+            </button>
+
+            {layer.type !== 'main' && (
+              <button
+                onClick={handleDelete}
+                disabled={deleting}
+                className="text-muted-foreground hover:text-destructive p-0.5 transition-colors"
+              >
+                <Trash2 className="h-3.5 w-3.5" />
+              </button>
+            )}
+          </div>
+        )}
       </div>
     )
   }
 
+  // ── Timeline variant ─────────────────────────────────────
   return (
     <div
       className={cn(
-        'timeline-track border-b border-border relative select-none',
+        'flex border-b border-border relative select-none',
         !layer.visible && 'opacity-40'
       )}
       style={{ height }}
     >
-      <span
-        className="absolute top-1 left-2 text-[10px] font-medium whitespace-nowrap z-10"
-        style={{ color: layer.color }}
+      <div
+        className="flex items-center px-2 shrink-0 border-r border-border bg-secondary/30"
+        style={{ width: 120, minWidth: 120, height }}
       >
-        {layer.name}
-      </span>
+        <span
+          className="text-[11px] font-medium truncate"
+          style={{ color: layer.color }}
+        >
+          {layer.name}
+        </span>
+      </div>
 
-      {events.map((event) => (
-        <EventCard
-          key={event.id}
-          event={event}
-          layer={layer}
-          trackHeight={height}
-          selected={selectedEventId === event.id}
-          onSelect={() =>
-            onSelectEvent(selectedEventId === event.id ? null : event.id)
-          }
-        />
-      ))}
+      {chapters.map((chapter) => {
+        const chapterEvents = events.filter((e) => e.chapter_id === chapter.id)
+        return (
+          <div
+            key={chapter.id}
+            onClick={() => onChapterCellClick?.(chapter)}
+            className="relative border-r border-border timeline-track cursor-crosshair shrink-0"
+            style={{ width: CHAPTER_WIDTH, minWidth: CHAPTER_WIDTH, height }}
+          >
+            {chapterEvents.map((event, idx) => (
+              <EventCard
+                key={event.id}
+                event={event}
+                layer={layer}
+                trackHeight={height}
+                indexInCell={idx}
+                totalInCell={chapterEvents.length}
+                selected={selectedEventId === event.id}
+                onSelect={() =>
+                  onSelectEvent(selectedEventId === event.id ? null : event.id)
+                }
+              />
+            ))}
+          </div>
+        )
+      })}
 
-      {[0.25, 0.5, 0.75].map((mark) => (
-        <div
-          key={mark}
-          className="absolute top-0 bottom-0 w-px border-r border-dashed border-border opacity-30"
-          style={{ left: `${mark * 100}%` }}
-        />
-      ))}
+      <div style={{ minWidth: 140 }} className="shrink-0" />
     </div>
   )
 }

@@ -2,7 +2,7 @@ import { notFound } from 'next/navigation'
 import { createClient } from '@/lib/supabase/server'
 import { TimelineCanvas } from '@/components/timeline/TimelineCanvas'
 import type { Metadata } from 'next'
-import type { Project, Layer, Event } from '@/types/database'
+import type { Project, Layer, Event, Chapter } from '@/types/database'
 
 interface Props {
   params: Promise<{ id: string }>
@@ -45,11 +45,18 @@ export default async function ProjectPage({ params }: Props) {
     .eq('project_id', id)
     .order('position')
 
+  const { data: chaptersData } = await supabase
+    .from('chapters')
+    .select('*')
+    .eq('project_id', id)
+    .order('position')
+
   return (
     <TimelineCanvas
       project={project}
       initialLayers={(layersData ?? []) as Layer[]}
       initialEvents={(eventsData ?? []) as Event[]}
+      initialChapters={(chaptersData ?? []) as Chapter[]}
     />
   )
 }

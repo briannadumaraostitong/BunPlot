@@ -28,7 +28,7 @@ export function useLayers(projectId: string, initial: Layer[] = []) {
           table: 'layers',
           filter: `project_id=eq.${projectId}`,
         },
-        () => refresh()
+        () => { refresh() }
       )
       .subscribe()
 
@@ -50,5 +50,21 @@ export function useLayers(projectId: string, initial: Layer[] = []) {
     })
   }
 
-  return { layers, setLayers, refresh, toggleVisibility, reorder }
+  function removeLayer(id: string) {
+    setLayers((prev) => prev.filter((l) => l.id !== id))
+  }
+
+  function renameLayer(id: string, newName: string) {
+    setLayers((prev) =>
+      prev.map((l) => (l.id === id ? { ...l, name: newName } : l))
+    )
+  }
+
+  function colorLayer(id: string, color: string) {
+    setLayers((prev) =>
+      prev.map((l) => (l.id === id ? { ...l, color } : l))
+    )
+  }
+
+  return { layers, setLayers, refresh, toggleVisibility, reorder, removeLayer, renameLayer, colorLayer }
 }

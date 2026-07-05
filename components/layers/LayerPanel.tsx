@@ -10,7 +10,7 @@ import {
   SortableContext,
   verticalListSortingStrategy,
 } from '@dnd-kit/sortable'
-import { Plus, ChevronLeft, ChevronRight } from 'lucide-react'
+import { Plus, ChevronLeft, ChevronRight, Loader2 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { LayerRow } from './LayerRow'
 import { createLayer, reorderLayers } from '@/actions/layers'
@@ -22,6 +22,10 @@ interface LayerPanelProps {
   layers: Layer[]
   onToggleVisibility: (id: string) => void
   onReorder: (from: number, to: number) => void
+  onLayerAdded: () => void
+  onLayerRemoved: (id: string) => void
+  onLayerRenamed: (id: string, name: string) => void
+  onLayerColorChanged: (id: string, color: string) => void
 }
 
 export function LayerPanel({
@@ -29,11 +33,21 @@ export function LayerPanel({
   layers,
   onToggleVisibility,
   onReorder,
+  onLayerAdded,
+  onLayerRemoved,
+  onLayerRenamed,
+  onLayerColorChanged,
 }: LayerPanelProps) {
   const [collapsed, setCollapsed] = useState(false)
+  const [adding, setAdding] = useState(false)
 
   async function handleAddLayer() {
+    if (adding) return
+    setAdding(true)
     await createLayer(project.id, `Layer ${layers.length + 1}`)
+    await new Promise((r) => setTimeout(r, 500))
+    onLayerAdded()
+    setAdding(false)
   }
 
   async function handleDragEnd(e: DragEndEvent) {
@@ -95,12 +109,16 @@ export function LayerPanel({
                     key={layer.id}
                     layer={layer}
                     events={[]}
+                    chapters={[]}
                     height={64}
                     selectedEventId={null}
                     onSelectEvent={() => {}}
                     projectId={project.id}
                     variant="sidebar"
                     onToggleVisibility={() => onToggleVisibility(layer.id)}
+                    onDeleted={() => onLayerRemoved(layer.id)}
+                    onRenamed={(newName) => onLayerRenamed(layer.id, newName)}
+                    onColorChanged={(color) => onLayerColorChanged(layer.id, color)}
                   />
                 ))}
               </SortableContext>
@@ -113,9 +131,14 @@ export function LayerPanel({
               size="sm"
               className="w-full h-7 text-xs"
               onClick={handleAddLayer}
+              disabled={adding}
             >
-              <Plus className="h-3 w-3 mr-1" />
-              Add Layer
+              {adding ? (
+                <Loader2 className="h-3 w-3 mr-1 animate-spin" />
+              ) : (
+                <Plus className="h-3 w-3 mr-1" />
+              )}
+              {adding ? 'Adding...' : 'Add Layer'}
             </Button>
           </div>
         </>

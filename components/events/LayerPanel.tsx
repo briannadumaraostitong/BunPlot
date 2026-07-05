@@ -22,13 +22,20 @@ interface LayerPanelProps {
   layers: Layer[]
   onToggleVisibility: (id: string) => void
   onReorder: (from: number, to: number) => void
+  onLayerAdded: () => void
+  onLayerRemoved: (id: string) => void
+  onLayerRenamed: (id: string, name: string) => void
+  onLayerColorChanged: (id: string, color: string) => void
 }
-
 export function LayerPanel({
   project,
   layers,
   onToggleVisibility,
   onReorder,
+  onLayerAdded,
+  onLayerRemoved,
+  onLayerRenamed,
+  onLayerColorChanged,
 }: LayerPanelProps) {
   const [collapsed, setCollapsed] = useState(false)
 
@@ -92,16 +99,20 @@ export function LayerPanel({
               >
                 {layers.map((layer) => (
                   <LayerRow
-                    key={layer.id}
-                    layer={layer}
-                    events={[]}
-                    height={64}
-                    selectedEventId={null}
-                    onSelectEvent={() => {}}
-                    projectId={project.id}
-                    variant="sidebar"
-                    onToggleVisibility={() => onToggleVisibility(layer.id)}
-                  />
+  key={layer.id}
+  layer={layer}
+  events={[]}
+  chapters={[]}
+  height={64}
+  selectedEventId={null}
+  onSelectEvent={() => {}}
+  projectId={project.id}
+  variant="sidebar"
+  onToggleVisibility={() => onToggleVisibility(layer.id)}
+  onDeleted={() => onLayerRemoved(layer.id)}
+  onRenamed={(newName) => onLayerRenamed(layer.id, newName)}
+  onColorChanged={(color) => onLayerColorChanged(layer.id, color)}
+/>
                 ))}
               </SortableContext>
             </DndContext>

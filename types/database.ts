@@ -1,8 +1,13 @@
+// types/database.ts
+// Auto-generated types matching supabase/schema.sql
+
 export type AccentColor = 'blue' | 'purple' | 'emerald'
 export type AppMode = 'basic' | 'advanced'
 export type EventStatus = 'draft' | 'outline' | 'written' | 'revised' | 'final'
 export type LayerType = 'main' | 'character' | 'subplot' | 'theme' | 'custom'
 export type AppTheme = 'light' | 'dark' | 'system'
+
+// ── Tables ──────────────────────────────────────────────────
 
 export interface Profile {
   id: string
@@ -43,6 +48,14 @@ export interface SavedView {
   name: string
   filters: EventFilters
   zoom: number
+}
+
+export interface Chapter {
+  id: string
+  project_id: string
+  title: string
+  position: number
+  created_at: string
 }
 
 export interface LayerGroup {
@@ -93,6 +106,7 @@ export interface Event {
   id: string
   project_id: string
   layer_id: string
+  chapter_id: string | null
   title: string
   description: string | null
   notes: string | null
@@ -135,6 +149,8 @@ export interface EventDependency {
   created_at: string
 }
 
+// ── Extended / Joined Types ─────────────────────────────────
+
 export interface LayerWithEvents extends Layer {
   events: Event[]
 }
@@ -143,11 +159,14 @@ export interface ProjectWithLayers extends Project {
   layers: LayerWithEvents[]
   layer_groups: LayerGroup[]
   characters: Character[]
+  chapters: Chapter[]
 }
 
 export interface EventWithCharacters extends Event {
   characters: Character[]
 }
+
+// ── Filter Types ─────────────────────────────────────────────
 
 export interface EventFilters {
   status?: EventStatus[]
@@ -161,6 +180,8 @@ export interface EventFilters {
   search?: string
 }
 
+// ── Supabase Database type (for createClient<Database>()) ───
+
 export interface Database {
   public: {
     Tables: {
@@ -173,6 +194,11 @@ export interface Database {
         Row: Project
         Insert: Omit<Project, 'id' | 'created_at' | 'updated_at'> & { id?: string }
         Update: Partial<Omit<Project, 'id' | 'created_at'>>
+      }
+      chapters: {
+        Row: Chapter
+        Insert: Omit<Chapter, 'id' | 'created_at'> & { id?: string }
+        Update: Partial<Omit<Chapter, 'id' | 'created_at'>>
       }
       layer_groups: {
         Row: LayerGroup
