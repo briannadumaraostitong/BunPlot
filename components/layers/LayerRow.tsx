@@ -1,14 +1,21 @@
 'use client'
 
 import { useState, useRef } from 'react'
-import { useSortable } from '@dnd-kit/sortable'
+import { useDroppable } from '@dnd-kit/core'
+import { SortableContext, useSortable, verticalListSortingStrategy } from '@dnd-kit/sortable'
 import { CSS } from '@dnd-kit/utilities'
-import { Eye, EyeOff, GripVertical, Trash2, Check, X } from 'lucide-react'
+import { Eye, EyeOff, GripVertical, Trash2, Check, X, Plus } from 'lucide-react'
 import { cn } from '@/lib/utils'
-import { EventCard } from '@/components/events/EventCard'
 import { deleteLayer, updateLayer } from '@/actions/layers'
 import type { Layer, Event, Chapter } from '@/types/database'
-import { CHAPTER_WIDTH } from '@/components/timeline/ChapterHeader'
+
+const STATUS_INDICATORS: Record<string, string> = {
+  draft:   'bg-zinc-400',
+  outline: 'bg-blue-400',
+  written: 'bg-yellow-400',
+  revised: 'bg-purple-400',
+  final:   'bg-green-400',
+}
 
 interface LayerRowProps {
   layer: Layer
@@ -24,6 +31,8 @@ interface LayerRowProps {
   onRenamed?: (newName: string) => void
   onColorChanged?: (color: string) => void
   onChapterCellClick?: (chapter: Chapter) => void
+  labelWidth?: number
+  chapterWidth?: number
 }
 
 export function LayerRow({
@@ -40,6 +49,8 @@ export function LayerRow({
   onRenamed,
   onColorChanged,
   onChapterCellClick,
+  labelWidth = 120,
+  chapterWidth = 220,
 }: LayerRowProps) {
   const [deleting, setDeleting] = useState(false)
   const [editing, setEditing] = useState(false)
@@ -104,7 +115,6 @@ export function LayerRow({
         style={style}
         className="flex items-center gap-1.5 px-2 py-1.5 hover:bg-secondary/50 group"
       >
-        {/* Drag handle */}
         <button
           {...attributes}
           {...listeners}
@@ -113,7 +123,6 @@ export function LayerRow({
           <GripVertical className="h-3.5 w-3.5" />
         </button>
 
-        {/* Color dot */}
         <div className="relative shrink-0">
           <button
             onClick={() => colorInputRef.current?.click()}
@@ -131,7 +140,6 @@ export function LayerRow({
           />
         </div>
 
-        {/* Name */}
         {editing ? (
           <div className="flex items-center gap-1 flex-1 min-w-0">
             <input
@@ -162,7 +170,6 @@ export function LayerRow({
           </span>
         )}
 
-        {/* Actions */}
         {!editing && (
           <div className="flex items-center gap-0.5 opacity-0 group-hover:opacity-100 transition-opacity">
             <button
@@ -192,17 +199,26 @@ export function LayerRow({
   }
 
   // ── Timeline variant ─────────────────────────────────────
+  const maxEventsInAnyChapter = Math.max(
+    1,
+    ...chapters.map(
+      (chapter) => events.filter((e) => e.chapter_id === chapter.id).length
+    )
+  )
+  const dynamicHeight = Math.max(height, maxEventsInAnyChapter * 80 + 16)
+
   return (
     <div
       className={cn(
         'flex border-b border-border relative select-none',
         !layer.visible && 'opacity-40'
       )}
-      style={{ height }}
+      style={{ height: dynamicHeight }}
     >
+      {/* Layer name label */}
       <div
         className="flex items-center px-2 shrink-0 border-r border-border bg-secondary/30"
-        style={{ width: 120, minWidth: 120, height }}
+        style={{ width: labelWidth, minWidth: labelWidth, height: dynamicHeight }}
       >
         <span
           className="text-[11px] font-medium truncate"
@@ -212,34 +228,211 @@ export function LayerRow({
         </span>
       </div>
 
+      {/* Chapter cells */}
       {chapters.map((chapter) => {
         const chapterEvents = events.filter((e) => e.chapter_id === chapter.id)
         return (
-          <div
+          <ChapterCell
             key={chapter.id}
-            onClick={() => onChapterCellClick?.(chapter)}
-            className="relative border-r border-border timeline-track cursor-crosshair shrink-0"
-            style={{ width: CHAPTER_WIDTH, minWidth: CHAPTER_WIDTH, height }}
-          >
-            {chapterEvents.map((event, idx) => (
-              <EventCard
-                key={event.id}
-                event={event}
-                layer={layer}
-                trackHeight={height}
-                indexInCell={idx}
-                totalInCell={chapterEvents.length}
-                selected={selectedEventId === event.id}
-                onSelect={() =>
-                  onSelectEvent(selectedEventId === event.id ? null : event.id)
-                }
-              />
-            ))}
-          </div>
+            chapter={chapter}
+            events={chapterEvents}
+            layer={layer}
+            height={dynamicHeight}
+            width={chapterWidth}
+            selectedEventId={selectedEventId}
+            onSelectEvent={onSelectEvent}
+            onAddClick={() => onChapterCellClick?.(chapter)}
+          />
         )
       })}
 
       <div style={{ minWidth: 140 }} className="shrink-0" />
+    </div>
+  )
+}
+
+function cellDroppableId(layerId: string, chapterId: string) {
+  return `cell:${layerId}:${chapterId}`
+}
+
+function ChapterCell({
+  chapter,
+  events,
+  layer,
+  height,
+  width,
+  selectedEventId,
+  onSelectEvent,
+  onAddClick,
+}: {
+  chapter: Chapter
+  events: Event[]
+  layer: Layer
+  height: number
+  width: number
+  selectedEventId: string | null
+  onSelectEvent: (id: string | null) => void
+  onAddClick: () => void
+}) {
+  const [hovering, setHovering] = useState(false)
+
+  const { setNodeRef } = useDroppable({
+    id: cellDroppableId(layer.id, chapter.id),
+    data: { chapterId: chapter.id, layerId: layer.id, isContainer: true },
+  })
+
+  return (
+    <div
+      ref={setNodeRef}
+      className="relative border-r border-border timeline-track shrink-0 flex flex-col"
+      style={{ width, minWidth: width, height }}
+      onMouseEnter={() => setHovering(true)}
+      onMouseLeave={() => setHovering(false)}
+    >
+      <SortableContext
+        items={events.map((e) => e.id)}
+        strategy={verticalListSortingStrategy}
+      >
+        <div className="flex flex-col gap-2 p-2 flex-1">
+          {events.map((event) => (
+            <EventCardStacked
+              key={event.id}
+              event={event}
+              layer={layer}
+              selected={selectedEventId === event.id}
+              onSelect={() =>
+                onSelectEvent(selectedEventId === event.id ? null : event.id)
+              }
+            />
+          ))}
+        </div>
+      </SortableContext>
+
+      {hovering && (
+        <button
+          onClick={onAddClick}
+          className="absolute bottom-2 right-2 h-6 w-6 rounded-full bg-primary/90 hover:bg-primary text-primary-foreground flex items-center justify-center shadow-md transition-all hover:scale-110"
+          title={`Add event to ${chapter.title}`}
+        >
+          <Plus className="h-3.5 w-3.5" />
+        </button>
+      )}
+    </div>
+  )
+}
+
+function EventCardStacked({
+  event,
+  layer,
+  selected,
+  onSelect,
+}: {
+  event: Event
+  layer: Layer
+  selected: boolean
+  onSelect: () => void
+}) {
+  const color = event.color ?? layer.color
+
+  const {
+    attributes,
+    listeners,
+    setNodeRef,
+    transform,
+    transition,
+    isDragging,
+  } = useSortable({
+    id: event.id,
+    data: { chapterId: event.chapter_id, layerId: event.layer_id },
+  })
+
+  return (
+    <div
+      ref={setNodeRef}
+      onClick={(e) => { e.stopPropagation(); onSelect() }}
+      className={cn(
+        'group relative rounded-lg pl-2.5 pr-5 py-2 cursor-pointer select-none',
+        'flex flex-col gap-1 transition-all duration-100',
+        'hover:brightness-110 hover:shadow-md',
+        selected && 'ring-2 ring-offset-1 shadow-lg',
+        isDragging && 'z-10'
+      )}
+      style={{
+        transform: CSS.Transform.toString(transform),
+        transition,
+        opacity: isDragging ? 0.5 : 1,
+        backgroundColor: color + '18',
+        borderWidth: '1px',
+        borderStyle: 'solid',
+        borderColor: selected ? color : color + '40',
+        borderLeftWidth: '2px',
+        borderLeftColor: color,
+      }}
+    >
+      <button
+        {...attributes}
+        {...listeners}
+        onClick={(e) => e.stopPropagation()}
+        className="absolute top-1.5 right-1 h-4 w-4 flex items-center justify-center text-muted-foreground opacity-0 group-hover:opacity-100 cursor-grab active:cursor-grabbing transition-opacity"
+      >
+        <GripVertical className="h-3 w-3" />
+      </button>
+
+      <span
+        className="text-[11px] font-semibold leading-tight truncate"
+        style={{ color }}
+      >
+        {event.icon && <span className="mr-1">{event.icon}</span>}
+        {event.title}
+      </span>
+
+      <div className="flex items-center gap-1">
+        <span
+          className={cn(
+            'h-1.5 w-1.5 rounded-full shrink-0',
+            STATUS_INDICATORS[event.status] ?? 'bg-zinc-400'
+          )}
+        />
+        <span className="text-[9px] font-medium text-muted-foreground uppercase tracking-wide">
+          {event.status}
+        </span>
+      </div>
+    </div>
+  )
+}
+
+export function EventCardPreview({ event, layer, width }: { event: Event; layer: Layer; width: number }) {
+  const color = event.color ?? layer.color
+
+  return (
+    <div
+      className="rounded-lg pl-2.5 pr-5 py-2 flex flex-col gap-1 shadow-lg cursor-grabbing"
+      style={{
+        width,
+        backgroundColor: color + '18',
+        borderWidth: '1px',
+        borderStyle: 'solid',
+        borderColor: color,
+        borderLeftWidth: '2px',
+        borderLeftColor: color,
+      }}
+    >
+      <span className="text-[11px] font-semibold leading-tight truncate" style={{ color }}>
+        {event.icon && <span className="mr-1">{event.icon}</span>}
+        {event.title}
+      </span>
+
+      <div className="flex items-center gap-1">
+        <span
+          className={cn(
+            'h-1.5 w-1.5 rounded-full shrink-0',
+            STATUS_INDICATORS[event.status] ?? 'bg-zinc-400'
+          )}
+        />
+        <span className="text-[9px] font-medium text-muted-foreground uppercase tracking-wide">
+          {event.status}
+        </span>
+      </div>
     </div>
   )
 }

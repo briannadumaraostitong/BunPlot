@@ -24,6 +24,7 @@ export interface Profile {
 export interface Project {
   id: string
   owner_id: string
+  folder_id: string | null
   title: string
   description: string | null
   cover_image_url: string | null
@@ -34,6 +35,15 @@ export interface Project {
   archived: boolean
   created_at: string
   updated_at: string
+}
+
+export interface ProjectFolder {
+  id: string
+  owner_id: string
+  name: string
+  position: number
+  collapsed: boolean
+  created_at: string
 }
 
 export interface ProjectSettings {
@@ -194,6 +204,11 @@ export interface Database {
         Row: Project
         Insert: Omit<Project, 'id' | 'created_at' | 'updated_at'> & { id?: string }
         Update: Partial<Omit<Project, 'id' | 'created_at'>>
+      }
+      project_folders: {
+        Row: ProjectFolder
+        Insert: Omit<ProjectFolder, 'id' | 'created_at'> & { id?: string }
+        Update: Partial<Omit<ProjectFolder, 'id' | 'created_at'>>
       }
       chapters: {
         Row: Chapter

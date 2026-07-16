@@ -35,14 +35,26 @@ export function useEvents(projectId: string, initial: Event[] = []) {
     return () => { supabase.removeChannel(channel) }
   }, [projectId, refresh, supabase])
 
-  function moveEventOptimistic(id: string, newPosition: number, newLayerId?: string) {
-    setEvents((prev) =>
-      prev.map((e) =>
-        e.id === id
-          ? { ...e, position: newPosition, layer_id: newLayerId ?? e.layer_id }
-          : e
-      )
-    )
+  function moveEventToCell(
+    eventId: string,
+    chapterId: string,
+    layerId: string,
+    orderedIdsInTargetCell: string[]
+  ) {
+    setEvents((prev) => {
+      const positionById = new Map(orderedIdsInTargetCell.map((id, index) => [id, index]))
+      return prev.map((e) => {
+        if (e.id === eventId) {
+          return {
+            ...e,
+            chapter_id: chapterId,
+            layer_id: layerId,
+            position: positionById.get(eventId) ?? e.position,
+          }
+        }
+        return positionById.has(e.id) ? { ...e, position: positionById.get(e.id)! } : e
+      })
+    })
   }
 
   function eventsForLayer(layerId: string) {
@@ -51,5 +63,5 @@ export function useEvents(projectId: string, initial: Event[] = []) {
       .sort((a, b) => a.position - b.position)
   }
 
-  return { events, setEvents, refresh, moveEventOptimistic, eventsForLayer }
+  return { events, setEvents, refresh, moveEventToCell, eventsForLayer }
 }

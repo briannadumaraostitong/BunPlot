@@ -1,11 +1,17 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useRef, useCallback } from 'react'
 import { Plus, X, Loader2 } from 'lucide-react'
 import { createChapter, updateChapter, deleteChapter } from '@/actions/chapters'
 import type { Chapter } from '@/types/database'
 
-const CHAPTER_WIDTH = 220 // px per chapter column
+const DEFAULT_CHAPTER_WIDTH = 220
+const MIN_CHAPTER_WIDTH = 120
+const MAX_CHAPTER_WIDTH = 500
+
+const DEFAULT_LABEL_WIDTH = 120
+const MIN_LABEL_WIDTH = 80
+const MAX_LABEL_WIDTH = 300
 
 interface ChapterHeaderProps {
   projectId: string
@@ -13,6 +19,10 @@ interface ChapterHeaderProps {
   onAdded: () => void
   onRemoved: (id: string) => void
   onRenamed: (id: string, title: string) => void
+  labelWidth: number
+  chapterWidth: number
+  onLabelWidthChange: (w: number) => void
+  onChapterWidthChange: (w: number) => void
 }
 
 export function ChapterHeader({
@@ -21,6 +31,10 @@ export function ChapterHeader({
   onAdded,
   onRemoved,
   onRenamed,
+  labelWidth,
+  chapterWidth,
+  onLabelWidthChange,
+  onChapterWidthChange,
 }: ChapterHeaderProps) {
   const [adding, setAdding] = useState(false)
 
@@ -35,21 +49,39 @@ export function ChapterHeader({
 
   return (
     <div className="flex h-10 border-b border-border bg-secondary/50 shrink-0">
-      <div
-        className="shrink-0 border-r border-border bg-secondary/50"
-        style={{ width: 120, minWidth: 120 }}
-      />
+      {/* Label column with resize handle */}
+      <ResizableCell
+        width={labelWidth}
+        minWidth={MIN_LABEL_WIDTH}
+        maxWidth={MAX_LABEL_WIDTH}
+        onWidthChange={onLabelWidthChange}
+        className="border-r border-border bg-secondary/50"
+      >
+        <span className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider px-2">
+          Layer
+        </span>
+      </ResizableCell>
 
+      {/* Chapter columns */}
       {chapters.map((chapter) => (
-        <ChapterCell
+        <ResizableCell
           key={chapter.id}
-          chapter={chapter}
-          projectId={projectId}
-          onRemoved={onRemoved}
-          onRenamed={onRenamed}
-        />
+          width={chapterWidth}
+          minWidth={MIN_CHAPTER_WIDTH}
+          maxWidth={MAX_CHAPTER_WIDTH}
+          onWidthChange={onChapterWidthChange}
+          className="border-r border-border"
+        >
+          <ChapterCell
+            chapter={chapter}
+            projectId={projectId}
+            onRemoved={onRemoved}
+            onRenamed={onRenamed}
+          />
+        </ResizableCell>
       ))}
 
+      {/* Add chapter button */}
       <button
         onClick={handleAdd}
         disabled={adding}
@@ -63,6 +95,66 @@ export function ChapterHeader({
         )}
         Add Chapter
       </button>
+    </div>
+  )
+}
+
+function ResizableCell({
+  width,
+  minWidth,
+  maxWidth,
+  onWidthChange,
+  className,
+  children,
+}: {
+  width: number
+  minWidth: number
+  maxWidth: number
+  onWidthChange: (w: number) => void
+  className?: string
+  children: React.ReactNode
+}) {
+  const startX = useRef(0)
+  const startWidth = useRef(0)
+
+  const onMouseMove = useCallback((e: MouseEvent) => {
+    const delta = e.clientX - startX.current
+    const newWidth = Math.min(maxWidth, Math.max(minWidth, startWidth.current + delta))
+    onWidthChange(newWidth)
+  }, [minWidth, maxWidth, onWidthChange])
+
+  const onMouseUp = useCallback(() => {
+    document.removeEventListener('mousemove', onMouseMove)
+    document.removeEventListener('mouseup', onMouseUp)
+    document.body.style.cursor = ''
+    document.body.style.userSelect = ''
+  }, [onMouseMove])
+
+  function onMouseDown(e: React.MouseEvent) {
+    e.preventDefault()
+    startX.current = e.clientX
+    startWidth.current = width
+    document.body.style.cursor = 'col-resize'
+    document.body.style.userSelect = 'none'
+    document.addEventListener('mousemove', onMouseMove)
+    document.addEventListener('mouseup', onMouseUp)
+  }
+
+  return (
+    <div
+      className={`relative flex items-center shrink-0 ${className ?? ''}`}
+      style={{ width, minWidth: width }}
+    >
+      {children}
+
+      {/* Drag handle */}
+      <div
+        onMouseDown={onMouseDown}
+        className="absolute right-0 top-0 bottom-0 w-1 cursor-col-resize hover:bg-primary/50 transition-colors z-10 group"
+        title="Drag to resize"
+      >
+        <div className="absolute right-0 top-1/2 -translate-y-1/2 w-0.5 h-4 bg-border group-hover:bg-primary rounded-full transition-colors" />
+      </div>
     </div>
   )
 }
@@ -102,10 +194,7 @@ function ChapterCell({
   }
 
   return (
-    <div
-      className="group flex items-center justify-between gap-1 px-3 border-r border-border shrink-0"
-      style={{ width: CHAPTER_WIDTH, minWidth: CHAPTER_WIDTH }}
-    >
+    <div className="group flex items-center justify-between gap-1 px-3 flex-1 min-w-0">
       {editing ? (
         <input
           autoFocus
@@ -145,4 +234,4 @@ function ChapterCell({
   )
 }
 
-export { CHAPTER_WIDTH }
+export { DEFAULT_CHAPTER_WIDTH, DEFAULT_LABEL_WIDTH }

@@ -3,13 +3,16 @@
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { formatDistanceToNow } from 'date-fns'
-import { MoreHorizontal, Archive, Trash2 } from 'lucide-react'
+import { MoreHorizontal, Archive, Trash2, FolderInput, FolderMinus } from 'lucide-react'
 import { Badge } from '@/components/ui/badge'
 import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuTrigger,
+  DropdownMenuSub,
+  DropdownMenuSubTrigger,
+  DropdownMenuSubContent,
 } from '@/components/ui/dropdown-menu'
 import {
   Dialog,
@@ -19,15 +22,16 @@ import {
 } from '@/components/ui/dialog'
 import { Button } from '@/components/ui/button'
 import { cn } from '@/lib/utils'
-import { deleteProject, archiveProject } from '@/actions/projects'
-import type { Project } from '@/types/database'
+import { deleteProject, archiveProject, moveProjectToFolder } from '@/actions/projects'
+import type { Project, ProjectFolder } from '@/types/database'
 import { useState } from 'react'
 
 interface ProjectCardProps {
   project: Project
+  folders?: ProjectFolder[]
 }
 
-export function ProjectCard({ project }: ProjectCardProps) {
+export function ProjectCard({ project, folders = [] }: ProjectCardProps) {
   const router = useRouter()
   const [confirmDelete, setConfirmDelete] = useState(false)
   const [loading, setLoading] = useState(false)
@@ -42,6 +46,11 @@ export function ProjectCard({ project }: ProjectCardProps) {
 
   async function handleArchive() {
     await archiveProject(project.id)
+    router.refresh()
+  }
+
+  async function handleMoveToFolder(folderId: string | null) {
+    await moveProjectToFolder(project.id, folderId)
     router.refresh()
   }
 
@@ -78,6 +87,32 @@ export function ProjectCard({ project }: ProjectCardProps) {
                 </Button>
               </DropdownMenuTrigger>
               <DropdownMenuContent align="end">
+                {folders.length > 0 && (
+                  <DropdownMenuSub>
+                    <DropdownMenuSubTrigger className="text-muted-foreground">
+                      <FolderInput className="h-3.5 w-3.5 mr-2" /> Move to folder
+                    </DropdownMenuSubTrigger>
+                    <DropdownMenuSubContent>
+                      {project.folder_id && (
+                        <DropdownMenuItem
+                          className="text-muted-foreground"
+                          onClick={() => handleMoveToFolder(null)}
+                        >
+                          <FolderMinus className="h-3.5 w-3.5 mr-2" /> Remove from folder
+                        </DropdownMenuItem>
+                      )}
+                      {folders.map((folder) => (
+                        <DropdownMenuItem
+                          key={folder.id}
+                          disabled={folder.id === project.folder_id}
+                          onClick={() => handleMoveToFolder(folder.id)}
+                        >
+                          {folder.name}
+                        </DropdownMenuItem>
+                      ))}
+                    </DropdownMenuSubContent>
+                  </DropdownMenuSub>
+                )}
                 <DropdownMenuItem
                   className="text-muted-foreground"
                   onClick={handleArchive}

@@ -78,6 +78,20 @@ export async function deleteEvent(id: string, projectId: string) {
   return { success: true }
 }
 
+export async function reorderEvents(projectId: string, orderedIds: string[]) {
+  const supabase = await createClient()
+  await Promise.all(
+    orderedIds.map((id, index) =>
+      supabase
+        .from('events')
+        .update({ position: index } as never)
+        .eq('id', id)
+    )
+  )
+  revalidatePath(`/projects/${projectId}`)
+  return { success: true }
+}
+
 export async function moveEventToChapter(
   id: string,
   projectId: string,

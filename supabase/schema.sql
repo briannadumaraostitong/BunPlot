@@ -39,10 +39,21 @@ CREATE TRIGGER on_auth_user_created
   AFTER INSERT ON auth.users
   FOR EACH ROW EXECUTE FUNCTION handle_new_user();
 
+-- PROJECT FOLDERS
+CREATE TABLE project_folders (
+  id          UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  owner_id    UUID NOT NULL REFERENCES profiles(id) ON DELETE CASCADE,
+  name        TEXT NOT NULL,
+  position    INTEGER NOT NULL DEFAULT 0,
+  collapsed   BOOLEAN NOT NULL DEFAULT FALSE,
+  created_at  TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+
 -- PROJECTS
 CREATE TABLE projects (
   id              UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
   owner_id        UUID NOT NULL REFERENCES profiles(id) ON DELETE CASCADE,
+  folder_id       UUID REFERENCES project_folders(id) ON DELETE SET NULL,
   title           TEXT NOT NULL,
   description     TEXT,
   cover_image_url TEXT,
@@ -146,6 +157,8 @@ CREATE TABLE event_dependencies (
 -- INDEXES
 CREATE INDEX idx_projects_owner     ON projects(owner_id);
 CREATE INDEX idx_projects_archived  ON projects(owner_id, archived);
+CREATE INDEX idx_projects_folder    ON projects(folder_id);
+CREATE INDEX idx_project_folders_owner ON project_folders(owner_id);
 CREATE INDEX idx_layers_project     ON layers(project_id);
 CREATE INDEX idx_layers_position    ON layers(project_id, position);
 CREATE INDEX idx_layers_group       ON layers(group_id);
@@ -195,6 +208,7 @@ CREATE TRIGGER set_updated_at_characters
 
 -- ROW LEVEL SECURITY
 ALTER TABLE profiles           ENABLE ROW LEVEL SECURITY;
+ALTER TABLE project_folders    ENABLE ROW LEVEL SECURITY;
 ALTER TABLE projects           ENABLE ROW LEVEL SECURITY;
 ALTER TABLE layer_groups       ENABLE ROW LEVEL SECURITY;
 ALTER TABLE layers             ENABLE ROW LEVEL SECURITY;
@@ -208,6 +222,16 @@ CREATE POLICY "Users can view their own profile"
   ON profiles FOR SELECT USING (auth.uid() = id);
 CREATE POLICY "Users can update their own profile"
   ON profiles FOR UPDATE USING (auth.uid() = id);
+
+-- PROJECT FOLDERS RLS
+CREATE POLICY "Users can view their own project folders"
+  ON project_folders FOR SELECT USING (auth.uid() = owner_id);
+CREATE POLICY "Users can insert their own project folders"
+  ON project_folders FOR INSERT WITH CHECK (auth.uid() = owner_id);
+CREATE POLICY "Users can update their own project folders"
+  ON project_folders FOR UPDATE USING (auth.uid() = owner_id);
+CREATE POLICY "Users can delete their own project folders"
+  ON project_folders FOR DELETE USING (auth.uid() = owner_id);
 
 -- PROJECTS RLS
 CREATE POLICY "Users can view their own projects"

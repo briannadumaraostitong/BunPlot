@@ -1,14 +1,25 @@
 'use client'
 
 import { useState } from 'react'
+import {
+  DndContext,
+  DragOverlay,
+  PointerSensor,
+  KeyboardSensor,
+  closestCenter,
+  useSensor,
+  useSensors,
+  type DragEndEvent,
+  type DragStartEvent,
+} from '@dnd-kit/core'
 import { LayerPanel } from '@/components/layers/LayerPanel'
-import { LayerRow } from '@/components/layers/LayerRow'
-import { ChapterHeader } from './ChapterHeader'
+import { LayerRow, EventCardPreview } from '@/components/layers/LayerRow'
+import { ChapterHeader, DEFAULT_CHAPTER_WIDTH, DEFAULT_LABEL_WIDTH } from './ChapterHeader'
 import { EventModal } from '@/components/events/EventModal'
 import { useLayers } from '@/hooks/useLayers'
 import { useEvents } from '@/hooks/useEvents'
 import { useChapters } from '@/hooks/useChapters'
-import { createEvent } from '@/actions/events'
+import { createEvent, reorderEvents, moveEventToChapter } from '@/actions/events'
 import type { Project, Layer, Event, Chapter } from '@/types/database'
 
 interface TimelineCanvasProps {
@@ -40,6 +51,7 @@ export function TimelineCanvas({
     events,
     eventsForLayer,
     refresh: refreshEvents,
+    moveEventToCell,
   } = useEvents(project.id, initialEvents)
 
   const {
@@ -51,6 +63,14 @@ export function TimelineCanvas({
 
   const [selectedEvent, setSelectedEvent] = useState<Event | null>(null)
   const [modalOpen, setModalOpen] = useState(false)
+  const [labelWidth, setLabelWidth] = useState(DEFAULT_LABEL_WIDTH)
+  const [chapterWidth, setChapterWidth] = useState(DEFAULT_CHAPTER_WIDTH)
+  const [activeEvent, setActiveEvent] = useState<Event | null>(null)
+
+  const sensors = useSensors(
+    useSensor(PointerSensor, { activationConstraint: { distance: 4 } }),
+    useSensor(KeyboardSensor)
+  )
 
   async function handleChapterCellClick(layer: Layer, chapter: Chapter) {
     await createEvent({
@@ -62,6 +82,50 @@ export function TimelineCanvas({
       duration: 1,
     })
     refreshEvents()
+  }
+
+  function idsInCell(layerId: string, chapterId: string, excludeId?: string) {
+    return events
+      .filter((e) => e.layer_id === layerId && e.chapter_id === chapterId && e.id !== excludeId)
+      .sort((a, b) => a.position - b.position)
+      .map((e) => e.id)
+  }
+
+  function handleDragStart(e: DragStartEvent) {
+    setActiveEvent(events.find((ev) => ev.id === e.active.id) ?? null)
+  }
+
+  async function handleDragEnd(e: DragEndEvent) {
+    const { active, over } = e
+    setActiveEvent(null)
+    if (!over || active.id === over.id) return
+
+    const dragged = events.find((ev) => ev.id === active.id)
+    if (!dragged) return
+
+    const overData = over.data.current as
+      | { chapterId?: string; layerId?: string; isContainer?: boolean }
+      | undefined
+    if (!overData?.chapterId || !overData?.layerId) return
+
+    const { chapterId: targetChapterId, layerId: targetLayerId } = overData
+    const sameCell = dragged.chapter_id === targetChapterId && dragged.layer_id === targetLayerId
+
+    const targetIds = idsInCell(targetLayerId, targetChapterId, active.id as string)
+    const insertAt = overData.isContainer ? targetIds.length : targetIds.indexOf(over.id as string)
+    targetIds.splice(insertAt === -1 ? targetIds.length : insertAt, 0, active.id as string)
+
+    moveEventToCell(active.id as string, targetChapterId, targetLayerId, targetIds)
+
+    if (!sameCell) {
+      await moveEventToChapter(active.id as string, project.id, targetChapterId, targetLayerId)
+    }
+    await reorderEvents(project.id, targetIds)
+
+    if (!sameCell) {
+      const sourceIds = idsInCell(dragged.layer_id, dragged.chapter_id!, active.id as string)
+      if (sourceIds.length > 0) await reorderEvents(project.id, sourceIds)
+    }
   }
 
   function handleSelectEvent(event: Event) {
@@ -100,6 +164,10 @@ export function TimelineCanvas({
               onAdded={refreshChapters}
               onRemoved={removeChapter}
               onRenamed={renameChapter}
+              labelWidth={labelWidth}
+              chapterWidth={chapterWidth}
+              onLabelWidthChange={setLabelWidth}
+              onChapterWidthChange={setChapterWidth}
             />
 
             {chapters.length === 0 ? (
@@ -110,24 +178,43 @@ export function TimelineCanvas({
                 </p>
               </div>
             ) : (
-              visibleLayers.map((layer) => (
-                <LayerRow
-                  key={layer.id}
-                  layer={layer}
-                  events={eventsForLayer(layer.id)}
-                  chapters={chapters}
-                  height={TRACK_HEIGHT}
-                  selectedEventId={selectedEvent?.id ?? null}
-                  onSelectEvent={(id) => {
-                    const ev = events.find((e) => e.id === id)
-                    if (ev) handleSelectEvent(ev)
-                  }}
-                  projectId={project.id}
-                  onChapterCellClick={(chapter) =>
-                    handleChapterCellClick(layer, chapter)
-                  }
-                />
-              ))
+              <DndContext
+                sensors={sensors}
+                collisionDetection={closestCenter}
+                onDragStart={handleDragStart}
+                onDragEnd={handleDragEnd}
+              >
+                {visibleLayers.map((layer) => (
+                  <LayerRow
+                    key={layer.id}
+                    layer={layer}
+                    events={eventsForLayer(layer.id)}
+                    chapters={chapters}
+                    height={TRACK_HEIGHT}
+                    selectedEventId={selectedEvent?.id ?? null}
+                    onSelectEvent={(id) => {
+                      const ev = events.find((e) => e.id === id)
+                      if (ev) handleSelectEvent(ev)
+                    }}
+                    projectId={project.id}
+                    onChapterCellClick={(chapter) =>
+                      handleChapterCellClick(layer, chapter)
+                    }
+                    labelWidth={labelWidth}
+                    chapterWidth={chapterWidth}
+                  />
+                ))}
+
+                <DragOverlay>
+                  {activeEvent && (
+                    <EventCardPreview
+                      event={activeEvent}
+                      layer={layers.find((l) => l.id === activeEvent.layer_id) ?? layers[0]}
+                      width={chapterWidth - 24}
+                    />
+                  )}
+                </DragOverlay>
+              </DndContext>
             )}
 
             {visibleLayers.length === 0 && chapters.length > 0 && (

@@ -75,6 +75,18 @@ export async function updateProject(
   return { success: true }
 }
 
+export async function moveProjectToFolder(id: string, folderId: string | null) {
+  const supabase = await createClient()
+  const { error } = await supabase
+    .from('projects')
+    .update({ folder_id: folderId } as never)
+    .eq('id', id)
+
+  if (error) return { error: error.message }
+  revalidatePath('/dashboard')
+  return { success: true }
+}
+
 export async function archiveProject(id: string) {
   const supabase = await createClient()
   const { error } = await supabase

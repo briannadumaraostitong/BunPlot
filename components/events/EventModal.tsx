@@ -10,6 +10,10 @@ import {
   Underline,
   List,
   ListOrdered,
+  AlignLeft,
+  AlignCenter,
+  AlignRight,
+  AlignJustify,
 } from "lucide-react";
 import {
   Dialog,
@@ -78,7 +82,8 @@ function RichTextEditor({
   return (
     <div className="flex flex-col h-full border border-border rounded-xl overflow-hidden bg-background">
       {/* Toolbar */}
-      <div className="flex items-center gap-0.5 px-3 py-2 border-b border-border bg-secondary/20 shrink-0">
+      <div className="flex items-center gap-0.5 px-3 py-2 border-b border-border bg-secondary/20 shrink-0 flex-wrap">
+        {/* Text style */}
         <ToolbarBtn onClick={() => exec("bold")} title="Bold">
           <Bold className="h-3.5 w-3.5" />
         </ToolbarBtn>
@@ -88,7 +93,26 @@ function RichTextEditor({
         <ToolbarBtn onClick={() => exec("underline")} title="Underline">
           <Underline className="h-3.5 w-3.5" />
         </ToolbarBtn>
+
         <Separator orientation="vertical" className="h-4 mx-2" />
+
+        {/* Alignment */}
+        <ToolbarBtn onClick={() => exec("justifyLeft")} title="Align left">
+          <AlignLeft className="h-3.5 w-3.5" />
+        </ToolbarBtn>
+        <ToolbarBtn onClick={() => exec("justifyCenter")} title="Align center">
+          <AlignCenter className="h-3.5 w-3.5" />
+        </ToolbarBtn>
+        <ToolbarBtn onClick={() => exec("justifyRight")} title="Align right">
+          <AlignRight className="h-3.5 w-3.5" />
+        </ToolbarBtn>
+        <ToolbarBtn onClick={() => exec("justifyFull")} title="Justify">
+          <AlignJustify className="h-3.5 w-3.5" />
+        </ToolbarBtn>
+
+        <Separator orientation="vertical" className="h-4 mx-2" />
+
+        {/* Lists */}
         <ToolbarBtn
           onClick={() => exec("insertUnorderedList")}
           title="Bullet list"
@@ -101,7 +125,10 @@ function RichTextEditor({
         >
           <ListOrdered className="h-3.5 w-3.5" />
         </ToolbarBtn>
+
         <Separator orientation="vertical" className="h-4 mx-2" />
+
+        {/* Block format */}
         <ToolbarBtn
           onClick={() => {
             editorRef.current?.focus();
@@ -118,13 +145,7 @@ function RichTextEditor({
         >
           <span className="text-[11px] font-bold">H</span>
         </ToolbarBtn>
-        <ToolbarBtn
-          onClick={() => {
-            editorRef.current?.focus();
-            document.execCommand("formatBlock", false, "p");
-          }}
-          title="Paragraph"
-        >
+        <ToolbarBtn onClick={() => exec("formatBlock", "p")} title="Paragraph">
           <span className="text-[11px]">¶</span>
         </ToolbarBtn>
       </div>
@@ -136,10 +157,9 @@ function RichTextEditor({
         suppressContentEditableWarning
         className={cn(
           "flex-1 p-4 overflow-y-auto scrollbar-thin text-sm leading-relaxed outline-none",
-          "prose prose-sm dark:prose-invert max-w-none",
-          "[&:empty]:before:content-[attr(data-placeholder)]",
-          "[&:empty]:before:text-muted-foreground",
-          "[&:empty]:before:pointer-events-none",
+          "empty:before:content-[attr(data-placeholder)]",
+          "           empty:before:text-muted-foreground",
+          "empty:before:pointer-events-none",
         )}
         data-placeholder={placeholder}
         dangerouslySetInnerHTML={{ __html: value }}
@@ -163,7 +183,7 @@ function ToolbarBtn({
       type="button"
       title={title}
       onMouseDown={(e) => {
-        e.preventDefault(); // keep editor focus
+        e.preventDefault();
         onClick();
       }}
       className="h-7 w-7 flex items-center justify-center rounded-md hover:bg-secondary text-muted-foreground hover:text-foreground transition-colors"
@@ -339,7 +359,7 @@ function EventForm({
           />
         </div>
 
-        {/* Custom tab bar */}
+        {/* Tab bar */}
         <div className="px-5 pt-3 shrink-0">
           <div className="inline-flex items-center bg-secondary/50 rounded-lg p-1 gap-1">
             <TabButton
