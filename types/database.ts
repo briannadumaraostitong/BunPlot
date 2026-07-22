@@ -68,6 +68,16 @@ export interface Chapter {
   created_at: string
 }
 
+export interface Outline {
+  id: string
+  project_id: string
+  name: string
+  position: number
+  content: Record<string, unknown>
+  created_at: string
+  updated_at: string
+}
+
 export interface LayerGroup {
   id: string
   project_id: string
@@ -214,6 +224,11 @@ export interface Database {
         Row: Chapter
         Insert: Omit<Chapter, 'id' | 'created_at'> & { id?: string }
         Update: Partial<Omit<Chapter, 'id' | 'created_at'>>
+      }
+      outlines: {
+        Row: Outline
+        Insert: Omit<Outline, 'id' | 'created_at' | 'updated_at'> & { id?: string }
+        Update: Partial<Omit<Outline, 'id' | 'created_at'>>
       }
       layer_groups: {
         Row: LayerGroup

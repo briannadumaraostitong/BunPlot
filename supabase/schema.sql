@@ -132,6 +132,17 @@ CREATE TABLE events (
   updated_at      TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
 
+-- OUTLINES
+CREATE TABLE outlines (
+  id          UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  project_id  UUID NOT NULL REFERENCES projects(id) ON DELETE CASCADE,
+  name        TEXT NOT NULL DEFAULT 'Outline',
+  position    FLOAT NOT NULL DEFAULT 0,
+  content     JSONB NOT NULL DEFAULT '{}',
+  created_at  TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  updated_at  TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+
 -- EVENT <-> CHARACTER
 CREATE TABLE event_characters (
   event_id     UUID NOT NULL REFERENCES events(id) ON DELETE CASCADE,
@@ -206,6 +217,10 @@ CREATE TRIGGER set_updated_at_characters
   BEFORE UPDATE ON characters
   FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
 
+CREATE TRIGGER set_updated_at_outlines
+  BEFORE UPDATE ON outlines
+  FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
+
 -- ROW LEVEL SECURITY
 ALTER TABLE profiles           ENABLE ROW LEVEL SECURITY;
 ALTER TABLE project_folders    ENABLE ROW LEVEL SECURITY;
@@ -213,6 +228,7 @@ ALTER TABLE projects           ENABLE ROW LEVEL SECURITY;
 ALTER TABLE layer_groups       ENABLE ROW LEVEL SECURITY;
 ALTER TABLE layers             ENABLE ROW LEVEL SECURITY;
 ALTER TABLE events             ENABLE ROW LEVEL SECURITY;
+ALTER TABLE outlines           ENABLE ROW LEVEL SECURITY;
 ALTER TABLE characters         ENABLE ROW LEVEL SECURITY;
 ALTER TABLE event_characters   ENABLE ROW LEVEL SECURITY;
 ALTER TABLE event_dependencies ENABLE ROW LEVEL SECURITY;
@@ -268,6 +284,12 @@ CREATE POLICY "events_select" ON events FOR SELECT USING (owns_project(project_i
 CREATE POLICY "events_insert" ON events FOR INSERT WITH CHECK (owns_project(project_id));
 CREATE POLICY "events_update" ON events FOR UPDATE USING (owns_project(project_id));
 CREATE POLICY "events_delete" ON events FOR DELETE USING (owns_project(project_id));
+
+-- OUTLINES RLS
+CREATE POLICY "outlines_select" ON outlines FOR SELECT USING (owns_project(project_id));
+CREATE POLICY "outlines_insert" ON outlines FOR INSERT WITH CHECK (owns_project(project_id));
+CREATE POLICY "outlines_update" ON outlines FOR UPDATE USING (owns_project(project_id));
+CREATE POLICY "outlines_delete" ON outlines FOR DELETE USING (owns_project(project_id));
 
 -- CHARACTERS RLS
 CREATE POLICY "characters_select" ON characters FOR SELECT USING (owns_project(project_id));
