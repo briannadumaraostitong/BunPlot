@@ -152,10 +152,6 @@ export function TimelineCanvas({
       />
 
       <div className="flex flex-col flex-1 min-w-0 overflow-hidden">
-        <div className="h-10 border-b border-border flex items-center px-3 shrink-0 bg-background">
-          <span className="text-sm font-medium truncate">{project.title}</span>
-        </div>
-
         <div className="flex-1 overflow-auto scrollbar-thin">
           <div className="inline-block min-w-full">
             <ChapterHeader

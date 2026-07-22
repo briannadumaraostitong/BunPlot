@@ -1,6 +1,6 @@
 import { notFound } from 'next/navigation'
 import { createClient } from '@/lib/supabase/server'
-import { TimelineCanvas } from '@/components/timeline/TimelineCanvas'
+import { ProjectView } from '@/components/timeline/ProjectView'
 import type { Metadata } from 'next'
 import type { Project, Layer, Event, Chapter } from '@/types/database'
 
@@ -52,7 +52,7 @@ export default async function ProjectPage({ params }: Props) {
     .order('position')
 
   return (
-    <TimelineCanvas
+    <ProjectView
       project={project}
       initialLayers={(layersData ?? []) as Layer[]}
       initialEvents={(eventsData ?? []) as Event[]}
