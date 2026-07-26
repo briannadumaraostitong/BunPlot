@@ -9,12 +9,22 @@ import { cn } from '@/lib/utils'
 import { deleteLayer, updateLayer } from '@/actions/layers'
 import type { Layer, Event, Chapter } from '@/types/database'
 
-const STATUS_INDICATORS: Record<string, string> = {
-  draft:   'bg-zinc-400',
-  outline: 'bg-blue-400',
-  written: 'bg-yellow-400',
-  revised: 'bg-purple-400',
-  final:   'bg-green-400',
+const STATUS_COLORS: Record<string, string> = {
+  draft:   '#71717a', // zinc-500
+  outline: '#3b82f6', // blue-500
+  written: '#f59e0b', // amber-500
+  revised: '#8b5cf6', // violet-500
+  final:   '#10b981', // emerald-500
+}
+
+function stripHtml(html: string) {
+  return html.replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ').trim()
+}
+
+function previewText(html: string | null, max = 80) {
+  if (!html) return ''
+  const text = stripHtml(html)
+  return text.length > max ? text.slice(0, max).trimEnd() + '…' : text
 }
 
 interface LayerRowProps {
@@ -113,7 +123,7 @@ export function LayerRow({
       <div
         ref={setNodeRef}
         style={style}
-        className="flex items-center gap-1.5 px-2 py-1.5 hover:bg-secondary/50 group"
+        className="flex items-center gap-1.5 mx-1 px-2 py-1.5 rounded-md hover:bg-secondary/50 transition-colors group"
       >
         <button
           {...attributes}
@@ -126,7 +136,7 @@ export function LayerRow({
         <div className="relative shrink-0">
           <button
             onClick={() => colorInputRef.current?.click()}
-            className="h-3 w-3 rounded-full transition-transform hover:scale-125 focus:outline-none"
+            className="h-3 w-3 rounded-full ring-1 ring-inset ring-black/15 dark:ring-white/15 transition-transform hover:scale-125 focus:outline-none"
             style={{ backgroundColor: layer.color }}
             title="Click to change color"
           />
@@ -333,6 +343,8 @@ function EventCardStacked({
   onSelect: () => void
 }) {
   const color = event.color ?? layer.color
+  const statusColor = STATUS_COLORS[event.status] ?? STATUS_COLORS.draft
+  const description = previewText(event.description)
 
   const {
     attributes,
@@ -351,8 +363,8 @@ function EventCardStacked({
       ref={setNodeRef}
       onClick={(e) => { e.stopPropagation(); onSelect() }}
       className={cn(
-        'group relative rounded-lg pl-2.5 pr-5 py-2 cursor-pointer select-none',
-        'flex flex-col gap-1 transition-all duration-100',
+        'group relative rounded-lg pl-2.5 pr-4 py-1.5 cursor-pointer select-none',
+        'flex flex-col gap-1 shadow-sm transition-all duration-100',
         'hover:brightness-110 hover:shadow-md',
         selected && 'ring-2 ring-offset-1 shadow-lg',
         isDragging && 'z-10'
@@ -362,11 +374,15 @@ function EventCardStacked({
         transition,
         opacity: isDragging ? 0.5 : 1,
         backgroundColor: color + '18',
-        borderWidth: '1px',
-        borderStyle: 'solid',
-        borderColor: selected ? color : color + '40',
-        borderLeftWidth: '2px',
+        borderTopWidth: '1px',
+        borderRightWidth: '1px',
+        borderBottomWidth: '1px',
+        borderLeftWidth: '3px',
+        borderTopColor: selected ? color : color + '40',
+        borderRightColor: selected ? color : color + '40',
+        borderBottomColor: selected ? color : color + '40',
         borderLeftColor: color,
+        borderStyle: 'solid',
       }}
     >
       <button
@@ -386,35 +402,42 @@ function EventCardStacked({
         {event.title}
       </span>
 
-      <div className="flex items-center gap-1">
-        <span
-          className={cn(
-            'h-1.5 w-1.5 rounded-full shrink-0',
-            STATUS_INDICATORS[event.status] ?? 'bg-zinc-400'
-          )}
-        />
-        <span className="text-[9px] font-medium text-muted-foreground uppercase tracking-wide">
-          {event.status}
-        </span>
-      </div>
+      {description && (
+        <p className="text-[10px] text-muted-foreground leading-relaxed line-clamp-2">
+          {description}
+        </p>
+      )}
+
+      <span
+        className="self-start px-1.5 py-0.5 rounded-full text-[9px] font-semibold uppercase tracking-wide leading-none text-foreground"
+        style={{ backgroundColor: statusColor + '66' }}
+      >
+        {event.status}
+      </span>
     </div>
   )
 }
 
 export function EventCardPreview({ event, layer, width }: { event: Event; layer: Layer; width: number }) {
   const color = event.color ?? layer.color
+  const statusColor = STATUS_COLORS[event.status] ?? STATUS_COLORS.draft
+  const description = previewText(event.description)
 
   return (
     <div
-      className="rounded-lg pl-2.5 pr-5 py-2 flex flex-col gap-1 shadow-lg cursor-grabbing"
+      className="rounded-lg pl-2.5 pr-4 py-1.5 flex flex-col gap-1 shadow-lg cursor-grabbing"
       style={{
         width,
         backgroundColor: color + '18',
-        borderWidth: '1px',
-        borderStyle: 'solid',
-        borderColor: color,
-        borderLeftWidth: '2px',
+        borderTopWidth: '1px',
+        borderRightWidth: '1px',
+        borderBottomWidth: '1px',
+        borderLeftWidth: '3px',
+        borderTopColor: color,
+        borderRightColor: color,
+        borderBottomColor: color,
         borderLeftColor: color,
+        borderStyle: 'solid',
       }}
     >
       <span className="text-[11px] font-semibold leading-tight truncate" style={{ color }}>
@@ -422,17 +445,18 @@ export function EventCardPreview({ event, layer, width }: { event: Event; layer:
         {event.title}
       </span>
 
-      <div className="flex items-center gap-1">
-        <span
-          className={cn(
-            'h-1.5 w-1.5 rounded-full shrink-0',
-            STATUS_INDICATORS[event.status] ?? 'bg-zinc-400'
-          )}
-        />
-        <span className="text-[9px] font-medium text-muted-foreground uppercase tracking-wide">
-          {event.status}
-        </span>
-      </div>
+      {description && (
+        <p className="text-[10px] text-muted-foreground leading-relaxed line-clamp-2">
+          {description}
+        </p>
+      )}
+
+      <span
+        className="self-start px-1.5 py-0.5 rounded-full text-[9px] font-semibold uppercase tracking-wide leading-none text-foreground"
+        style={{ backgroundColor: statusColor + '5c' }}
+      >
+        {event.status}
+      </span>
     </div>
   )
 }

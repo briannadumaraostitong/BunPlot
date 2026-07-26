@@ -48,7 +48,7 @@ export function ChapterHeader({
   }
 
   return (
-    <div className="flex h-10 border-b border-border bg-secondary/50 shrink-0">
+    <div className="flex h-10 border-b border-border bg-secondary/50 shrink-0 shadow-sm">
       {/* Label column with resize handle */}
       <ResizableCell
         width={labelWidth}
@@ -150,10 +150,10 @@ function ResizableCell({
       {/* Drag handle */}
       <div
         onMouseDown={onMouseDown}
-        className="absolute right-0 top-0 bottom-0 w-1 cursor-col-resize hover:bg-primary/50 transition-colors z-10 group"
+        className="absolute right-0 top-0 bottom-0 w-1 cursor-col-resize z-10 group"
         title="Drag to resize"
       >
-        <div className="absolute right-0 top-1/2 -translate-y-1/2 w-0.5 h-4 bg-border group-hover:bg-primary rounded-full transition-colors" />
+        <div className="absolute right-0 top-0 bottom-0 w-px bg-primary/0 group-hover:bg-primary/60 transition-colors" />
       </div>
     </div>
   )

@@ -54,13 +54,11 @@ const STATUS_OPTIONS: EventStatus[] = [
 ];
 
 const STATUS_COLORS: Record<EventStatus, string> = {
-  draft: "bg-zinc-100 text-zinc-600 dark:bg-zinc-800 dark:text-zinc-400",
-  outline: "bg-blue-100 text-blue-700 dark:bg-blue-900 dark:text-blue-300",
-  written:
-    "bg-yellow-100 text-yellow-700 dark:bg-yellow-900 dark:text-yellow-300",
-  revised:
-    "bg-purple-100 text-purple-700 dark:bg-purple-900 dark:text-purple-300",
-  final: "bg-green-100 text-green-700 dark:bg-green-900 dark:text-green-300",
+  draft: "bg-zinc-100 dark:bg-zinc-800 text-foreground",
+  outline: "bg-blue-100 dark:bg-blue-900 text-foreground",
+  written: "bg-amber-100 dark:bg-amber-900 text-foreground",
+  revised: "bg-violet-100 dark:bg-violet-900 text-foreground",
+  final: "bg-emerald-100 dark:bg-emerald-900 text-foreground",
 };
 
 function RichTextEditor({
@@ -281,7 +279,7 @@ function EventForm({
   return (
     <div className="flex h-160 w-full">
       {/* Left metadata sidebar */}
-      <div className="w-56 border-r border-border p-4 space-y-5 shrink-0 overflow-y-auto scrollbar-thin bg-secondary/20">
+      <div className="w-56 border-r border-border p-5 space-y-6 shrink-0 overflow-y-auto scrollbar-thin bg-secondary/20">
         <Field label="Layer">
           <Select value={layerId} onValueChange={setLayerId}>
             <SelectTrigger className="h-8 text-xs bg-background">
