@@ -6,6 +6,8 @@ export type AppMode = 'basic' | 'advanced'
 export type EventStatus = 'draft' | 'outline' | 'written' | 'revised' | 'final'
 export type LayerType = 'main' | 'character' | 'subplot' | 'theme' | 'custom'
 export type AppTheme = 'light' | 'dark' | 'system'
+export type RelationshipType = 'parent' | 'sibling' | 'spouse' | 'friend' | 'enemy' | 'mentor' | 'rival' | 'other'
+export type PlaceType = 'city' | 'town' | 'village' | 'building' | 'room' | 'country' | 'region' | 'world' | 'other'
 
 // ── Tables ──────────────────────────────────────────────────
 
@@ -122,6 +124,19 @@ export interface Character {
   updated_at: string
 }
 
+export interface Place {
+  id: string
+  project_id: string
+  name: string
+  type: PlaceType
+  color: string | null
+  description: Record<string, unknown>
+  notes: Record<string, unknown>
+  image_url: string | null
+  created_at: string
+  updated_at: string
+}
+
 export interface Event {
   id: string
   project_id: string
@@ -158,6 +173,11 @@ export interface EventCharacter {
   role: string | null
 }
 
+export interface EventPlace {
+  event_id: string
+  place_id: string
+}
+
 export interface EventDependency {
   id: string
   project_id: string
@@ -166,6 +186,33 @@ export interface EventDependency {
   label: string | null
   style: 'solid' | 'dashed' | 'dotted'
   color: string | null
+  created_at: string
+}
+
+export interface CharacterRelationship {
+  id: string
+  project_id: string
+  source_character_id: string
+  target_character_id: string
+  relationship_type: RelationshipType
+  relationship_label: string | null
+  created_at: string
+}
+
+export interface FamilyTree {
+  id: string
+  project_id: string
+  name: string
+  position: number
+  created_at: string
+  updated_at: string
+}
+
+export interface FamilyTreeMember {
+  tree_id: string
+  character_id: string
+  x: number
+  y: number
   created_at: string
 }
 
@@ -255,10 +302,35 @@ export interface Database {
         Insert: EventCharacter
         Update: Partial<EventCharacter>
       }
+      places: {
+        Row: Place
+        Insert: Omit<Place, 'id' | 'created_at' | 'updated_at'> & { id?: string }
+        Update: Partial<Omit<Place, 'id' | 'created_at'>>
+      }
+      event_places: {
+        Row: EventPlace
+        Insert: EventPlace
+        Update: Partial<EventPlace>
+      }
       event_dependencies: {
         Row: EventDependency
         Insert: Omit<EventDependency, 'id' | 'created_at'> & { id?: string }
         Update: Partial<Omit<EventDependency, 'id' | 'created_at'>>
+      }
+      character_relationships: {
+        Row: CharacterRelationship
+        Insert: Omit<CharacterRelationship, 'id' | 'created_at'> & { id?: string }
+        Update: Partial<Omit<CharacterRelationship, 'id' | 'created_at'>>
+      }
+      family_trees: {
+        Row: FamilyTree
+        Insert: Omit<FamilyTree, 'id' | 'created_at' | 'updated_at'> & { id?: string }
+        Update: Partial<Omit<FamilyTree, 'id' | 'created_at'>>
+      }
+      family_tree_members: {
+        Row: FamilyTreeMember
+        Insert: Omit<FamilyTreeMember, 'created_at'>
+        Update: Partial<Omit<FamilyTreeMember, 'tree_id' | 'character_id' | 'created_at'>>
       }
     }
     Enums: {
@@ -266,6 +338,8 @@ export interface Database {
       app_mode: AppMode
       event_status: EventStatus
       layer_type: LayerType
+      relationship_type: RelationshipType
+      place_type: PlaceType
     }
   }
 }
