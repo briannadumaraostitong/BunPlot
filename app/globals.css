@@ -4,6 +4,10 @@
 
 @custom-variant dark (&:is(.dark *));
 
+/* Maps Radix's data-state="active" to the data-active: variant tabs.tsx
+   expects — without this, every Tabs active/inactive style is a no-op. */
+@custom-variant data-active (&[data-state="active"]);
+
 @theme inline {
   --color-background: hsl(var(--background));
   --color-foreground: hsl(var(--foreground));
@@ -175,15 +179,15 @@ body {
 /* Accent color applied to primary interactive elements */
 [data-accent="blue"] .accent-apply,
 [data-accent="blue"] [data-slot="button"]:not([data-variant]),
-[data-accent="blue"] [data-variant="default"] {
+[data-accent="blue"] [data-slot="button"][data-variant="default"] {
   background-color: hsl(217 91% 60%);
 }
 
-[data-accent="purple"] [data-variant="default"] {
+[data-accent="purple"] [data-slot="button"][data-variant="default"] {
   background-color: hsl(262 83% 63%);
 }
 
-[data-accent="emerald"] [data-variant="default"] {
+[data-accent="emerald"] [data-slot="button"][data-variant="default"] {
   background-color: hsl(158 64% 46%);
 }
 
