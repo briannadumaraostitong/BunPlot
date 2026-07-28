@@ -1,8 +1,9 @@
 'use client'
 
 import Link from 'next/link'
+import Image from 'next/image'
 import { usePathname, useRouter } from 'next/navigation'
-import { LayoutDashboard, FolderOpen, Settings, LogOut, BookOpen } from 'lucide-react'
+import { LayoutDashboard, FolderOpen, Settings, LogOut } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { createClient } from '@/lib/supabase/client'
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
@@ -39,8 +40,8 @@ export function Sidebar({ profile }: SidebarProps) {
   return (
     <aside className="w-60 flex flex-col h-full shrink-0 border-r border-border bg-sidebar">
       {/* Logo */}
-      <div className="h-14 flex items-center px-4 gap-2 shrink-0">
-        <BookOpen className="h-5 w-5 text-primary" />
+      <div className="h-14 flex items-center px-4 gap-1.5 shrink-0">
+        <Image src="/logo.png" alt="" width={28} height={28} className="h-7 w-7" priority />
         <span className="text-xl font-semibold tracking-tight">
           BunPlot
         </span>
