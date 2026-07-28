@@ -11,7 +11,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog'
-import { ProjectCard } from '@/components/projects/ProjectCard'
+import { ProjectCard, type ProjectStats } from '@/components/projects/ProjectCard'
 import { updateFolder, deleteFolder } from '@/actions/folders'
 import type { Project, ProjectFolder } from '@/types/database'
 
@@ -19,9 +19,10 @@ interface FolderSectionProps {
   folder: ProjectFolder
   projects: Project[]
   allFolders: ProjectFolder[]
+  statsByProject: Record<string, ProjectStats>
 }
 
-export function FolderSection({ folder, projects, allFolders }: FolderSectionProps) {
+export function FolderSection({ folder, projects, allFolders, statsByProject }: FolderSectionProps) {
   const router = useRouter()
   const [collapsed, setCollapsed] = useState(folder.collapsed)
   const [editing, setEditing] = useState(false)
@@ -125,7 +126,12 @@ export function FolderSection({ folder, projects, allFolders }: FolderSectionPro
         projects.length > 0 ? (
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
             {projects.map((project) => (
-              <ProjectCard key={project.id} project={project} folders={allFolders} />
+              <ProjectCard
+                key={project.id}
+                project={project}
+                folders={allFolders}
+                stats={statsByProject[project.id]}
+              />
             ))}
           </div>
         ) : (

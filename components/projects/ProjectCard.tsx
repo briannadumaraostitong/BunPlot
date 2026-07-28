@@ -4,7 +4,6 @@ import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { formatDistanceToNow } from 'date-fns'
 import { MoreHorizontal, Archive, Trash2, FolderInput, FolderMinus } from 'lucide-react'
-import { Badge } from '@/components/ui/badge'
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -26,12 +25,20 @@ import { deleteProject, archiveProject, moveProjectToFolder } from '@/actions/pr
 import type { Project, ProjectFolder } from '@/types/database'
 import { useState } from 'react'
 
+export interface ProjectStats {
+  wordCount: number
+  eventCount: number
+  chapterCount: number
+  characterCount: number
+}
+
 interface ProjectCardProps {
   project: Project
   folders?: ProjectFolder[]
+  stats: ProjectStats
 }
 
-export function ProjectCard({ project, folders = [] }: ProjectCardProps) {
+export function ProjectCard({ project, folders = [], stats }: ProjectCardProps) {
   const router = useRouter()
   const [confirmDelete, setConfirmDelete] = useState(false)
   const [loading, setLoading] = useState(false)
@@ -129,13 +136,15 @@ export function ProjectCard({ project, folders = [] }: ProjectCardProps) {
             </DropdownMenu>
           </div>
 
-          <div className="flex items-center justify-between">
-            <Badge variant="secondary" className="text-xs capitalize">
-              {project.mode}
-            </Badge>
-            <span className="text-xs text-muted-foreground">
-              {formatDistanceToNow(new Date(project.updated_at), { addSuffix: true })}
-            </span>
+          <span className="text-xs text-muted-foreground">
+            {formatDistanceToNow(new Date(project.updated_at), { addSuffix: true })}
+          </span>
+
+          <div className="flex items-center gap-4">
+            <StatItem value={stats.wordCount} label="words" />
+            <StatItem value={stats.eventCount} label="events" />
+            <StatItem value={stats.chapterCount} label="chapters" />
+            <StatItem value={stats.characterCount} label="characters" />
           </div>
         </div>
       </div>
@@ -168,5 +177,14 @@ export function ProjectCard({ project, folders = [] }: ProjectCardProps) {
         </DialogContent>
       </Dialog>
     </>
+  )
+}
+
+function StatItem({ value, label }: { value: number; label: string }) {
+  return (
+    <div className="flex flex-col">
+      <span className="text-sm font-semibold leading-none">{value.toLocaleString()}</span>
+      <span className="mt-0.5 text-[10px] text-muted-foreground">{label}</span>
+    </div>
   )
 }

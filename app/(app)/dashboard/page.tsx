@@ -5,8 +5,28 @@ import { NewFolderDialog } from '@/components/projects/NewFolderDialog'
 import { FolderSection } from '@/components/projects/FolderSection'
 import type { Metadata } from 'next'
 import type { Project, ProjectFolder } from '@/types/database'
+import type { ProjectStats } from '@/components/projects/ProjectCard'
 
 export const metadata: Metadata = { title: 'Dashboard' }
+
+// Mirrors the Tiptap JSON walker in PlaceCard.tsx — no server-safe
+// editor.getText() exists without a real editor instance, so plain text is
+// pulled directly from the content tree instead.
+function tiptapPlainText(node: unknown): string {
+  if (!node || typeof node !== 'object') return ''
+  const obj = node as Record<string, unknown>
+  let text = typeof obj.text === 'string' ? obj.text : ''
+  if (Array.isArray(obj.content)) {
+    text += ' ' + obj.content.map(tiptapPlainText).join(' ')
+  }
+  return text
+}
+
+function countWords(content: Record<string, unknown> | null | undefined): number {
+  if (!content) return 0
+  const text = tiptapPlainText(content).trim()
+  return text ? text.split(/\s+/).length : 0
+}
 
 export default async function DashboardPage() {
   const supabase = await createClient()
@@ -30,6 +50,44 @@ export default async function DashboardPage() {
   const folders = (foldersData ?? []) as ProjectFolder[]
 
   const ungroupedProjects = projects.filter((p) => !p.folder_id)
+
+  // One bulk query per table (not per project) — counts are tallied in
+  // memory rather than issued as N separate count() calls.
+  const statsByProject: Record<string, ProjectStats> = {}
+  for (const p of projects) {
+    statsByProject[p.id] = { wordCount: 0, eventCount: 0, chapterCount: 0, characterCount: 0 }
+  }
+
+  const projectIds = projects.map((p) => p.id)
+  if (projectIds.length > 0) {
+    const [
+      { data: eventsData },
+      { data: chaptersData },
+      { data: charactersData },
+      { data: outlinesData },
+    ] = await Promise.all([
+      supabase.from('events').select('project_id').in('project_id', projectIds),
+      supabase.from('chapters').select('project_id').in('project_id', projectIds),
+      supabase.from('characters').select('project_id').in('project_id', projectIds),
+      supabase.from('outlines').select('project_id, content').in('project_id', projectIds),
+    ])
+
+    for (const row of (eventsData ?? []) as { project_id: string }[]) {
+      statsByProject[row.project_id].eventCount++
+    }
+    for (const row of (chaptersData ?? []) as { project_id: string }[]) {
+      statsByProject[row.project_id].chapterCount++
+    }
+    for (const row of (charactersData ?? []) as { project_id: string }[]) {
+      statsByProject[row.project_id].characterCount++
+    }
+    for (const row of (outlinesData ?? []) as {
+      project_id: string
+      content: Record<string, unknown> | null
+    }[]) {
+      statsByProject[row.project_id].wordCount += countWords(row.content)
+    }
+  }
 
   return (
     <div className="p-6 max-w-7xl mx-auto space-y-8">
@@ -59,7 +117,12 @@ export default async function DashboardPage() {
               )}
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
                 {ungroupedProjects.map((project) => (
-                  <ProjectCard key={project.id} project={project} folders={folders} />
+                  <ProjectCard
+                    key={project.id}
+                    project={project}
+                    folders={folders}
+                    stats={statsByProject[project.id]}
+                  />
                 ))}
               </div>
             </div>
@@ -71,6 +134,7 @@ export default async function DashboardPage() {
               folder={folder}
               projects={projects.filter((p) => p.folder_id === folder.id)}
               allFolders={folders}
+              statsByProject={statsByProject}
             />
           ))}
         </>
