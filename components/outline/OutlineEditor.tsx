@@ -44,6 +44,11 @@ const AUTOSAVE_INTERVAL_MS = 30000
 
 type SaveStatus = 'saved' | 'saving'
 
+function countWords(text: string) {
+  const trimmed = text.trim()
+  return trimmed ? trimmed.split(/\s+/).length : 0
+}
+
 // Tracks in-flight `updateOutline` calls across unmount/remount of the Outline
 // tab. The tab is fully unmounted when the user navigates away (see the
 // activeTab conditional in the project page), so a save kicked off from an
@@ -150,6 +155,7 @@ export function OutlineEditor({ projectId }: OutlineEditorProps) {
 
 function OutlineDocumentEditor({ outline }: { outline: Outline }) {
   const [saveStatus, setSaveStatus] = useState<SaveStatus>('saved')
+  const [wordCount, setWordCount] = useState(0)
   const initialSerialized = JSON.stringify(outline.content ?? '')
   const lastSavedJson = useRef(initialSerialized)
   const latestJson = useRef(initialSerialized)
@@ -214,7 +220,9 @@ function OutlineDocumentEditor({ outline }: { outline: Outline }) {
     if (!editor) return
     function handleUpdate() {
       latestJson.current = JSON.stringify(editor!.getJSON())
+      setWordCount(countWords(editor!.getText()))
     }
+    handleUpdate() // set the initial count on mount, not just on the first edit
     editor.on('update', handleUpdate)
     return () => {
       editor.off('update', handleUpdate)
@@ -404,6 +412,9 @@ function OutlineDocumentEditor({ outline }: { outline: Outline }) {
 
         <div className="flex shrink-0 items-center gap-3 text-xs">
           {imageError && <span className="text-destructive">{imageError}</span>}
+          <span className="text-muted-foreground">
+            {wordCount} word{wordCount === 1 ? '' : 's'}
+          </span>
           {saveStatus === 'saving' ? (
             <span className="text-muted-foreground">Saving...</span>
           ) : (
