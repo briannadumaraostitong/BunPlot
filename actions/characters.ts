@@ -266,6 +266,29 @@ export async function removeFamilyTreeMember(treeId: string, characterId: string
 
 // ── Event <-> Character links ────────────────────────────────
 
+export interface EventCharacterLink {
+  event_id: string
+  character_id: string
+}
+
+export async function getEventCharacterLinks(projectId: string): Promise<EventCharacterLink[]> {
+  const supabase = await createClient()
+  const { data, error } = await supabase
+    .from('event_characters')
+    .select('event_id, character_id, events!inner(project_id)')
+    .eq('events.project_id', projectId)
+
+  if (error) {
+    console.error('Get event character links error:', error)
+    return []
+  }
+
+  return ((data ?? []) as { event_id: string; character_id: string }[]).map((row) => ({
+    event_id: row.event_id,
+    character_id: row.character_id,
+  }))
+}
+
 export async function getCharactersForEvent(eventId: string): Promise<Character[]> {
   const supabase = await createClient()
   const { data, error } = await supabase

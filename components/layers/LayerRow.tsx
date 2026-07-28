@@ -36,6 +36,7 @@ interface LayerRowProps {
   onSelectEvent: (id: string | null) => void
   projectId: string
   variant?: 'timeline' | 'sidebar'
+  visibleEventIds?: Set<string>
   onToggleVisibility?: () => void
   onDeleted?: () => void
   onRenamed?: (newName: string) => void
@@ -54,6 +55,7 @@ export function LayerRow({
   onSelectEvent,
   projectId,
   variant = 'timeline',
+  visibleEventIds,
   onToggleVisibility,
   onDeleted,
   onRenamed,
@@ -246,6 +248,7 @@ export function LayerRow({
             key={chapter.id}
             chapter={chapter}
             events={chapterEvents}
+            visibleEventIds={visibleEventIds}
             layer={layer}
             height={dynamicHeight}
             width={chapterWidth}
@@ -268,6 +271,7 @@ function cellDroppableId(layerId: string, chapterId: string) {
 function ChapterCell({
   chapter,
   events,
+  visibleEventIds,
   layer,
   height,
   width,
@@ -277,6 +281,7 @@ function ChapterCell({
 }: {
   chapter: Chapter
   events: Event[]
+  visibleEventIds?: Set<string>
   layer: Layer
   height: number
   width: number
@@ -285,6 +290,7 @@ function ChapterCell({
   onAddClick: () => void
 }) {
   const [hovering, setHovering] = useState(false)
+  const renderedEvents = visibleEventIds ? events.filter((e) => visibleEventIds.has(e.id)) : events
 
   const { setNodeRef } = useDroppable({
     id: cellDroppableId(layer.id, chapter.id),
@@ -300,11 +306,11 @@ function ChapterCell({
       onMouseLeave={() => setHovering(false)}
     >
       <SortableContext
-        items={events.map((e) => e.id)}
+        items={renderedEvents.map((e) => e.id)}
         strategy={verticalListSortingStrategy}
       >
         <div className="flex flex-col gap-2 p-2 flex-1">
-          {events.map((event) => (
+          {renderedEvents.map((event) => (
             <EventCardStacked
               key={event.id}
               event={event}

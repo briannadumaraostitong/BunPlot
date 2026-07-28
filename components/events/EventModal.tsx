@@ -58,6 +58,10 @@ interface EventModalProps {
   open: boolean;
   onClose: () => void;
   onUpdated: () => void;
+  onPlaceLinked?: (eventId: string, placeId: string) => void;
+  onPlaceUnlinked?: (eventId: string, placeId: string) => void;
+  onCharacterLinked?: (eventId: string, characterId: string) => void;
+  onCharacterUnlinked?: (eventId: string, characterId: string) => void;
 }
 
 const STATUS_OPTIONS: EventStatus[] = [
@@ -237,6 +241,10 @@ function EventForm({
   layers,
   allPlaces,
   allCharacters,
+  onPlaceLinked,
+  onPlaceUnlinked,
+  onCharacterLinked,
+  onCharacterUnlinked,
   onClose,
   onUpdated,
 }: {
@@ -246,6 +254,10 @@ function EventForm({
   layers: Layer[];
   allPlaces: Place[];
   allCharacters: Character[];
+  onPlaceLinked?: (eventId: string, placeId: string) => void;
+  onPlaceUnlinked?: (eventId: string, placeId: string) => void;
+  onCharacterLinked?: (eventId: string, characterId: string) => void;
+  onCharacterUnlinked?: (eventId: string, characterId: string) => void;
   onClose: () => void;
   onUpdated: () => void;
 }) {
@@ -317,21 +329,25 @@ function EventForm({
 
   async function handleAddPlace(place: Place) {
     setPlaces((prev) => [...prev, place]);
+    onPlaceLinked?.(event.id, place.id);
     await linkEventToPlace(event.id, place.id, event.project_id);
   }
 
   async function handleRemovePlace(placeId: string) {
     setPlaces((prev) => prev.filter((p) => p.id !== placeId));
+    onPlaceUnlinked?.(event.id, placeId);
     await unlinkEventFromPlace(event.id, placeId, event.project_id);
   }
 
   async function handleAddCharacter(character: Character) {
     setCharacters((prev) => [...prev, character]);
+    onCharacterLinked?.(event.id, character.id);
     await linkEventToCharacter(event.id, character.id, event.project_id);
   }
 
   async function handleRemoveCharacter(characterId: string) {
     setCharacters((prev) => prev.filter((c) => c.id !== characterId));
+    onCharacterUnlinked?.(event.id, characterId);
     await unlinkEventFromCharacter(event.id, characterId, event.project_id);
   }
 
@@ -583,6 +599,10 @@ export function EventModal({
   layers,
   allPlaces,
   allCharacters,
+  onPlaceLinked,
+  onPlaceUnlinked,
+  onCharacterLinked,
+  onCharacterUnlinked,
   open,
   onClose,
   onUpdated,
@@ -603,6 +623,10 @@ export function EventModal({
             layers={layers}
             allPlaces={allPlaces}
             allCharacters={allCharacters}
+            onPlaceLinked={onPlaceLinked}
+            onPlaceUnlinked={onPlaceUnlinked}
+            onCharacterLinked={onCharacterLinked}
+            onCharacterUnlinked={onCharacterUnlinked}
             onClose={onClose}
             onUpdated={onUpdated}
           />

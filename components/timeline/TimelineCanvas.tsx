@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import {
   DndContext,
   DragOverlay,
@@ -15,14 +15,23 @@ import {
 import { LayerPanel } from '@/components/layers/LayerPanel'
 import { LayerRow, EventCardPreview } from '@/components/layers/LayerRow'
 import { ChapterHeader, DEFAULT_CHAPTER_WIDTH, DEFAULT_LABEL_WIDTH } from './ChapterHeader'
+import { TimelineToolbar } from './TimelineToolbar'
 import { EventModal } from '@/components/events/EventModal'
 import { useLayers } from '@/hooks/useLayers'
 import { useEvents } from '@/hooks/useEvents'
 import { useChapters } from '@/hooks/useChapters'
 import { createEvent, reorderEvents, moveEventToChapter } from '@/actions/events'
-import { getPlaces } from '@/actions/places'
-import { getCharacters } from '@/actions/characters'
-import type { Project, Layer, Event, Chapter, Place, Character } from '@/types/database'
+import { getPlaces, getEventPlaceLinks } from '@/actions/places'
+import { getCharacters, getEventCharacterLinks } from '@/actions/characters'
+import type { Project, Layer, Event, Chapter, Character, EventStatus } from '@/types/database'
+import type { PlaceWithCover, EventPlaceLink } from '@/actions/places'
+import type { EventCharacterLink } from '@/actions/characters'
+
+// Mirrors stripHtml in LayerRow.tsx/ProjectCard.tsx — events store description
+// as an HTML string, so search needs the same tag-stripping before matching.
+function stripHtml(html: string) {
+  return html.replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ').trim()
+}
 
 interface TimelineCanvasProps {
   project: Project
@@ -68,8 +77,15 @@ export function TimelineCanvas({
   const [labelWidth, setLabelWidth] = useState(DEFAULT_LABEL_WIDTH)
   const [chapterWidth, setChapterWidth] = useState(DEFAULT_CHAPTER_WIDTH)
   const [activeEvent, setActiveEvent] = useState<Event | null>(null)
-  const [allPlaces, setAllPlaces] = useState<Place[]>([])
+  const [allPlaces, setAllPlaces] = useState<PlaceWithCover[]>([])
   const [allCharacters, setAllCharacters] = useState<Character[]>([])
+  const [eventPlaceLinks, setEventPlaceLinks] = useState<EventPlaceLink[]>([])
+  const [eventCharacterLinks, setEventCharacterLinks] = useState<EventCharacterLink[]>([])
+  const [search, setSearch] = useState('')
+  const [statusFilter, setStatusFilter] = useState<Set<EventStatus>>(new Set())
+  const [layerFilter, setLayerFilter] = useState<Set<string>>(new Set())
+  const [characterFilter, setCharacterFilter] = useState<Set<string>>(new Set())
+  const [placeFilter, setPlaceFilter] = useState<Set<string>>(new Set())
 
   useEffect(() => {
     let cancelled = false
@@ -93,10 +109,113 @@ export function TimelineCanvas({
     }
   }, [project.id])
 
+  useEffect(() => {
+    let cancelled = false
+    ;(async () => {
+      const data = await getEventPlaceLinks(project.id)
+      if (!cancelled) setEventPlaceLinks(data)
+    })()
+    return () => {
+      cancelled = true
+    }
+  }, [project.id])
+
+  useEffect(() => {
+    let cancelled = false
+    ;(async () => {
+      const data = await getEventCharacterLinks(project.id)
+      if (!cancelled) setEventCharacterLinks(data)
+    })()
+    return () => {
+      cancelled = true
+    }
+  }, [project.id])
+
   const sensors = useSensors(
     useSensor(PointerSensor, { activationConstraint: { distance: 4 } }),
     useSensor(KeyboardSensor)
   )
+
+  // Grouped once per link/data change, reused by every event on every
+  // keystroke — avoids re-scanning the full link arrays per event per render.
+  const characterLinksByEvent = useMemo(() => {
+    const map = new Map<string, string[]>()
+    for (const link of eventCharacterLinks) {
+      const arr = map.get(link.event_id) ?? []
+      arr.push(link.character_id)
+      map.set(link.event_id, arr)
+    }
+    return map
+  }, [eventCharacterLinks])
+
+  const placeLinksByEvent = useMemo(() => {
+    const map = new Map<string, string[]>()
+    for (const link of eventPlaceLinks) {
+      const arr = map.get(link.event_id) ?? []
+      arr.push(link.place_id)
+      map.set(link.event_id, arr)
+    }
+    return map
+  }, [eventPlaceLinks])
+
+  const characterNameById = useMemo(
+    () => new Map(allCharacters.map((c) => [c.id, c.name])),
+    [allCharacters]
+  )
+  const placeNameById = useMemo(() => new Map(allPlaces.map((p) => [p.id, p.name])), [allPlaces])
+
+  const hasActiveFilter =
+    search.trim() !== '' ||
+    statusFilter.size > 0 ||
+    layerFilter.size > 0 ||
+    characterFilter.size > 0 ||
+    placeFilter.size > 0
+
+  // undefined = "no filter" so LayerRow renders every card, matching its own
+  // `visibleEventIds ? filter : events` fallback — avoids building a
+  // same-size Set of every event id on every render when nothing is active.
+  const visibleEventIds = useMemo(() => {
+    if (!hasActiveFilter) return undefined
+    const q = search.trim().toLowerCase()
+    const result = new Set<string>()
+    for (const event of events) {
+      if (statusFilter.size > 0 && !statusFilter.has(event.status)) continue
+      if (layerFilter.size > 0 && !layerFilter.has(event.layer_id)) continue
+
+      const eventCharacterIds = characterLinksByEvent.get(event.id) ?? []
+      const eventPlaceIds = placeLinksByEvent.get(event.id) ?? []
+
+      if (characterFilter.size > 0 && !eventCharacterIds.some((id) => characterFilter.has(id))) continue
+      if (placeFilter.size > 0 && !eventPlaceIds.some((id) => placeFilter.has(id))) continue
+
+      if (q) {
+        const titleMatch = event.title.toLowerCase().includes(q)
+        const descMatch = stripHtml(event.description ?? '').toLowerCase().includes(q)
+        const charMatch = eventCharacterIds.some((id) =>
+          (characterNameById.get(id) ?? '').toLowerCase().includes(q)
+        )
+        const placeMatch = eventPlaceIds.some((id) =>
+          (placeNameById.get(id) ?? '').toLowerCase().includes(q)
+        )
+        if (!titleMatch && !descMatch && !charMatch && !placeMatch) continue
+      }
+
+      result.add(event.id)
+    }
+    return result
+  }, [
+    hasActiveFilter,
+    events,
+    search,
+    statusFilter,
+    layerFilter,
+    characterFilter,
+    placeFilter,
+    characterLinksByEvent,
+    placeLinksByEvent,
+    characterNameById,
+    placeNameById,
+  ])
 
   async function handleChapterCellClick(layer: Layer, chapter: Chapter) {
     await createEvent({
@@ -159,6 +278,26 @@ export function TimelineCanvas({
     setModalOpen(true)
   }
 
+  function handlePlaceLinked(eventId: string, placeId: string) {
+    setEventPlaceLinks((prev) => [...prev, { event_id: eventId, place_id: placeId }])
+  }
+
+  function handlePlaceUnlinked(eventId: string, placeId: string) {
+    setEventPlaceLinks((prev) =>
+      prev.filter((l) => !(l.event_id === eventId && l.place_id === placeId))
+    )
+  }
+
+  function handleCharacterLinked(eventId: string, characterId: string) {
+    setEventCharacterLinks((prev) => [...prev, { event_id: eventId, character_id: characterId }])
+  }
+
+  function handleCharacterUnlinked(eventId: string, characterId: string) {
+    setEventCharacterLinks((prev) =>
+      prev.filter((l) => !(l.event_id === eventId && l.character_id === characterId))
+    )
+  }
+
   const visibleLayers = layers.filter((l) => l.visible)
   const selectedLayer = selectedEvent
     ? layers.find((l) => l.id === selectedEvent.layer_id) ?? null
@@ -178,6 +317,21 @@ export function TimelineCanvas({
       />
 
       <div className="flex flex-col flex-1 min-w-0 overflow-hidden">
+        <TimelineToolbar
+          search={search}
+          onSearchChange={setSearch}
+          layers={layers}
+          characters={allCharacters}
+          places={allPlaces}
+          statusFilter={statusFilter}
+          onStatusFilterChange={setStatusFilter}
+          layerFilter={layerFilter}
+          onLayerFilterChange={setLayerFilter}
+          characterFilter={characterFilter}
+          onCharacterFilterChange={setCharacterFilter}
+          placeFilter={placeFilter}
+          onPlaceFilterChange={setPlaceFilter}
+        />
         <div className="flex-1 overflow-auto scrollbar-thin">
           <div className="inline-block min-w-full">
             <ChapterHeader
@@ -211,6 +365,7 @@ export function TimelineCanvas({
                     key={layer.id}
                     layer={layer}
                     events={eventsForLayer(layer.id)}
+                    visibleEventIds={visibleEventIds}
                     chapters={chapters}
                     height={TRACK_HEIGHT}
                     selectedEventId={selectedEvent?.id ?? null}
@@ -255,6 +410,10 @@ export function TimelineCanvas({
         layers={layers}
         allPlaces={allPlaces}
         allCharacters={allCharacters}
+        onPlaceLinked={handlePlaceLinked}
+        onPlaceUnlinked={handlePlaceUnlinked}
+        onCharacterLinked={handleCharacterLinked}
+        onCharacterUnlinked={handleCharacterUnlinked}
         open={modalOpen}
         onClose={() => {
           setModalOpen(false)

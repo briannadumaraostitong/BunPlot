@@ -116,6 +116,16 @@ export function PlacesPanel({
     setModalOpen(true)
   }
 
+  function handlePlaceLinked(eventId: string, placeId: string) {
+    setEventPlaceLinks((prev) => [...prev, { event_id: eventId, place_id: placeId }])
+  }
+
+  function handlePlaceUnlinked(eventId: string, placeId: string) {
+    setEventPlaceLinks((prev) =>
+      prev.filter((l) => !(l.event_id === eventId && l.place_id === placeId))
+    )
+  }
+
   const selectedEventLayer = selectedEvent
     ? (layers.find((l) => l.id === selectedEvent.layer_id) ?? null)
     : null
@@ -177,6 +187,8 @@ export function PlacesPanel({
         layers={layers}
         allPlaces={places}
         allCharacters={allCharacters}
+        onPlaceLinked={handlePlaceLinked}
+        onPlaceUnlinked={handlePlaceUnlinked}
         open={modalOpen}
         onClose={() => {
           setModalOpen(false)
