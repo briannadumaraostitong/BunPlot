@@ -16,7 +16,9 @@ import { LayerPanel } from '@/components/layers/LayerPanel'
 import { LayerRow, EventCardPreview } from '@/components/layers/LayerRow'
 import { ChapterHeader, DEFAULT_CHAPTER_WIDTH, DEFAULT_LABEL_WIDTH } from './ChapterHeader'
 import { TimelineToolbar } from './TimelineToolbar'
+import { TimelineFlowView } from './TimelineFlowView'
 import { EventModal } from '@/components/events/EventModal'
+import { cn } from '@/lib/utils'
 import { useLayers } from '@/hooks/useLayers'
 import { useEvents } from '@/hooks/useEvents'
 import { useChapters } from '@/hooks/useChapters'
@@ -79,6 +81,7 @@ export function TimelineCanvas({
   const [activeEvent, setActiveEvent] = useState<Event | null>(null)
   const [allPlaces, setAllPlaces] = useState<PlaceWithCover[]>([])
   const [allCharacters, setAllCharacters] = useState<Character[]>([])
+  const [viewMode, setViewMode] = useState<'grid' | 'flow'>('grid')
   const [eventPlaceLinks, setEventPlaceLinks] = useState<EventPlaceLink[]>([])
   const [eventCharacterLinks, setEventCharacterLinks] = useState<EventCharacterLink[]>([])
   const [search, setSearch] = useState('')
@@ -317,90 +320,131 @@ export function TimelineCanvas({
       />
 
       <div className="flex flex-col flex-1 min-w-0 overflow-hidden">
-        <TimelineToolbar
-          search={search}
-          onSearchChange={setSearch}
-          layers={layers}
-          characters={allCharacters}
-          places={allPlaces}
-          statusFilter={statusFilter}
-          onStatusFilterChange={setStatusFilter}
-          layerFilter={layerFilter}
-          onLayerFilterChange={setLayerFilter}
-          characterFilter={characterFilter}
-          onCharacterFilterChange={setCharacterFilter}
-          placeFilter={placeFilter}
-          onPlaceFilterChange={setPlaceFilter}
-        />
-        <div className="flex-1 overflow-auto scrollbar-thin">
-          <div className="inline-block min-w-full">
-            <ChapterHeader
-              projectId={project.id}
-              chapters={chapters}
-              onAdded={refreshChapters}
-              onRemoved={removeChapter}
-              onRenamed={renameChapter}
-              labelWidth={labelWidth}
-              chapterWidth={chapterWidth}
-              onLabelWidthChange={setLabelWidth}
-              onChapterWidthChange={setChapterWidth}
-            />
-
-            {chapters.length === 0 ? (
-              <div className="flex flex-col items-center justify-center h-64 text-center space-y-3">
-                <p className="text-sm text-muted-foreground">No chapters yet</p>
-                <p className="text-xs text-muted-foreground">
-                  Click &quot;Add Chapter&quot; above to create your first chapter
-                </p>
-              </div>
-            ) : (
-              <DndContext
-                sensors={sensors}
-                collisionDetection={closestCenter}
-                onDragStart={handleDragStart}
-                onDragEnd={handleDragEnd}
-              >
-                {visibleLayers.map((layer) => (
-                  <LayerRow
-                    key={layer.id}
-                    layer={layer}
-                    events={eventsForLayer(layer.id)}
-                    visibleEventIds={visibleEventIds}
-                    chapters={chapters}
-                    height={TRACK_HEIGHT}
-                    selectedEventId={selectedEvent?.id ?? null}
-                    onSelectEvent={(id) => {
-                      const ev = events.find((e) => e.id === id)
-                      if (ev) handleSelectEvent(ev)
-                    }}
-                    projectId={project.id}
-                    onChapterCellClick={(chapter) =>
-                      handleChapterCellClick(layer, chapter)
-                    }
-                    labelWidth={labelWidth}
-                    chapterWidth={chapterWidth}
-                  />
-                ))}
-
-                <DragOverlay>
-                  {activeEvent && (
-                    <EventCardPreview
-                      event={activeEvent}
-                      layer={layers.find((l) => l.id === activeEvent.layer_id) ?? layers[0]}
-                      width={chapterWidth - 24}
-                    />
-                  )}
-                </DragOverlay>
-              </DndContext>
-            )}
-
-            {visibleLayers.length === 0 && chapters.length > 0 && (
-              <div className="flex items-center justify-center h-48 text-sm text-muted-foreground">
-                All layers are hidden. Toggle visibility in the layer panel.
-              </div>
-            )}
+        <div className="flex h-9 shrink-0 items-center gap-2 border-b border-border bg-secondary/20 px-3">
+          <div className="inline-flex items-center gap-1 rounded-lg bg-secondary/50 p-1">
+            <button
+              onClick={() => setViewMode('grid')}
+              className={cn(
+                'rounded-md px-2.5 py-1 text-xs font-medium transition-all',
+                viewMode === 'grid'
+                  ? 'bg-background text-foreground shadow-sm'
+                  : 'text-muted-foreground hover:text-foreground'
+              )}
+            >
+              Grid
+            </button>
+            <button
+              onClick={() => setViewMode('flow')}
+              className={cn(
+                'rounded-md px-2.5 py-1 text-xs font-medium transition-all',
+                viewMode === 'flow'
+                  ? 'bg-background text-foreground shadow-sm'
+                  : 'text-muted-foreground hover:text-foreground'
+              )}
+            >
+              Flow
+            </button>
           </div>
         </div>
+
+        {viewMode === 'flow' ? (
+          <TimelineFlowView
+            projectId={project.id}
+            layers={layers}
+            events={events}
+            chapters={chapters}
+            selectedEventId={selectedEvent?.id ?? null}
+            onSelectEvent={handleSelectEvent}
+            onEventCreated={refreshEvents}
+          />
+        ) : (
+          <>
+            <TimelineToolbar
+              search={search}
+              onSearchChange={setSearch}
+              layers={layers}
+              characters={allCharacters}
+              places={allPlaces}
+              statusFilter={statusFilter}
+              onStatusFilterChange={setStatusFilter}
+              layerFilter={layerFilter}
+              onLayerFilterChange={setLayerFilter}
+              characterFilter={characterFilter}
+              onCharacterFilterChange={setCharacterFilter}
+              placeFilter={placeFilter}
+              onPlaceFilterChange={setPlaceFilter}
+            />
+            <div className="flex-1 overflow-auto scrollbar-thin">
+              <div className="inline-block min-w-full">
+                <ChapterHeader
+                  projectId={project.id}
+                  chapters={chapters}
+                  onAdded={refreshChapters}
+                  onRemoved={removeChapter}
+                  onRenamed={renameChapter}
+                  labelWidth={labelWidth}
+                  chapterWidth={chapterWidth}
+                  onLabelWidthChange={setLabelWidth}
+                  onChapterWidthChange={setChapterWidth}
+                />
+
+                {chapters.length === 0 ? (
+                  <div className="flex flex-col items-center justify-center h-64 text-center space-y-3">
+                    <p className="text-sm text-muted-foreground">No chapters yet</p>
+                    <p className="text-xs text-muted-foreground">
+                      Click &quot;Add Chapter&quot; above to create your first chapter
+                    </p>
+                  </div>
+                ) : (
+                  <DndContext
+                    sensors={sensors}
+                    collisionDetection={closestCenter}
+                    onDragStart={handleDragStart}
+                    onDragEnd={handleDragEnd}
+                  >
+                    {visibleLayers.map((layer) => (
+                      <LayerRow
+                        key={layer.id}
+                        layer={layer}
+                        events={eventsForLayer(layer.id)}
+                        visibleEventIds={visibleEventIds}
+                        chapters={chapters}
+                        height={TRACK_HEIGHT}
+                        selectedEventId={selectedEvent?.id ?? null}
+                        onSelectEvent={(id) => {
+                          const ev = events.find((e) => e.id === id)
+                          if (ev) handleSelectEvent(ev)
+                        }}
+                        projectId={project.id}
+                        onChapterCellClick={(chapter) =>
+                          handleChapterCellClick(layer, chapter)
+                        }
+                        labelWidth={labelWidth}
+                        chapterWidth={chapterWidth}
+                      />
+                    ))}
+
+                    <DragOverlay>
+                      {activeEvent && (
+                        <EventCardPreview
+                          event={activeEvent}
+                          layer={layers.find((l) => l.id === activeEvent.layer_id) ?? layers[0]}
+                          width={chapterWidth - 24}
+                        />
+                      )}
+                    </DragOverlay>
+                  </DndContext>
+                )}
+
+                {visibleLayers.length === 0 && chapters.length > 0 && (
+                  <div className="flex items-center justify-center h-48 text-sm text-muted-foreground">
+                    All layers are hidden. Toggle visibility in the layer panel.
+                  </div>
+                )}
+              </div>
+            </div>
+          </>
+        )}
       </div>
 
       <EventModal
