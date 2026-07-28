@@ -5,6 +5,8 @@ import { revalidatePath } from 'next/cache'
 
 interface UpdateProfileInput {
   display_name?: string
+  sound_enabled?: boolean
+  sound_volume?: number
 }
 
 export async function updateProfile(

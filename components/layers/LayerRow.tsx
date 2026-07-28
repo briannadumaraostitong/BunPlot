@@ -7,6 +7,7 @@ import { CSS } from '@dnd-kit/utilities'
 import { Eye, EyeOff, GripVertical, Trash2, Check, X, Plus } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { deleteLayer, updateLayer } from '@/actions/layers'
+import { playClickSound } from '@/lib/sound'
 import type { Layer, Event, Chapter } from '@/types/database'
 
 const STATUS_COLORS: Record<string, string> = {
@@ -367,7 +368,7 @@ function EventCardStacked({
   return (
     <div
       ref={setNodeRef}
-      onClick={(e) => { e.stopPropagation(); onSelect() }}
+      onClick={(e) => { e.stopPropagation(); playClickSound(); onSelect() }}
       className={cn(
         'group relative rounded-lg pl-2.5 pr-4 py-1.5 cursor-pointer select-none',
         'flex flex-col gap-1 shadow-sm transition-all duration-100',

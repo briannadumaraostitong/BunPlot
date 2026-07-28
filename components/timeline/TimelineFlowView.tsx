@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react'
 import { Loader2, Plus, ChevronRight } from 'lucide-react'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { cn } from '@/lib/utils'
+import { playClickSound } from '@/lib/sound'
 import { createEvent } from '@/actions/events'
 import type { Layer, Event, Chapter } from '@/types/database'
 
@@ -182,7 +183,10 @@ function FlowCard({
   const color = event.color ?? layer?.color ?? '#6366F1'
   return (
     <button
-      onClick={onClick}
+      onClick={() => {
+        playClickSound()
+        onClick()
+      }}
       className={cn(
         'flex w-44 shrink-0 flex-col gap-1 rounded-lg border border-border bg-card px-3 py-2.5 text-left shadow-sm transition-all hover:shadow-md hover:brightness-105',
         selected && 'ring-2 ring-offset-1 shadow-lg'

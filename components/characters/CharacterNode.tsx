@@ -3,6 +3,7 @@
 import { useRef, useState } from 'react'
 import { Link2, Unlink } from 'lucide-react'
 import { cn } from '@/lib/utils'
+import { playClickSound } from '@/lib/sound'
 import { getInitials } from './CharacterRow'
 import type { Character } from '@/types/database'
 
@@ -69,6 +70,7 @@ export function CharacterNode({
       const dy = e.clientY - state.startY
       onDragEnd(Math.max(0, state.originX + dx), Math.max(0, state.originY + dy))
     } else {
+      playClickSound()
       onClick()
     }
   }

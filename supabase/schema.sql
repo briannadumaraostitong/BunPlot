@@ -19,6 +19,8 @@ CREATE TABLE profiles (
   accent_color    accent_color NOT NULL DEFAULT 'blue',
   app_mode        app_mode    NOT NULL DEFAULT 'basic',
   theme           TEXT        NOT NULL DEFAULT 'system',
+  sound_enabled   BOOLEAN     NOT NULL DEFAULT TRUE,
+  sound_volume    SMALLINT    NOT NULL DEFAULT 70,
   created_at      TIMESTAMPTZ NOT NULL DEFAULT NOW(),
   updated_at      TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );

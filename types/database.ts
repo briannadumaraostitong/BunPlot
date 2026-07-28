@@ -19,6 +19,8 @@ export interface Profile {
   accent_color: AccentColor
   app_mode: AppMode
   theme: AppTheme
+  sound_enabled: boolean
+  sound_volume: number
   created_at: string
   updated_at: string
 }

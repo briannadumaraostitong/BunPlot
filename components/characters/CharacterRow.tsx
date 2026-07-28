@@ -3,6 +3,7 @@
 import { useRef, useState } from 'react'
 import { Trash2, Loader2 } from 'lucide-react'
 import { cn } from '@/lib/utils'
+import { playClickSound } from '@/lib/sound'
 import { deleteCharacter, updateCharacter } from '@/actions/characters'
 import type { Character } from '@/types/database'
 
@@ -56,7 +57,10 @@ export function CharacterRow({
 
   return (
     <div
-      onClick={onSelect}
+      onClick={() => {
+        playClickSound()
+        onSelect()
+      }}
       draggable
       onDragStart={(e) => {
         e.dataTransfer.setData('text/plain', character.id)

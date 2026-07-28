@@ -2,6 +2,7 @@
 
 import { MapPin } from 'lucide-react'
 import { cn } from '@/lib/utils'
+import { playClickSound } from '@/lib/sound'
 import { PLACE_TYPE_LABELS } from '@/lib/places.config'
 import type { Chapter } from '@/types/database'
 import type { PlaceWithCover } from '@/actions/places'
@@ -38,7 +39,10 @@ export function PlaceCard({ place, chapters, selected, onSelect }: PlaceCardProp
 
   return (
     <div
-      onClick={onSelect}
+      onClick={() => {
+        playClickSound()
+        onSelect()
+      }}
       className={cn(
         'group flex flex-col overflow-hidden rounded-xl border border-border bg-card cursor-pointer transition-all hover:shadow-md hover:brightness-105',
         selected && 'ring-2 ring-offset-1 shadow-lg'

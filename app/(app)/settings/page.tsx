@@ -1,6 +1,7 @@
 import { redirect } from 'next/navigation'
 import { createClient } from '@/lib/supabase/server'
 import { ProfileForm } from '@/components/settings/ProfileForm'
+import { SoundSettings } from '@/components/settings/SoundSettings'
 import { ThemeToggle } from '@/components/theme/ThemeToggle'
 import { AccentPicker } from '@/components/theme/AccentPicker'
 import type { Metadata } from 'next'
@@ -49,6 +50,11 @@ export default async function SettingsPage() {
           <span className="text-sm font-medium">Accent Color</span>
           <AccentPicker />
         </div>
+      </section>
+
+      <section className="rounded-xl border border-border bg-card p-4 space-y-4">
+        <h2 className="text-lg font-semibold">Sound</h2>
+        <SoundSettings profile={profile} />
       </section>
     </div>
   )
