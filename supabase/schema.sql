@@ -220,6 +220,19 @@ CREATE TABLE family_tree_members (
   PRIMARY KEY (tree_id, character_id)
 );
 
+-- CHAPTER LINKS ("continues from" — chapter_id inherits/continues from
+-- continues_from_chapter_id; not restricted to adjacent chapters, and a
+-- chapter can have multiple continues_from links for converging storylines)
+CREATE TABLE chapter_links (
+  id                        UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  project_id                UUID NOT NULL REFERENCES projects(id) ON DELETE CASCADE,
+  chapter_id                UUID NOT NULL REFERENCES chapters(id) ON DELETE CASCADE,
+  continues_from_chapter_id UUID NOT NULL REFERENCES chapters(id) ON DELETE CASCADE,
+  created_at                TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  CONSTRAINT no_self_chapter_link CHECK (chapter_id <> continues_from_chapter_id),
+  UNIQUE (chapter_id, continues_from_chapter_id)
+);
+
 -- INDEXES
 CREATE INDEX idx_projects_owner     ON projects(owner_id);
 CREATE INDEX idx_projects_archived  ON projects(owner_id, archived);
@@ -230,6 +243,7 @@ CREATE INDEX idx_layers_position    ON layers(project_id, position);
 CREATE INDEX idx_layers_group       ON layers(group_id);
 CREATE INDEX idx_events_project     ON events(project_id);
 CREATE INDEX idx_events_layer       ON events(layer_id);
+CREATE INDEX idx_events_chapter     ON events(chapter_id);
 CREATE INDEX idx_events_position    ON events(layer_id, position);
 CREATE INDEX idx_events_dates       ON events(project_id, start_date, end_date);
 CREATE INDEX idx_events_tags        ON events USING GIN(tags);
@@ -251,6 +265,9 @@ CREATE INDEX idx_cr_target          ON character_relationships(target_character_
 CREATE INDEX idx_ft_project         ON family_trees(project_id);
 CREATE INDEX idx_ftm_tree           ON family_tree_members(tree_id);
 CREATE INDEX idx_ftm_character      ON family_tree_members(character_id);
+CREATE INDEX idx_cl_project         ON chapter_links(project_id);
+CREATE INDEX idx_cl_chapter         ON chapter_links(chapter_id);
+CREATE INDEX idx_cl_continues_from  ON chapter_links(continues_from_chapter_id);
 
 -- UPDATED_AT TRIGGER
 CREATE OR REPLACE FUNCTION update_updated_at_column()
@@ -309,6 +326,7 @@ ALTER TABLE event_dependencies    ENABLE ROW LEVEL SECURITY;
 ALTER TABLE character_relationships ENABLE ROW LEVEL SECURITY;
 ALTER TABLE family_trees          ENABLE ROW LEVEL SECURITY;
 ALTER TABLE family_tree_members   ENABLE ROW LEVEL SECURITY;
+ALTER TABLE chapter_links         ENABLE ROW LEVEL SECURITY;
 
 -- PROFILES RLS
 CREATE POLICY "Users can view their own profile"
@@ -424,6 +442,12 @@ CREATE POLICY "ftm_update" ON family_tree_members FOR UPDATE
 CREATE POLICY "ftm_delete" ON family_tree_members FOR DELETE
   USING (EXISTS (SELECT 1 FROM family_trees ft WHERE ft.id = tree_id AND owns_project(ft.project_id)));
 
+-- CHAPTER_LINKS RLS
+CREATE POLICY "chapter_links_select" ON chapter_links FOR SELECT USING (owns_project(project_id));
+CREATE POLICY "chapter_links_insert" ON chapter_links FOR INSERT WITH CHECK (owns_project(project_id));
+CREATE POLICY "chapter_links_update" ON chapter_links FOR UPDATE USING (owns_project(project_id));
+CREATE POLICY "chapter_links_delete" ON chapter_links FOR DELETE USING (owns_project(project_id));
+
 -- GRANTS
 -- RLS policies control row-level access, but Postgres also requires the
 -- underlying table-level privilege to be granted — RLS doesn't substitute
@@ -436,3 +460,4 @@ GRANT SELECT, INSERT, UPDATE, DELETE ON TABLE family_trees TO anon, authenticate
 GRANT SELECT, INSERT, UPDATE, DELETE ON TABLE family_tree_members TO anon, authenticated, service_role;
 GRANT SELECT, INSERT, UPDATE, DELETE ON TABLE places TO anon, authenticated, service_role;
 GRANT SELECT, INSERT, UPDATE, DELETE ON TABLE event_places TO anon, authenticated, service_role;
+GRANT SELECT, INSERT, UPDATE, DELETE ON TABLE chapter_links TO anon, authenticated, service_role;

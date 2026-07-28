@@ -263,3 +263,88 @@ export async function removeFamilyTreeMember(treeId: string, characterId: string
   if (error) return { error: error.message }
   return { success: true }
 }
+
+// ── Event <-> Character links ────────────────────────────────
+
+export async function getCharactersForEvent(eventId: string): Promise<Character[]> {
+  const supabase = await createClient()
+  const { data, error } = await supabase
+    .from('event_characters')
+    .select('characters(*)')
+    .eq('event_id', eventId)
+
+  if (error) {
+    console.error('Get characters for event error:', error)
+    return []
+  }
+
+  return ((data ?? []) as { characters: Character | null }[])
+    .map((row) => row.characters)
+    .filter((character): character is Character => character !== null)
+}
+
+export async function linkEventToCharacter(eventId: string, characterId: string, projectId: string) {
+  const supabase = await createClient()
+  const { error } = await supabase
+    .from('event_characters')
+    .insert({ event_id: eventId, character_id: characterId } as never)
+
+  if (error) return { error: error.message }
+  revalidatePath(`/projects/${projectId}`)
+  return { success: true }
+}
+
+export async function unlinkEventFromCharacter(eventId: string, characterId: string, projectId: string) {
+  const supabase = await createClient()
+  const { error } = await supabase
+    .from('event_characters')
+    .delete()
+    .eq('event_id', eventId)
+    .eq('character_id', characterId)
+
+  if (error) return { error: error.message }
+  revalidatePath(`/projects/${projectId}`)
+  return { success: true }
+}
+
+// ── Suggested characters (via chapter_links) ─────────────────
+// Characters that already appear in events within chapters this chapter
+// "continues from" — surfaced as one-click suggestions when creating a new
+// event, not auto-added.
+
+export async function getSuggestedCharactersForChapter(chapterId: string): Promise<Character[]> {
+  const supabase = await createClient()
+
+  const { data: links, error: linksError } = await supabase
+    .from('chapter_links')
+    .select('continues_from_chapter_id')
+    .eq('chapter_id', chapterId)
+
+  if (linksError) {
+    console.error('Get chapter links for suggestions error:', linksError)
+    return []
+  }
+  if (!links || links.length === 0) return []
+
+  const sourceChapterIds = (links as { continues_from_chapter_id: string }[]).map(
+    (l) => l.continues_from_chapter_id
+  )
+
+  const { data, error } = await supabase
+    .from('event_characters')
+    .select('characters(*), events!inner(chapter_id)')
+    .in('events.chapter_id', sourceChapterIds)
+
+  if (error) {
+    console.error('Get suggested characters error:', error)
+    return []
+  }
+
+  const seen = new Map<string, Character>()
+  for (const row of (data ?? []) as { characters: Character | null }[]) {
+    if (row.characters && !seen.has(row.characters.id)) {
+      seen.set(row.characters.id, row.characters)
+    }
+  }
+  return [...seen.values()]
+}

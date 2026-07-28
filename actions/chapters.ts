@@ -2,6 +2,7 @@
 
 import { createClient } from '@/lib/supabase/server'
 import { revalidatePath } from 'next/cache'
+import type { Chapter, ChapterLink } from '@/types/database'
 
 export async function createChapter(projectId: string, title: string) {
   const supabase = await createClient()
@@ -69,6 +70,58 @@ export async function reorderChapters(projectId: string, orderedIds: string[]) {
         .eq('id', id)
     )
   )
+  revalidatePath(`/projects/${projectId}`)
+  return { success: true }
+}
+
+// ── Chapter Links ("continues from") ─────────────────────────
+
+export interface ChapterLinkWithSource {
+  id: string
+  continues_from: Chapter
+}
+
+export async function getChapterLinks(chapterId: string): Promise<ChapterLinkWithSource[]> {
+  const supabase = await createClient()
+  const { data, error } = await supabase
+    .from('chapter_links')
+    .select('id, continues_from:chapters!continues_from_chapter_id(*)')
+    .eq('chapter_id', chapterId)
+
+  if (error) {
+    console.error('Get chapter links error:', error)
+    return []
+  }
+
+  return ((data ?? []) as { id: string; continues_from: Chapter | null }[])
+    .filter((row): row is { id: string; continues_from: Chapter } => row.continues_from !== null)
+}
+
+export async function addChapterLink(
+  chapterId: string,
+  continuesFromChapterId: string,
+  projectId: string
+) {
+  const supabase = await createClient()
+  const { data, error } = await supabase
+    .from('chapter_links')
+    .insert({
+      project_id: projectId,
+      chapter_id: chapterId,
+      continues_from_chapter_id: continuesFromChapterId,
+    } as never)
+    .select()
+    .single()
+
+  if (error) return { error: error.message }
+  revalidatePath(`/projects/${projectId}`)
+  return data as ChapterLink
+}
+
+export async function removeChapterLink(linkId: string, projectId: string) {
+  const supabase = await createClient()
+  const { error } = await supabase.from('chapter_links').delete().eq('id', linkId)
+  if (error) return { error: error.message }
   revalidatePath(`/projects/${projectId}`)
   return { success: true }
 }

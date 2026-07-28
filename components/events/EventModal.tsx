@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useRef } from "react";
+import { useEffect, useState, useRef } from "react";
 import {
   Trash2,
   Loader2,
@@ -32,7 +32,20 @@ import {
 } from "@/components/ui/select";
 import { Separator } from "@/components/ui/separator";
 import { updateEvent, deleteEvent, duplicateEvent } from "@/actions/events";
-import type { Event, Layer, EventStatus, Chapter } from "@/types/database";
+import {
+  getCharactersForEvent,
+  linkEventToCharacter,
+  unlinkEventFromCharacter,
+  getSuggestedCharactersForChapter,
+} from "@/actions/characters";
+import {
+  getPlacesForEvent,
+  linkEventToPlace,
+  unlinkEventFromPlace,
+} from "@/actions/places";
+import { EventCharactersField } from "@/components/events/EventCharactersField";
+import { EventPlacesField } from "@/components/events/EventPlacesField";
+import type { Event, Layer, EventStatus, Chapter, Place, Character } from "@/types/database";
 import { cn } from "@/lib/utils";
 
 interface EventModalProps {
@@ -40,6 +53,8 @@ interface EventModalProps {
   layer: Layer | null;
   chapters: Chapter[];
   layers: Layer[];
+  allPlaces: Place[];
+  allCharacters: Character[];
   open: boolean;
   onClose: () => void;
   onUpdated: () => void;
@@ -220,6 +235,8 @@ function EventForm({
   layer,
   chapters,
   layers,
+  allPlaces,
+  allCharacters,
   onClose,
   onUpdated,
 }: {
@@ -227,6 +244,8 @@ function EventForm({
   layer: Layer;
   chapters: Chapter[];
   layers: Layer[];
+  allPlaces: Place[];
+  allCharacters: Character[];
   onClose: () => void;
   onUpdated: () => void;
 }) {
@@ -243,6 +262,78 @@ function EventForm({
   const [loading, setLoading] = useState(false);
   const [deleting, setDeleting] = useState(false);
   const [duplicating, setDuplicating] = useState(false);
+  const [places, setPlaces] = useState<Place[]>([]);
+  const [characters, setCharacters] = useState<Character[]>([]);
+  const [linkedDataLoading, setLinkedDataLoading] = useState(true);
+  const [suggestedCharacters, setSuggestedCharacters] = useState<Character[]>([]);
+
+  // An event is "new" (never saved since creation) when created_at and
+  // updated_at are still identical — Postgres's NOW() resolves once per
+  // transaction, so INSERT sets both columns to the same value, and only the
+  // set_updated_at_events trigger (which only fires on UPDATE) ever changes
+  // updated_at afterward. EventForm has no autosave — updateEvent only runs
+  // from the explicit Save button — so this stays true for as long as the
+  // user is looking at a freshly created event, however long that takes.
+  const isNewEvent = event.created_at === event.updated_at;
+
+  // Places/characters are each a single fast lookup by event id — fetched
+  // together so their loading state is shared. Suggestions run separately
+  // (below) since they're a nice-to-have that can involve a second, slower
+  // round trip (chapter_links, then events/event_characters) and shouldn't
+  // hold up the core linked data from appearing.
+  useEffect(() => {
+    let cancelled = false;
+    setLinkedDataLoading(true);
+    (async () => {
+      const [linkedPlaces, linkedCharacters] = await Promise.all([
+        getPlacesForEvent(event.id),
+        getCharactersForEvent(event.id),
+      ]);
+      if (cancelled) return;
+      setPlaces(linkedPlaces);
+      setCharacters(linkedCharacters);
+      setLinkedDataLoading(false);
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [event.id]);
+
+  useEffect(() => {
+    const chapterId = event.chapter_id;
+    if (!isNewEvent || !chapterId) {
+      setSuggestedCharacters([]);
+      return;
+    }
+    let cancelled = false;
+    (async () => {
+      const suggested = await getSuggestedCharactersForChapter(chapterId);
+      if (!cancelled) setSuggestedCharacters(suggested);
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [isNewEvent, event.chapter_id]);
+
+  async function handleAddPlace(place: Place) {
+    setPlaces((prev) => [...prev, place]);
+    await linkEventToPlace(event.id, place.id, event.project_id);
+  }
+
+  async function handleRemovePlace(placeId: string) {
+    setPlaces((prev) => prev.filter((p) => p.id !== placeId));
+    await unlinkEventFromPlace(event.id, placeId, event.project_id);
+  }
+
+  async function handleAddCharacter(character: Character) {
+    setCharacters((prev) => [...prev, character]);
+    await linkEventToCharacter(event.id, character.id, event.project_id);
+  }
+
+  async function handleRemoveCharacter(characterId: string) {
+    setCharacters((prev) => prev.filter((c) => c.id !== characterId));
+    await unlinkEventFromCharacter(event.id, characterId, event.project_id);
+  }
 
   async function handleSave() {
     setLoading(true);
@@ -375,23 +466,42 @@ function EventForm({
           </div>
         </div>
 
-        {/* Tab content */}
-        <div className="flex-1 p-5 pt-3 min-h-0">
-          {activeTab === "description" ? (
-            <RichTextEditor
-              key="description"
-              value={description}
-              onChange={setDescription}
-              placeholder="What happens in this scene?"
-            />
-          ) : (
-            <RichTextEditor
-              key="notes"
-              value={notes}
-              onChange={setNotes}
-              placeholder="Private notes, reminders, ideas..."
-            />
-          )}
+        {/* Tab content + places */}
+        <div className="flex-1 min-h-0 flex flex-col gap-4 p-5 pt-3">
+          <div className="flex-1 min-h-0">
+            {activeTab === "description" ? (
+              <RichTextEditor
+                key="description"
+                value={description}
+                onChange={setDescription}
+                placeholder="What happens in this scene?"
+              />
+            ) : (
+              <RichTextEditor
+                key="notes"
+                value={notes}
+                onChange={setNotes}
+                placeholder="Private notes, reminders, ideas..."
+              />
+            )}
+          </div>
+
+          <EventCharactersField
+            characters={characters}
+            allCharacters={allCharacters}
+            suggestedCharacters={suggestedCharacters}
+            loading={linkedDataLoading}
+            onAdd={handleAddCharacter}
+            onRemove={handleRemoveCharacter}
+          />
+
+          <EventPlacesField
+            places={places}
+            allPlaces={allPlaces}
+            loading={linkedDataLoading}
+            onAdd={handleAddPlace}
+            onRemove={handleRemovePlace}
+          />
         </div>
 
         {/* Bottom bar */}
@@ -471,6 +581,8 @@ export function EventModal({
   layer,
   chapters,
   layers,
+  allPlaces,
+  allCharacters,
   open,
   onClose,
   onUpdated,
@@ -489,6 +601,8 @@ export function EventModal({
             layer={layer}
             chapters={chapters}
             layers={layers}
+            allPlaces={allPlaces}
+            allCharacters={allCharacters}
             onClose={onClose}
             onUpdated={onUpdated}
           />

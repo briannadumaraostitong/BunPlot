@@ -216,6 +216,14 @@ export interface FamilyTreeMember {
   created_at: string
 }
 
+export interface ChapterLink {
+  id: string
+  project_id: string
+  chapter_id: string
+  continues_from_chapter_id: string
+  created_at: string
+}
+
 // ── Extended / Joined Types ─────────────────────────────────
 
 export interface LayerWithEvents extends Layer {
@@ -331,6 +339,11 @@ export interface Database {
         Row: FamilyTreeMember
         Insert: Omit<FamilyTreeMember, 'created_at'>
         Update: Partial<Omit<FamilyTreeMember, 'tree_id' | 'character_id' | 'created_at'>>
+      }
+      chapter_links: {
+        Row: ChapterLink
+        Insert: Omit<ChapterLink, 'id' | 'created_at'> & { id?: string }
+        Update: Partial<Omit<ChapterLink, 'id' | 'created_at'>>
       }
     }
     Enums: {

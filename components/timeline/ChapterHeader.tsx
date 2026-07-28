@@ -3,6 +3,7 @@
 import { useState, useRef, useCallback } from 'react'
 import { Plus, X, Loader2 } from 'lucide-react'
 import { createChapter, updateChapter, deleteChapter } from '@/actions/chapters'
+import { ChapterLinkPicker } from './ChapterLinkPicker'
 import type { Chapter } from '@/types/database'
 
 const DEFAULT_CHAPTER_WIDTH = 220
@@ -74,6 +75,7 @@ export function ChapterHeader({
         >
           <ChapterCell
             chapter={chapter}
+            allChapters={chapters}
             projectId={projectId}
             onRemoved={onRemoved}
             onRenamed={onRenamed}
@@ -161,11 +163,13 @@ function ResizableCell({
 
 function ChapterCell({
   chapter,
+  allChapters,
   projectId,
   onRemoved,
   onRenamed,
 }: {
   chapter: Chapter
+  allChapters: Chapter[]
   projectId: string
   onRemoved: (id: string) => void
   onRenamed: (id: string, title: string) => void
@@ -215,6 +219,10 @@ function ChapterCell({
         >
           {chapter.title}
         </span>
+      )}
+
+      {!editing && (
+        <ChapterLinkPicker chapter={chapter} allChapters={allChapters} projectId={projectId} />
       )}
 
       {!editing && (
