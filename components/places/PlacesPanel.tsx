@@ -10,7 +10,8 @@ import { useEvents } from '@/hooks/useEvents'
 import { useChapters } from '@/hooks/useChapters'
 import { useLayers } from '@/hooks/useLayers'
 import { getPlaces, getEventPlaceLinks } from '@/actions/places'
-import type { Layer, Event, Chapter, PlaceType } from '@/types/database'
+import { getCharacters } from '@/actions/characters'
+import type { Layer, Event, Chapter, PlaceType, Character } from '@/types/database'
 import type { PlaceWithCover, EventPlaceLink } from '@/actions/places'
 
 interface PlacesPanelProps {
@@ -29,6 +30,7 @@ export function PlacesPanel({
   const [loading, setLoading] = useState(true)
   const [places, setPlaces] = useState<PlaceWithCover[]>([])
   const [eventPlaceLinks, setEventPlaceLinks] = useState<EventPlaceLink[]>([])
+  const [allCharacters, setAllCharacters] = useState<Character[]>([])
   const [selectedPlaceId, setSelectedPlaceId] = useState<string | null>(null)
   const [search, setSearch] = useState('')
   const [typeFilter, setTypeFilter] = useState<PlaceType | 'all'>('all')
@@ -51,6 +53,17 @@ export function PlacesPanel({
       setPlaces(placesData)
       setEventPlaceLinks(linksData)
       setLoading(false)
+    })()
+    return () => {
+      cancelled = true
+    }
+  }, [projectId])
+
+  useEffect(() => {
+    let cancelled = false
+    ;(async () => {
+      const data = await getCharacters(projectId)
+      if (!cancelled) setAllCharacters(data)
     })()
     return () => {
       cancelled = true
@@ -162,6 +175,8 @@ export function PlacesPanel({
         layer={selectedEventLayer}
         chapters={chapters}
         layers={layers}
+        allPlaces={places}
+        allCharacters={allCharacters}
         open={modalOpen}
         onClose={() => {
           setModalOpen(false)

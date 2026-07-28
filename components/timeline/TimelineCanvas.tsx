@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import {
   DndContext,
   DragOverlay,
@@ -20,7 +20,9 @@ import { useLayers } from '@/hooks/useLayers'
 import { useEvents } from '@/hooks/useEvents'
 import { useChapters } from '@/hooks/useChapters'
 import { createEvent, reorderEvents, moveEventToChapter } from '@/actions/events'
-import type { Project, Layer, Event, Chapter } from '@/types/database'
+import { getPlaces } from '@/actions/places'
+import { getCharacters } from '@/actions/characters'
+import type { Project, Layer, Event, Chapter, Place, Character } from '@/types/database'
 
 interface TimelineCanvasProps {
   project: Project
@@ -66,6 +68,30 @@ export function TimelineCanvas({
   const [labelWidth, setLabelWidth] = useState(DEFAULT_LABEL_WIDTH)
   const [chapterWidth, setChapterWidth] = useState(DEFAULT_CHAPTER_WIDTH)
   const [activeEvent, setActiveEvent] = useState<Event | null>(null)
+  const [allPlaces, setAllPlaces] = useState<Place[]>([])
+  const [allCharacters, setAllCharacters] = useState<Character[]>([])
+
+  useEffect(() => {
+    let cancelled = false
+    ;(async () => {
+      const data = await getPlaces(project.id)
+      if (!cancelled) setAllPlaces(data)
+    })()
+    return () => {
+      cancelled = true
+    }
+  }, [project.id])
+
+  useEffect(() => {
+    let cancelled = false
+    ;(async () => {
+      const data = await getCharacters(project.id)
+      if (!cancelled) setAllCharacters(data)
+    })()
+    return () => {
+      cancelled = true
+    }
+  }, [project.id])
 
   const sensors = useSensors(
     useSensor(PointerSensor, { activationConstraint: { distance: 4 } }),
@@ -227,6 +253,8 @@ export function TimelineCanvas({
         layer={selectedLayer}
         chapters={chapters}
         layers={layers}
+        allPlaces={allPlaces}
+        allCharacters={allCharacters}
         open={modalOpen}
         onClose={() => {
           setModalOpen(false)

@@ -97,7 +97,6 @@ export async function deletePlace(id: string, projectId: string) {
 }
 
 // ── Event <-> Place links ───────────────────────────────────
-// Read-only for now — links are managed from the event side in a later pass.
 
 export interface EventPlaceLink {
   event_id: string
@@ -120,4 +119,45 @@ export async function getEventPlaceLinks(projectId: string): Promise<EventPlaceL
     event_id: row.event_id,
     place_id: row.place_id,
   }))
+}
+
+export async function getPlacesForEvent(eventId: string): Promise<Place[]> {
+  const supabase = await createClient()
+  const { data, error } = await supabase
+    .from('event_places')
+    .select('places(*)')
+    .eq('event_id', eventId)
+
+  if (error) {
+    console.error('Get places for event error:', error)
+    return []
+  }
+
+  return ((data ?? []) as { places: Place | null }[])
+    .map((row) => row.places)
+    .filter((place): place is Place => place !== null)
+}
+
+export async function linkEventToPlace(eventId: string, placeId: string, projectId: string) {
+  const supabase = await createClient()
+  const { error } = await supabase
+    .from('event_places')
+    .insert({ event_id: eventId, place_id: placeId } as never)
+
+  if (error) return { error: error.message }
+  revalidatePath(`/projects/${projectId}`)
+  return { success: true }
+}
+
+export async function unlinkEventFromPlace(eventId: string, placeId: string, projectId: string) {
+  const supabase = await createClient()
+  const { error } = await supabase
+    .from('event_places')
+    .delete()
+    .eq('event_id', eventId)
+    .eq('place_id', placeId)
+
+  if (error) return { error: error.message }
+  revalidatePath(`/projects/${projectId}`)
+  return { success: true }
 }
