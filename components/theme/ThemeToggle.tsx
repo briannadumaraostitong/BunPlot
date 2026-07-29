@@ -6,19 +6,35 @@ import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu'
 import { useTheme } from './ThemeProvider'
-import type { ThemeSetting } from '@/lib/themes'
+import { getTheme, type ThemeSetting } from '@/lib/themes'
 
-const THEME_OPTIONS: {
-  value: ThemeSetting
-  label: string
-  icon: React.ComponentType<{ className?: string }>
-}[] = [
-  { value: 'classic-light', label: 'Light',  icon: Sun },
-  { value: 'classic-dark',  label: 'Dark',   icon: Moon },
-  { value: 'sync',          label: 'System', icon: Monitor },
+const SYNC_OPTION: { value: ThemeSetting; label: string; icon: React.ComponentType<{ className?: string }> } = {
+  value: 'sync', label: 'System', icon: Monitor,
+}
+
+const LIGHT_THEME_OPTIONS: { value: ThemeSetting; label: string }[] = [
+  { value: 'classic-light', label: 'Classic Light' },
+  { value: 'parchment',     label: 'Parchment' },
+  { value: 'rose',          label: 'Rosé' },
+  { value: 'seafoam',       label: 'Seafoam' },
+  { value: 'honey',         label: 'Honey' },
+  { value: 'lilac',         label: 'Lilac' },
+]
+
+const DARK_THEME_OPTIONS: { value: ThemeSetting; label: string }[] = [
+  { value: 'classic-dark', label: 'Classic Dark' },
+  { value: 'nightfall',    label: 'Nightfall' },
+  { value: 'forest',       label: 'Forest' },
+  { value: 'ocean',        label: 'Ocean' },
+  { value: 'autumn',       label: 'Autumn' },
+  { value: 'cyberpunk',    label: 'Cyberpunk' },
+  { value: 'monochrome',   label: 'Monochrome' },
+  { value: 'redblack',     label: 'Red/Black' },
 ]
 
 export function ThemeToggle() {
@@ -40,17 +56,52 @@ export function ThemeToggle() {
 
       <DropdownMenuContent
         align="end"
-        className="w-32 rounded-xl p-1 bg-popover border border-border shadow-xl"
+        className="w-52 rounded-xl p-1 bg-popover border border-border shadow-xl max-h-96 overflow-y-auto scrollbar-thin"
         style={{ backgroundColor: 'hsl(var(--popover))' }}
       >
-        {THEME_OPTIONS.map(({ value, label, icon: Icon }) => (
+        <DropdownMenuItem
+          onClick={() => setTheme(SYNC_OPTION.value)}
+          className="flex items-center gap-2 rounded-lg px-2.5 py-2 text-xs font-medium cursor-pointer text-popover-foreground focus:bg-secondary focus:text-foreground"
+          style={{ backgroundColor: 'transparent' }}
+        >
+          <Monitor className="h-3.5 w-3.5 shrink-0 text-muted-foreground" />
+          <span>{SYNC_OPTION.label}</span>
+          {theme === SYNC_OPTION.value && (
+            <Check className="h-3 w-3 ml-auto text-primary" />
+          )}
+        </DropdownMenuItem>
+
+        <DropdownMenuSeparator className="bg-border" />
+        <DropdownMenuLabel className="px-2.5 py-1 text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">
+          Light
+        </DropdownMenuLabel>
+        {LIGHT_THEME_OPTIONS.map(({ value, label }) => (
           <DropdownMenuItem
             key={value}
             onClick={() => setTheme(value)}
             className="flex items-center gap-2 rounded-lg px-2.5 py-2 text-xs font-medium cursor-pointer text-popover-foreground focus:bg-secondary focus:text-foreground"
             style={{ backgroundColor: 'transparent' }}
           >
-            <Icon className="h-3.5 w-3.5 shrink-0 text-muted-foreground" />
+            <ThemeSwatch id={value} />
+            <span>{label}</span>
+            {theme === value && (
+              <Check className="h-3 w-3 ml-auto text-primary" />
+            )}
+          </DropdownMenuItem>
+        ))}
+
+        <DropdownMenuSeparator className="bg-border" />
+        <DropdownMenuLabel className="px-2.5 py-1 text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">
+          Dark
+        </DropdownMenuLabel>
+        {DARK_THEME_OPTIONS.map(({ value, label }) => (
+          <DropdownMenuItem
+            key={value}
+            onClick={() => setTheme(value)}
+            className="flex items-center gap-2 rounded-lg px-2.5 py-2 text-xs font-medium cursor-pointer text-popover-foreground focus:bg-secondary focus:text-foreground"
+            style={{ backgroundColor: 'transparent' }}
+          >
+            <ThemeSwatch id={value} />
             <span>{label}</span>
             {theme === value && (
               <Check className="h-3 w-3 ml-auto text-primary" />
@@ -59,5 +110,16 @@ export function ThemeToggle() {
         ))}
       </DropdownMenuContent>
     </DropdownMenu>
+  )
+}
+
+function ThemeSwatch({ id }: { id: ThemeSetting }) {
+  const theme = id === 'sync' ? null : getTheme(id)
+  const accent = theme?.tokens['--accent']
+  return (
+    <span
+      className="h-3.5 w-3.5 shrink-0 rounded-full border border-border"
+      style={{ backgroundColor: accent ? `hsl(${accent})` : undefined }}
+    />
   )
 }
