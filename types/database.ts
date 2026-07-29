@@ -1,11 +1,11 @@
 // types/database.ts
 // Auto-generated types matching supabase/schema.sql
 
-export type AccentColor = 'blue' | 'purple' | 'emerald'
+import type { ThemeSetting } from '@/lib/themes'
+
 export type AppMode = 'basic' | 'advanced'
 export type EventStatus = 'draft' | 'outline' | 'written' | 'revised' | 'final'
 export type LayerType = 'main' | 'character' | 'subplot' | 'theme' | 'custom'
-export type AppTheme = 'light' | 'dark' | 'system'
 export type RelationshipType = 'parent' | 'sibling' | 'spouse' | 'friend' | 'enemy' | 'mentor' | 'rival' | 'other'
 export type PlaceType = 'city' | 'town' | 'village' | 'building' | 'room' | 'country' | 'region' | 'world' | 'other'
 
@@ -16,9 +16,8 @@ export interface Profile {
   username: string | null
   display_name: string | null
   avatar_url: string | null
-  accent_color: AccentColor
   app_mode: AppMode
-  theme: AppTheme
+  theme: ThemeSetting
   sound_enabled: boolean
   sound_volume: number
   created_at: string
@@ -349,7 +348,6 @@ export interface Database {
       }
     }
     Enums: {
-      accent_color: AccentColor
       app_mode: AppMode
       event_status: EventStatus
       layer_type: LayerType

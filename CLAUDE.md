@@ -11,7 +11,8 @@ Built with: Next.js 15 (App Router), TypeScript, Tailwind CSS v4, shadcn/ui (Nov
 - `actions/` — Next.js server actions (projects, layers, events, chapters)
 - `types/database.ts` — All TypeScript types
 - `lib/supabase/` — client.ts and server.ts
-- `lib/theme.config.ts` — accent colors and theme helpers
+- `lib/themes.ts` — full-palette theme definitions (single source of truth for color tokens)
+- `lib/theme.config.ts` — layer color palette (`LAYER_COLORS`)
 - `supabase/schema.sql` — full database schema
 
 ## Design System

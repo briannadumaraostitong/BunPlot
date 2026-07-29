@@ -30,8 +30,8 @@
   --color-input: hsl(var(--input));
   --color-border: hsl(var(--border));
   --color-destructive: hsl(var(--destructive));
-  --color-accent-foreground: var(--accent-foreground);
-  --color-accent: var(--accent);
+  --color-accent-foreground: hsl(var(--accent-foreground));
+  --color-accent: hsl(var(--accent));
   --color-muted-foreground: hsl(var(--muted-foreground));
   --color-muted: hsl(var(--muted));
   --color-secondary-foreground: hsl(var(--secondary-foreground));
@@ -69,12 +69,12 @@
   --input:              220 13% 91%;
   --ring:               217 91% 60%;
 
-  /* Accent — default blue (overridden by ThemeProvider) */
-  --accent:             hsl(217 91% 60%);
+  /* Accent — classic-light default (overridden per-theme by lib/themes.ts) */
+  --accent:             217 91% 60%;
   --accent-foreground:  0 0% 100%;
-  --accent-hover:       hsl(217 91% 53%);
-  --accent-muted:       hsl(217 91% 95%);
-  --accent-border:      hsl(217 91% 80%);
+  --accent-hover:       217 91% 53%;
+  --accent-muted:       217 91% 95%;
+  --accent-border:      217 91% 80%;
 
   /* Sidebar */
   --sidebar:            220 20% 98%;
@@ -97,37 +97,6 @@
   --timeline-track-bg:   220 14% 96%;
   --timeline-grid-line:  220 13% 88%;
   --event-card-radius:   0.375rem;
-}
-
-.dark {
-  --background:         222 25% 9%;
-  --foreground:         210 20% 92%;
-  --card:               222 25% 12%;
-  --card-foreground:    210 20% 92%;
-  --popover:            222 25% 12%;
-  --popover-foreground: 210 20% 92%;
-  --primary:            210 20% 92%;
-  --primary-foreground: 222 25% 9%;
-  --secondary:          222 20% 16%;
-  --secondary-foreground: 210 20% 80%;
-  --muted:              222 20% 16%;
-  --muted-foreground:   210 10% 55%;
-  --destructive:        0 72% 51%;
-  --border:             222 20% 20%;
-  --input:              222 20% 20%;
-  --ring:               217 91% 65%;
-
-  --sidebar:            222 25% 7%;
-  --sidebar-foreground: 210 20% 92%;
-  --sidebar-primary:    217 91% 65%;
-  --sidebar-primary-foreground: 0 0% 100%;
-  --sidebar-accent:     222 20% 14%;
-  --sidebar-accent-foreground: 210 20% 92%;
-  --sidebar-border:     222 20% 14%;
-  --sidebar-ring:       217 91% 65%;
-
-  --timeline-track-bg:  222 20% 14%;
-  --timeline-grid-line: 222 20% 18%;
 }
 
 * {
@@ -176,25 +145,13 @@ body {
   transform: translateY(-1px);
 }
 
-/* Accent color applied to primary interactive elements */
-[data-accent="blue"] .accent-apply,
-[data-accent="blue"] [data-slot="button"]:not([data-variant]),
-[data-accent="blue"] [data-slot="button"][data-variant="default"] {
-  background-color: hsl(217 91% 60%);
+/* Accent color applied to primary interactive elements and sidebar active state */
+[data-slot="button"][data-variant="default"] {
+  background-color: hsl(var(--accent));
 }
-
-[data-accent="purple"] [data-slot="button"][data-variant="default"] {
-  background-color: hsl(262 83% 63%);
+.bg-primary {
+  background-color: hsl(var(--accent));
 }
-
-[data-accent="emerald"] [data-slot="button"][data-variant="default"] {
-  background-color: hsl(158 64% 46%);
-}
-
-/* Sidebar active state uses accent */
-[data-accent="blue"] .bg-primary { background-color: hsl(217 91% 60%); }
-[data-accent="purple"] .bg-primary { background-color: hsl(262 83% 63%); }
-[data-accent="emerald"] .bg-primary { background-color: hsl(158 64% 46%); }
 
 /* Rich text editor styles */
 [contenteditable] h3 {

@@ -1,16 +1,14 @@
 'use client'
 
 import React, { createContext, useContext, useEffect, useState, useCallback, useMemo } from 'react'
-import type { AccentColor, AppTheme } from '@/types/database'
-import { applyAccentColor, applyTheme, DEFAULT_ACCENT, DEFAULT_THEME } from '@/lib/theme.config'
+import type { ThemeSetting } from '@/lib/themes'
+import { applyTheme, getTheme, resolveThemeId, DEFAULT_THEME_SETTING } from '@/lib/themes'
 import { createClient } from '@/lib/supabase/client'
 
 interface ThemeContextValue {
-  theme: AppTheme
-  accent: AccentColor
+  theme: ThemeSetting
   isDark: boolean
-  setTheme: (theme: AppTheme) => Promise<void>
-  setAccent: (accent: AccentColor) => Promise<void>
+  setTheme: (theme: ThemeSetting) => Promise<void>
 }
 
 const ThemeContext = createContext<ThemeContextValue | null>(null)
@@ -23,8 +21,7 @@ export function useTheme() {
 
 interface ThemeProviderProps {
   children: React.ReactNode
-  initialTheme?: AppTheme
-  initialAccent?: AccentColor
+  initialTheme?: ThemeSetting
 }
 
 // Initialize system dark preference synchronously (safe — runs once at module level on client)
@@ -33,27 +30,31 @@ function getSystemDark() {
   return window.matchMedia('(prefers-color-scheme: dark)').matches
 }
 
+// Lazy init reads what ThemeScript already painted onto the DOM pre-hydration,
+// so React state agrees with localStorage instead of resetting to the default.
+function getStoredTheme(fallback: ThemeSetting): ThemeSetting {
+  if (typeof window === 'undefined') return fallback
+  const stored = localStorage.getItem('plottr-theme') as ThemeSetting | null
+  return stored ?? fallback
+}
+
 export function ThemeProvider({
   children,
-  initialTheme = DEFAULT_THEME,
-  initialAccent = DEFAULT_ACCENT,
+  initialTheme = DEFAULT_THEME_SETTING,
 }: ThemeProviderProps) {
-  const [theme, setThemeState] = useState<AppTheme>(initialTheme)
-  const [accent, setAccentState] = useState<AccentColor>(initialAccent)
+  const [theme, setThemeState] = useState<ThemeSetting>(() => getStoredTheme(initialTheme))
   // Initialize directly from window — avoids needing setState in effect
   const [systemDark, setSystemDark] = useState<boolean>(getSystemDark)
 
-  const isDark = useMemo(() => {
-    if (theme === 'dark') return true
-    if (theme === 'light') return false
-    return systemDark
-  }, [theme, systemDark])
+  const isDark = useMemo(
+    () => getTheme(resolveThemeId(theme, systemDark)).isDark,
+    [theme, systemDark]
+  )
 
   // Apply to DOM — pure side effect, no setState
   useEffect(() => {
     applyTheme(theme)
-    applyAccentColor(accent, isDark)
-  }, [theme, accent, isDark])
+  }, [theme, systemDark])
 
   // Subscribe to system preference changes — setState only in callback, not in body
   useEffect(() => {
@@ -65,7 +66,7 @@ export function ThemeProvider({
 
   const supabase = createClient()
 
-  const setTheme = useCallback(async (newTheme: AppTheme) => {
+  const setTheme = useCallback(async (newTheme: ThemeSetting) => {
     setThemeState(newTheme)
     localStorage.setItem('plottr-theme', newTheme)
     const { data: { user } } = await supabase.auth.getUser()
@@ -77,20 +78,8 @@ export function ThemeProvider({
     }
   }, [supabase])
 
-  const setAccent = useCallback(async (newAccent: AccentColor) => {
-    setAccentState(newAccent)
-    localStorage.setItem('plottr-accent', newAccent)
-    const { data: { user } } = await supabase.auth.getUser()
-    if (user) {
-      await supabase
-        .from('profiles')
-        .update({ accent_color: newAccent } as never)
-        .eq('id', user.id)
-    }
-  }, [supabase])
-
   return (
-    <ThemeContext.Provider value={{ theme, accent, isDark, setTheme, setAccent }}>
+    <ThemeContext.Provider value={{ theme, isDark, setTheme }}>
       {children}
     </ThemeContext.Provider>
   )

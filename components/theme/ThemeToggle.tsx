@@ -9,16 +9,16 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu'
 import { useTheme } from './ThemeProvider'
-import type { AppTheme } from '@/types/database'
+import type { ThemeSetting } from '@/lib/themes'
 
 const THEME_OPTIONS: {
-  value: AppTheme
+  value: ThemeSetting
   label: string
   icon: React.ComponentType<{ className?: string }>
 }[] = [
-  { value: 'light',  label: 'Light',  icon: Sun },
-  { value: 'dark',   label: 'Dark',   icon: Moon },
-  { value: 'system', label: 'System', icon: Monitor },
+  { value: 'classic-light', label: 'Light',  icon: Sun },
+  { value: 'classic-dark',  label: 'Dark',   icon: Moon },
+  { value: 'sync',          label: 'System', icon: Monitor },
 ]
 
 export function ThemeToggle() {

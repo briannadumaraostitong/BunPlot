@@ -3,7 +3,6 @@ import { createClient } from '@/lib/supabase/server'
 import { ProfileForm } from '@/components/settings/ProfileForm'
 import { SoundSettings } from '@/components/settings/SoundSettings'
 import { ThemeToggle } from '@/components/theme/ThemeToggle'
-import { AccentPicker } from '@/components/theme/AccentPicker'
 import type { Metadata } from 'next'
 import type { Profile } from '@/types/database'
 
@@ -44,11 +43,6 @@ export default async function SettingsPage() {
         <div className="flex items-center justify-between max-w-sm">
           <span className="text-sm font-medium">Theme</span>
           <ThemeToggle />
-        </div>
-
-        <div className="flex items-center justify-between max-w-sm">
-          <span className="text-sm font-medium">Accent Color</span>
-          <AccentPicker />
         </div>
       </section>
 

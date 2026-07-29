@@ -3,7 +3,6 @@ CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
 CREATE EXTENSION IF NOT EXISTS "pgcrypto";
 
 -- ENUMS
-CREATE TYPE accent_color AS ENUM ('blue', 'purple', 'emerald');
 CREATE TYPE app_mode AS ENUM ('basic', 'advanced');
 CREATE TYPE event_status AS ENUM ('draft', 'outline', 'written', 'revised', 'final');
 CREATE TYPE layer_type AS ENUM ('main', 'character', 'subplot', 'theme', 'custom');
@@ -16,9 +15,8 @@ CREATE TABLE profiles (
   username        TEXT UNIQUE,
   display_name    TEXT,
   avatar_url      TEXT,
-  accent_color    accent_color NOT NULL DEFAULT 'blue',
   app_mode        app_mode    NOT NULL DEFAULT 'basic',
-  theme           TEXT        NOT NULL DEFAULT 'system',
+  theme           TEXT        NOT NULL DEFAULT 'sync',
   sound_enabled   BOOLEAN     NOT NULL DEFAULT TRUE,
   sound_volume    SMALLINT    NOT NULL DEFAULT 70,
   created_at      TIMESTAMPTZ NOT NULL DEFAULT NOW(),
