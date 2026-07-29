@@ -111,6 +111,17 @@ export interface LayerMetadata {
   pattern?: 'solid' | 'dashed' | 'dotted'
 }
 
+export interface Status {
+  id: string
+  project_id: string
+  name: string
+  color: string
+  is_default: boolean
+  position: number
+  created_at: string
+  updated_at: string
+}
+
 export interface Character {
   id: string
   project_id: string
@@ -153,6 +164,7 @@ export interface Event {
   color: string | null
   icon: string | null
   status: EventStatus
+  status_id: string
   tension_level: number | null
   word_count: number | null
   custom_fields: Record<string, unknown>
@@ -295,6 +307,11 @@ export interface Database {
         Row: Layer
         Insert: Omit<Layer, 'id' | 'created_at' | 'updated_at'> & { id?: string }
         Update: Partial<Omit<Layer, 'id' | 'created_at'>>
+      }
+      statuses: {
+        Row: Status
+        Insert: Omit<Status, 'id' | 'created_at' | 'updated_at'> & { id?: string }
+        Update: Partial<Omit<Status, 'id' | 'created_at'>>
       }
       characters: {
         Row: Character

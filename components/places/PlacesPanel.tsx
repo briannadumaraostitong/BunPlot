@@ -9,9 +9,10 @@ import { EventModal } from '@/components/events/EventModal'
 import { useEvents } from '@/hooks/useEvents'
 import { useChapters } from '@/hooks/useChapters'
 import { useLayers } from '@/hooks/useLayers'
+import { useStatuses } from '@/hooks/useStatuses'
 import { getPlaces, getEventPlaceLinks } from '@/actions/places'
 import { getCharacters } from '@/actions/characters'
-import type { Layer, Event, Chapter, PlaceType, Character } from '@/types/database'
+import type { Layer, Event, Chapter, PlaceType, Character, Status } from '@/types/database'
 import type { PlaceWithCover, EventPlaceLink } from '@/actions/places'
 
 interface PlacesPanelProps {
@@ -19,6 +20,7 @@ interface PlacesPanelProps {
   initialEvents: Event[]
   initialLayers: Layer[]
   initialChapters: Chapter[]
+  initialStatuses: Status[]
 }
 
 export function PlacesPanel({
@@ -26,6 +28,7 @@ export function PlacesPanel({
   initialEvents,
   initialLayers,
   initialChapters,
+  initialStatuses,
 }: PlacesPanelProps) {
   const [loading, setLoading] = useState(true)
   const [places, setPlaces] = useState<PlaceWithCover[]>([])
@@ -38,6 +41,7 @@ export function PlacesPanel({
   const { events, refresh: refreshEvents } = useEvents(projectId, initialEvents)
   const { chapters } = useChapters(projectId, initialChapters)
   const { layers } = useLayers(projectId, initialLayers)
+  const { statuses } = useStatuses(projectId, initialStatuses)
 
   const [selectedEvent, setSelectedEvent] = useState<Event | null>(null)
   const [modalOpen, setModalOpen] = useState(false)
@@ -185,6 +189,7 @@ export function PlacesPanel({
         layer={selectedEventLayer}
         chapters={chapters}
         layers={layers}
+        statuses={statuses}
         allPlaces={places}
         allCharacters={allCharacters}
         onPlaceLinked={handlePlaceLinked}

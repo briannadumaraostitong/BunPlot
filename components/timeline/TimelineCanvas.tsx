@@ -22,10 +22,11 @@ import { cn } from '@/lib/utils'
 import { useLayers } from '@/hooks/useLayers'
 import { useEvents } from '@/hooks/useEvents'
 import { useChapters } from '@/hooks/useChapters'
+import { useStatuses } from '@/hooks/useStatuses'
 import { createEvent, reorderEvents, moveEventToChapter } from '@/actions/events'
 import { getPlaces, getEventPlaceLinks } from '@/actions/places'
 import { getCharacters, getEventCharacterLinks } from '@/actions/characters'
-import type { Project, Layer, Event, Chapter, Character, EventStatus } from '@/types/database'
+import type { Project, Layer, Event, Chapter, Character, Status } from '@/types/database'
 import type { PlaceWithCover, EventPlaceLink } from '@/actions/places'
 import type { EventCharacterLink } from '@/actions/characters'
 
@@ -40,6 +41,7 @@ interface TimelineCanvasProps {
   initialLayers: Layer[]
   initialEvents: Event[]
   initialChapters: Chapter[]
+  initialStatuses: Status[]
 }
 
 const TRACK_HEIGHT = 90
@@ -49,6 +51,7 @@ export function TimelineCanvas({
   initialLayers,
   initialEvents,
   initialChapters,
+  initialStatuses,
 }: TimelineCanvasProps) {
   const {
     layers,
@@ -74,6 +77,8 @@ export function TimelineCanvas({
     renameChapter,
   } = useChapters(project.id, initialChapters)
 
+  const { statuses, reorder: reorderStatusLocal } = useStatuses(project.id, initialStatuses)
+
   const [selectedEvent, setSelectedEvent] = useState<Event | null>(null)
   const [modalOpen, setModalOpen] = useState(false)
   const [labelWidth, setLabelWidth] = useState(DEFAULT_LABEL_WIDTH)
@@ -85,7 +90,7 @@ export function TimelineCanvas({
   const [eventPlaceLinks, setEventPlaceLinks] = useState<EventPlaceLink[]>([])
   const [eventCharacterLinks, setEventCharacterLinks] = useState<EventCharacterLink[]>([])
   const [search, setSearch] = useState('')
-  const [statusFilter, setStatusFilter] = useState<Set<EventStatus>>(new Set())
+  const [statusFilter, setStatusFilter] = useState<Set<string>>(new Set())
   const [layerFilter, setLayerFilter] = useState<Set<string>>(new Set())
   const [characterFilter, setCharacterFilter] = useState<Set<string>>(new Set())
   const [placeFilter, setPlaceFilter] = useState<Set<string>>(new Set())
@@ -182,7 +187,7 @@ export function TimelineCanvas({
     const q = search.trim().toLowerCase()
     const result = new Set<string>()
     for (const event of events) {
-      if (statusFilter.size > 0 && !statusFilter.has(event.status)) continue
+      if (statusFilter.size > 0 && !statusFilter.has(event.status_id)) continue
       if (layerFilter.size > 0 && !layerFilter.has(event.layer_id)) continue
 
       const eventCharacterIds = characterLinksByEvent.get(event.id) ?? []
@@ -365,6 +370,7 @@ export function TimelineCanvas({
               layers={layers}
               characters={allCharacters}
               places={allPlaces}
+              statuses={statuses}
               statusFilter={statusFilter}
               onStatusFilterChange={setStatusFilter}
               layerFilter={layerFilter}
@@ -407,6 +413,7 @@ export function TimelineCanvas({
                         key={layer.id}
                         layer={layer}
                         events={eventsForLayer(layer.id)}
+                        statuses={statuses}
                         visibleEventIds={visibleEventIds}
                         chapters={chapters}
                         height={TRACK_HEIGHT}
@@ -429,6 +436,7 @@ export function TimelineCanvas({
                         <EventCardPreview
                           event={activeEvent}
                           layer={layers.find((l) => l.id === activeEvent.layer_id) ?? layers[0]}
+                          statuses={statuses}
                           width={chapterWidth - 24}
                         />
                       )}
@@ -452,6 +460,8 @@ export function TimelineCanvas({
         layer={selectedLayer}
         chapters={chapters}
         layers={layers}
+        statuses={statuses}
+        onStatusReorder={reorderStatusLocal}
         allPlaces={allPlaces}
         allCharacters={allCharacters}
         onPlaceLinked={handlePlaceLinked}

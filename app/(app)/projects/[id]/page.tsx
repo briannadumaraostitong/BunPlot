@@ -2,7 +2,7 @@ import { notFound } from 'next/navigation'
 import { createClient } from '@/lib/supabase/server'
 import { ProjectView } from '@/components/timeline/ProjectView'
 import type { Metadata } from 'next'
-import type { Project, Layer, Event, Chapter } from '@/types/database'
+import type { Project, Layer, Event, Chapter, Status } from '@/types/database'
 
 interface Props {
   params: Promise<{ id: string }>
@@ -51,12 +51,19 @@ export default async function ProjectPage({ params }: Props) {
     .eq('project_id', id)
     .order('position')
 
+  const { data: statusesData } = await supabase
+    .from('statuses')
+    .select('*')
+    .eq('project_id', id)
+    .order('position')
+
   return (
     <ProjectView
       project={project}
       initialLayers={(layersData ?? []) as Layer[]}
       initialEvents={(eventsData ?? []) as Event[]}
       initialChapters={(chaptersData ?? []) as Chapter[]}
+      initialStatuses={(statusesData ?? []) as Status[]}
     />
   )
 }

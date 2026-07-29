@@ -45,7 +45,8 @@ import {
 } from "@/actions/places";
 import { EventCharactersField } from "@/components/events/EventCharactersField";
 import { EventPlacesField } from "@/components/events/EventPlacesField";
-import type { Event, Layer, EventStatus, Chapter, Place, Character } from "@/types/database";
+import { StatusPicker } from "@/components/events/StatusPicker";
+import type { Event, Layer, Chapter, Place, Character, Status } from "@/types/database";
 import { cn } from "@/lib/utils";
 
 interface EventModalProps {
@@ -53,6 +54,8 @@ interface EventModalProps {
   layer: Layer | null;
   chapters: Chapter[];
   layers: Layer[];
+  statuses: Status[];
+  onStatusReorder?: (from: number, to: number) => void;
   allPlaces: Place[];
   allCharacters: Character[];
   open: boolean;
@@ -63,22 +66,6 @@ interface EventModalProps {
   onCharacterLinked?: (eventId: string, characterId: string) => void;
   onCharacterUnlinked?: (eventId: string, characterId: string) => void;
 }
-
-const STATUS_OPTIONS: EventStatus[] = [
-  "draft",
-  "outline",
-  "written",
-  "revised",
-  "final",
-];
-
-const STATUS_COLORS: Record<EventStatus, string> = {
-  draft: "bg-zinc-100 dark:bg-zinc-800 text-foreground",
-  outline: "bg-blue-100 dark:bg-blue-900 text-foreground",
-  written: "bg-amber-100 dark:bg-amber-900 text-foreground",
-  revised: "bg-violet-100 dark:bg-violet-900 text-foreground",
-  final: "bg-emerald-100 dark:bg-emerald-900 text-foreground",
-};
 
 function RichTextEditor({
   value,
@@ -239,6 +226,8 @@ function EventForm({
   layer,
   chapters,
   layers,
+  statuses,
+  onStatusReorder,
   allPlaces,
   allCharacters,
   onPlaceLinked,
@@ -252,6 +241,8 @@ function EventForm({
   layer: Layer;
   chapters: Chapter[];
   layers: Layer[];
+  statuses: Status[];
+  onStatusReorder?: (from: number, to: number) => void;
   allPlaces: Place[];
   allCharacters: Character[];
   onPlaceLinked?: (eventId: string, placeId: string) => void;
@@ -267,7 +258,7 @@ function EventForm({
   const [activeTab, setActiveTab] = useState<"description" | "notes">(
     "description",
   );
-  const [status, setStatus] = useState<EventStatus>(event.status);
+  const [statusId, setStatusId] = useState(event.status_id);
   const [layerId, setLayerId] = useState(event.layer_id);
   const [chapterId, setChapterId] = useState(event.chapter_id ?? "");
   const [color, setColor] = useState(event.color ?? layer.color);
@@ -357,7 +348,7 @@ function EventForm({
       title,
       description,
       notes,
-      status,
+      status_id: statusId,
       layer_id: layerId,
       chapter_id: chapterId || null,
       color,
@@ -418,23 +409,13 @@ function EventForm({
         </Field>
 
         <Field label="Status">
-          <div className="flex gap-1.5 flex-wrap">
-            {STATUS_OPTIONS.map((s) => (
-              <button
-                key={s}
-                onClick={() => setStatus(s)}
-                className={cn(
-                  "px-2.5 py-0.5 rounded-full text-[10px] font-semibold capitalize transition-all",
-                  STATUS_COLORS[s],
-                  status === s
-                    ? "ring-2 ring-offset-1 ring-primary scale-105 opacity-100"
-                    : "opacity-50 hover:opacity-80",
-                )}
-              >
-                {s}
-              </button>
-            ))}
-          </div>
+          <StatusPicker
+            statuses={statuses}
+            projectId={event.project_id}
+            value={statusId}
+            onChange={setStatusId}
+            onReorder={onStatusReorder}
+          />
         </Field>
 
         <Field label="Color">
@@ -597,6 +578,8 @@ export function EventModal({
   layer,
   chapters,
   layers,
+  statuses,
+  onStatusReorder,
   allPlaces,
   allCharacters,
   onPlaceLinked,
@@ -621,6 +604,8 @@ export function EventModal({
             layer={layer}
             chapters={chapters}
             layers={layers}
+            statuses={statuses}
+            onStatusReorder={onStatusReorder}
             allPlaces={allPlaces}
             allCharacters={allCharacters}
             onPlaceLinked={onPlaceLinked}

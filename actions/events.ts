@@ -19,10 +19,24 @@ interface CreateEventInput {
 
 export async function createEvent(input: CreateEventInput) {
   const supabase = await createClient()
+
+  // status_id has no DB default (unlike the deprecated status column), so
+  // every new event needs one resolved explicitly or every status-pill
+  // lookup added in this migration would find nothing for it.
+  const { data: defaultStatusRow } = await supabase
+    .from('statuses')
+    .select('id')
+    .eq('project_id', input.project_id)
+    .eq('is_default', true)
+    .single()
+
+  const defaultStatus = defaultStatusRow as { id: string } | null
+
   const { data, error } = await supabase
     .from('events')
     .insert({
       ...input,
+      status_id: defaultStatus?.id,
       position: input.position ?? 0,
       duration: input.duration ?? 0.05,
     } as never)
@@ -45,6 +59,7 @@ export async function updateEvent(
     duration: number
     color: string
     status: EventStatus
+    status_id: string
     tension_level: number
     word_count: number
     tags: string[]
@@ -129,7 +144,7 @@ export async function duplicateEvent(eventId: string, projectId: string) {
     title: string
     description: string | null
     notes: string | null
-    status: string
+    status_id: string | null
     color: string | null
     position: number
     duration: number
@@ -144,7 +159,7 @@ export async function duplicateEvent(eventId: string, projectId: string) {
       title: `${orig.title} (Copy)`,
       description: orig.description,
       notes: orig.notes,
-      status: orig.status,
+      status_id: orig.status_id,
       color: orig.color,
       position: orig.position,
       duration: orig.duration,

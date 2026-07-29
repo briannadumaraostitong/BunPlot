@@ -8,15 +8,9 @@ import { Eye, EyeOff, GripVertical, Trash2, Check, X, Plus } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { deleteLayer, updateLayer } from '@/actions/layers'
 import { playClickSound } from '@/lib/sound'
-import type { Layer, Event, Chapter } from '@/types/database'
+import type { Layer, Event, Chapter, Status } from '@/types/database'
 
-const STATUS_COLORS: Record<string, string> = {
-  draft:   '#71717a', // zinc-500
-  outline: '#3b82f6', // blue-500
-  written: '#f59e0b', // amber-500
-  revised: '#8b5cf6', // violet-500
-  final:   '#10b981', // emerald-500
-}
+const FALLBACK_STATUS_COLOR = '#71717a'
 
 function stripHtml(html: string) {
   return html.replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ').trim()
@@ -31,6 +25,7 @@ function previewText(html: string | null, max = 80) {
 interface LayerRowProps {
   layer: Layer
   events: Event[]
+  statuses: Status[]
   chapters: Chapter[]
   height: number
   selectedEventId: string | null
@@ -50,6 +45,7 @@ interface LayerRowProps {
 export function LayerRow({
   layer,
   events,
+  statuses,
   chapters,
   height,
   selectedEventId,
@@ -249,6 +245,7 @@ export function LayerRow({
             key={chapter.id}
             chapter={chapter}
             events={chapterEvents}
+            statuses={statuses}
             visibleEventIds={visibleEventIds}
             layer={layer}
             height={dynamicHeight}
@@ -272,6 +269,7 @@ function cellDroppableId(layerId: string, chapterId: string) {
 function ChapterCell({
   chapter,
   events,
+  statuses,
   visibleEventIds,
   layer,
   height,
@@ -282,6 +280,7 @@ function ChapterCell({
 }: {
   chapter: Chapter
   events: Event[]
+  statuses: Status[]
   visibleEventIds?: Set<string>
   layer: Layer
   height: number
@@ -316,6 +315,7 @@ function ChapterCell({
               key={event.id}
               event={event}
               layer={layer}
+              statuses={statuses}
               selected={selectedEventId === event.id}
               onSelect={() =>
                 onSelectEvent(selectedEventId === event.id ? null : event.id)
@@ -341,16 +341,19 @@ function ChapterCell({
 function EventCardStacked({
   event,
   layer,
+  statuses,
   selected,
   onSelect,
 }: {
   event: Event
   layer: Layer
+  statuses: Status[]
   selected: boolean
   onSelect: () => void
 }) {
   const color = event.color ?? layer.color
-  const statusColor = STATUS_COLORS[event.status] ?? STATUS_COLORS.draft
+  const status = statuses.find((s) => s.id === event.status_id)
+  const statusColor = status?.color ?? FALLBACK_STATUS_COLOR
   const description = previewText(event.description)
 
   const {
@@ -419,15 +422,26 @@ function EventCardStacked({
         className="self-start px-1.5 py-0.5 rounded-full text-[9px] font-semibold uppercase tracking-wide leading-none text-foreground"
         style={{ backgroundColor: statusColor + '66' }}
       >
-        {event.status}
+        {status?.name ?? 'Unknown'}
       </span>
     </div>
   )
 }
 
-export function EventCardPreview({ event, layer, width }: { event: Event; layer: Layer; width: number }) {
+export function EventCardPreview({
+  event,
+  layer,
+  statuses,
+  width,
+}: {
+  event: Event
+  layer: Layer
+  statuses: Status[]
+  width: number
+}) {
   const color = event.color ?? layer.color
-  const statusColor = STATUS_COLORS[event.status] ?? STATUS_COLORS.draft
+  const status = statuses.find((s) => s.id === event.status_id)
+  const statusColor = status?.color ?? FALLBACK_STATUS_COLOR
   const description = previewText(event.description)
 
   return (
@@ -462,7 +476,7 @@ export function EventCardPreview({ event, layer, width }: { event: Event; layer:
         className="self-start px-1.5 py-0.5 rounded-full text-[9px] font-semibold uppercase tracking-wide leading-none text-foreground"
         style={{ backgroundColor: statusColor + '5c' }}
       >
-        {event.status}
+        {status?.name ?? 'Unknown'}
       </span>
     </div>
   )

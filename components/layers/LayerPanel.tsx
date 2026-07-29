@@ -109,6 +109,7 @@ export function LayerPanel({
                     key={layer.id}
                     layer={layer}
                     events={[]}
+                    statuses={[]}
                     chapters={[]}
                     height={64}
                     selectedEventId={null}

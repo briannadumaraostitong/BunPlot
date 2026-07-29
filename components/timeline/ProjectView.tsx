@@ -7,13 +7,14 @@ import { TimelineCanvas } from './TimelineCanvas'
 import { OutlineEditor } from '@/components/outline/OutlineEditor'
 import { CharactersPanel } from '@/components/characters/CharactersPanel'
 import { PlacesPanel } from '@/components/places/PlacesPanel'
-import type { Project, Layer, Event, Chapter } from '@/types/database'
+import type { Project, Layer, Event, Chapter, Status } from '@/types/database'
 
 interface ProjectViewProps {
   project: Project
   initialLayers: Layer[]
   initialEvents: Event[]
   initialChapters: Chapter[]
+  initialStatuses: Status[]
 }
 
 type TabId = 'timeline' | 'outline' | 'characters' | 'places'
@@ -25,7 +26,7 @@ const TABS: { id: TabId; label: string; icon: LucideIcon }[] = [
   { id: 'places', label: 'Places', icon: MapPin },
 ]
 
-export function ProjectView({ project, initialLayers, initialEvents, initialChapters }: ProjectViewProps) {
+export function ProjectView({ project, initialLayers, initialEvents, initialChapters, initialStatuses }: ProjectViewProps) {
   const [activeTab, setActiveTab] = useState<TabId>('timeline')
 
   return (
@@ -54,6 +55,7 @@ export function ProjectView({ project, initialLayers, initialEvents, initialChap
             initialLayers={initialLayers}
             initialEvents={initialEvents}
             initialChapters={initialChapters}
+            initialStatuses={initialStatuses}
           />
         ) : activeTab === 'outline' ? (
           <OutlineEditor projectId={project.id} />
@@ -65,6 +67,7 @@ export function ProjectView({ project, initialLayers, initialEvents, initialChap
             initialEvents={initialEvents}
             initialLayers={initialLayers}
             initialChapters={initialChapters}
+            initialStatuses={initialStatuses}
           />
         )}
       </div>

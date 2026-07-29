@@ -124,6 +124,18 @@ CREATE TABLE places (
   updated_at  TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
 
+-- STATUSES (per-project customizable, replaces the old event_status enum)
+CREATE TABLE statuses (
+  id          UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  project_id  UUID NOT NULL REFERENCES projects(id) ON DELETE CASCADE,
+  name        TEXT NOT NULL,
+  color       TEXT NOT NULL DEFAULT '#71717a',
+  is_default  BOOLEAN NOT NULL DEFAULT FALSE,
+  position    INTEGER NOT NULL DEFAULT 0,
+  created_at  TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  updated_at  TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+
 -- EVENTS
 CREATE TABLE events (
   id              UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
@@ -139,6 +151,7 @@ CREATE TABLE events (
   color           TEXT,
   icon            TEXT,
   status          event_status NOT NULL DEFAULT 'draft',
+  status_id       UUID REFERENCES statuses(id) ON DELETE SET NULL,
   tension_level   SMALLINT CHECK (tension_level BETWEEN 0 AND 10),
   word_count      INTEGER,
   custom_fields   JSONB NOT NULL DEFAULT '{}',
@@ -249,6 +262,10 @@ CREATE INDEX idx_events_dates       ON events(project_id, start_date, end_date);
 CREATE INDEX idx_events_tags        ON events USING GIN(tags);
 CREATE INDEX idx_events_custom      ON events USING GIN(custom_fields);
 CREATE INDEX idx_events_status      ON events(project_id, status);
+CREATE INDEX idx_events_status_id   ON events(project_id, status_id);
+CREATE INDEX idx_statuses_project   ON statuses(project_id);
+CREATE UNIQUE INDEX idx_statuses_one_default_per_project
+  ON statuses(project_id) WHERE is_default;
 CREATE INDEX idx_characters_project ON characters(project_id);
 CREATE INDEX idx_ec_event           ON event_characters(event_id);
 CREATE INDEX idx_ec_character       ON event_characters(character_id);
@@ -290,6 +307,10 @@ CREATE TRIGGER set_updated_at_layers
   BEFORE UPDATE ON layers
   FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
 
+CREATE TRIGGER set_updated_at_statuses
+  BEFORE UPDATE ON statuses
+  FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
+
 CREATE TRIGGER set_updated_at_events
   BEFORE UPDATE ON events
   FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
@@ -316,6 +337,7 @@ ALTER TABLE project_folders       ENABLE ROW LEVEL SECURITY;
 ALTER TABLE projects              ENABLE ROW LEVEL SECURITY;
 ALTER TABLE layer_groups          ENABLE ROW LEVEL SECURITY;
 ALTER TABLE layers                ENABLE ROW LEVEL SECURITY;
+ALTER TABLE statuses              ENABLE ROW LEVEL SECURITY;
 ALTER TABLE events                ENABLE ROW LEVEL SECURITY;
 ALTER TABLE outlines              ENABLE ROW LEVEL SECURITY;
 ALTER TABLE characters            ENABLE ROW LEVEL SECURITY;
@@ -373,6 +395,12 @@ CREATE POLICY "layers_select" ON layers FOR SELECT USING (owns_project(project_i
 CREATE POLICY "layers_insert" ON layers FOR INSERT WITH CHECK (owns_project(project_id));
 CREATE POLICY "layers_update" ON layers FOR UPDATE USING (owns_project(project_id));
 CREATE POLICY "layers_delete" ON layers FOR DELETE USING (owns_project(project_id));
+
+-- STATUSES RLS
+CREATE POLICY "statuses_select" ON statuses FOR SELECT USING (owns_project(project_id));
+CREATE POLICY "statuses_insert" ON statuses FOR INSERT WITH CHECK (owns_project(project_id));
+CREATE POLICY "statuses_update" ON statuses FOR UPDATE USING (owns_project(project_id));
+CREATE POLICY "statuses_delete" ON statuses FOR DELETE USING (owns_project(project_id));
 
 -- EVENTS RLS
 CREATE POLICY "events_select" ON events FOR SELECT USING (owns_project(project_id));
@@ -461,3 +489,4 @@ GRANT SELECT, INSERT, UPDATE, DELETE ON TABLE family_tree_members TO anon, authe
 GRANT SELECT, INSERT, UPDATE, DELETE ON TABLE places TO anon, authenticated, service_role;
 GRANT SELECT, INSERT, UPDATE, DELETE ON TABLE event_places TO anon, authenticated, service_role;
 GRANT SELECT, INSERT, UPDATE, DELETE ON TABLE chapter_links TO anon, authenticated, service_role;
+GRANT SELECT, INSERT, UPDATE, DELETE ON TABLE statuses TO anon, authenticated, service_role;

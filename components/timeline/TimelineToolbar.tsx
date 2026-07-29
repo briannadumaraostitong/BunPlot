@@ -5,16 +5,8 @@ import { Search, ListFilter, Layers, Users, MapPin, Check, X } from 'lucide-reac
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover'
 import { Input } from '@/components/ui/input'
 import { cn } from '@/lib/utils'
-import type { EventStatus, Layer, Character } from '@/types/database'
+import type { Layer, Character, Status } from '@/types/database'
 import type { PlaceWithCover } from '@/actions/places'
-
-const STATUS_OPTIONS: { value: EventStatus; label: string; color: string }[] = [
-  { value: 'draft', label: 'Draft', color: '#71717a' },
-  { value: 'outline', label: 'Outline', color: '#3b82f6' },
-  { value: 'written', label: 'Written', color: '#f59e0b' },
-  { value: 'revised', label: 'Revised', color: '#8b5cf6' },
-  { value: 'final', label: 'Final', color: '#10b981' },
-]
 
 interface TimelineToolbarProps {
   search: string
@@ -22,8 +14,9 @@ interface TimelineToolbarProps {
   layers: Layer[]
   characters: Character[]
   places: PlaceWithCover[]
-  statusFilter: Set<EventStatus>
-  onStatusFilterChange: (next: Set<EventStatus>) => void
+  statuses: Status[]
+  statusFilter: Set<string>
+  onStatusFilterChange: (next: Set<string>) => void
   layerFilter: Set<string>
   onLayerFilterChange: (next: Set<string>) => void
   characterFilter: Set<string>
@@ -38,6 +31,7 @@ export function TimelineToolbar({
   layers,
   characters,
   places,
+  statuses,
   statusFilter,
   onStatusFilterChange,
   layerFilter,
@@ -62,9 +56,9 @@ export function TimelineToolbar({
       <MultiSelectFilter
         label="Status"
         icon={ListFilter}
-        options={STATUS_OPTIONS.map((s) => ({ value: s.value, label: s.label, color: s.color }))}
+        options={statuses.map((s) => ({ value: s.id, label: s.name, color: s.color }))}
         selected={statusFilter}
-        onChange={(next) => onStatusFilterChange(next as Set<EventStatus>)}
+        onChange={onStatusFilterChange}
       />
       <MultiSelectFilter
         label="Layer"
