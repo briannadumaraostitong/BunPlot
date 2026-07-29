@@ -1,0 +1,304 @@
+'use client'
+
+import { useRef, useState } from 'react'
+import { DndContext, closestCenter, type DragEndEvent } from '@dnd-kit/core'
+import { SortableContext, useSortable, verticalListSortingStrategy } from '@dnd-kit/sortable'
+import { CSS } from '@dnd-kit/utilities'
+import { GripVertical, Star, Trash2, Pencil, Check, X, Plus, Loader2 } from 'lucide-react'
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover'
+import { cn } from '@/lib/utils'
+import {
+  createStatus,
+  updateStatus,
+  reorderStatuses,
+  setDefaultStatus,
+  deleteStatus,
+} from '@/actions/statuses'
+import type { Status } from '@/types/database'
+
+const FALLBACK_COLOR = '#71717a'
+
+interface StatusPickerProps {
+  statuses: Status[]
+  projectId: string
+  value: string
+  onChange: (statusId: string) => void
+  onReorder?: (from: number, to: number) => void
+}
+
+export function StatusPicker({ statuses, projectId, value, onChange, onReorder }: StatusPickerProps) {
+  const [open, setOpen] = useState(false)
+  const [adding, setAdding] = useState(false)
+  const [error, setError] = useState<string | null>(null)
+
+  const current = statuses.find((s) => s.id === value)
+
+  function handleOpenChange(next: boolean) {
+    setOpen(next)
+    if (!next) setError(null)
+  }
+
+  async function handleAddStatus() {
+    if (adding) return
+    setAdding(true)
+    await createStatus(projectId, `Status ${statuses.length + 1}`)
+    setAdding(false)
+  }
+
+  async function handleDragEnd(e: DragEndEvent) {
+    const { active, over } = e
+    if (!over || active.id === over.id) return
+    const from = statuses.findIndex((s) => s.id === active.id)
+    const to = statuses.findIndex((s) => s.id === over.id)
+    if (from === -1 || to === -1) return
+    // Optimistic first — without this, the row snaps back to its old spot the
+    // instant the drag ends (dnd-kit's transform clears immediately), then
+    // snaps again once reorderStatuses + the realtime refresh land.
+    onReorder?.(from, to)
+    const newOrder = [...statuses]
+    const [moved] = newOrder.splice(from, 1)
+    newOrder.splice(to, 0, moved)
+    await reorderStatuses(projectId, newOrder.map((s) => s.id))
+  }
+
+  function handleSelect(status: Status) {
+    onChange(status.id)
+    setOpen(false)
+  }
+
+  return (
+    <Popover open={open} onOpenChange={handleOpenChange}>
+      <PopoverTrigger asChild>
+        <button
+          type="button"
+          className="flex items-center gap-1.5 rounded-full px-2.5 py-0.5 text-[11px] font-semibold transition-opacity hover:opacity-80"
+          style={{
+            backgroundColor: (current?.color ?? FALLBACK_COLOR) + '30',
+            color: current?.color ?? FALLBACK_COLOR,
+          }}
+        >
+          <span
+            className="h-1.5 w-1.5 rounded-full"
+            style={{ backgroundColor: current?.color ?? FALLBACK_COLOR }}
+          />
+          {current?.name ?? 'Status'}
+        </button>
+      </PopoverTrigger>
+
+      <PopoverContent align="start" className="w-60 gap-0 p-0">
+        {error && (
+          <p className="border-b border-border p-2 text-[11px] text-destructive">{error}</p>
+        )}
+
+        <div className="max-h-56 overflow-y-auto scrollbar-thin p-1">
+          <DndContext collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
+            <SortableContext items={statuses.map((s) => s.id)} strategy={verticalListSortingStrategy}>
+              {statuses.map((status) => (
+                <StatusRow
+                  key={status.id}
+                  status={status}
+                  projectId={projectId}
+                  selected={status.id === value}
+                  onSelect={() => handleSelect(status)}
+                  onError={setError}
+                />
+              ))}
+            </SortableContext>
+          </DndContext>
+        </div>
+
+        <div className="border-t border-border p-1">
+          <button
+            onClick={handleAddStatus}
+            disabled={adding}
+            className="flex w-full items-center justify-center gap-1.5 rounded-md px-2 py-1.5 text-xs text-muted-foreground transition-colors hover:bg-secondary/50 hover:text-foreground disabled:opacity-50"
+          >
+            {adding ? <Loader2 className="h-3 w-3 animate-spin" /> : <Plus className="h-3 w-3" />}
+            {adding ? 'Adding...' : 'Add status'}
+          </button>
+        </div>
+      </PopoverContent>
+    </Popover>
+  )
+}
+
+function StatusRow({
+  status,
+  projectId,
+  selected,
+  onSelect,
+  onError,
+}: {
+  status: Status
+  projectId: string
+  selected: boolean
+  onSelect: () => void
+  onError: (message: string) => void
+}) {
+  const [deleting, setDeleting] = useState(false)
+  const [editing, setEditing] = useState(false)
+  const [name, setName] = useState(status.name)
+  const colorDebounceRef = useRef<ReturnType<typeof setTimeout> | null>(null)
+
+  const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({
+    id: status.id,
+  })
+
+  const style = {
+    transform: CSS.Transform.toString(transform),
+    transition,
+    opacity: isDragging ? 0.5 : 1,
+  }
+
+  async function handleDelete(e: React.MouseEvent) {
+    e.stopPropagation()
+    if (status.is_default) return
+    setDeleting(true)
+    const result = await deleteStatus(status.id, projectId)
+    if (result && 'error' in result) onError(result.error)
+    setDeleting(false)
+  }
+
+  async function handleRename() {
+    if (!name.trim() || name === status.name) {
+      setName(status.name)
+      setEditing(false)
+      return
+    }
+    await updateStatus(status.id, projectId, { name: name.trim() })
+    setEditing(false)
+  }
+
+  // Fires on 'input' (live, during the picker interaction) rather than 'change'
+  // (fires once, on commit) — some native color pickers treat dismissing by
+  // clicking away as a cancel and revert the input's value before 'change'
+  // ever sees the color the user actually picked. 'input' already has it.
+  // Debounced so dragging across the picker's gradient doesn't fire an
+  // updateStatus call per pixel, and so an in-flight request from an earlier
+  // color can't resolve after a later one and clobber it.
+  function handleColorInput(color: string) {
+    if (colorDebounceRef.current) clearTimeout(colorDebounceRef.current)
+    colorDebounceRef.current = setTimeout(() => {
+      updateStatus(status.id, projectId, { color })
+    }, 200)
+  }
+
+  async function handleSetDefault(e: React.MouseEvent) {
+    e.stopPropagation()
+    const result = await setDefaultStatus(status.id, projectId)
+    if (result && 'error' in result) onError(result.error)
+  }
+
+  function handleKeyDown(e: React.KeyboardEvent) {
+    if (e.key === 'Enter') handleRename()
+    if (e.key === 'Escape') {
+      setName(status.name)
+      setEditing(false)
+    }
+  }
+
+  return (
+    <div
+      ref={setNodeRef}
+      style={style}
+      onClick={() => {
+        if (!editing) onSelect()
+      }}
+      className={cn(
+        'group flex cursor-pointer items-center gap-1.5 rounded-md px-1.5 py-1.5 transition-colors hover:bg-secondary/50',
+        selected && 'bg-secondary/30'
+      )}
+    >
+      <button
+        {...attributes}
+        {...listeners}
+        onClick={(e) => e.stopPropagation()}
+        className="shrink-0 cursor-grab text-muted-foreground opacity-0 transition-opacity active:cursor-grabbing group-hover:opacity-100"
+      >
+        <GripVertical className="h-3.5 w-3.5" />
+      </button>
+
+      <label
+        className="relative h-3 w-3 shrink-0 cursor-pointer rounded-full ring-1 ring-inset ring-black/15 transition-transform hover:scale-125 dark:ring-white/15"
+        style={{ backgroundColor: status.color }}
+        title="Click to change color"
+        onClick={(e) => e.stopPropagation()}
+      >
+        <input
+          type="color"
+          value={status.color}
+          onInput={(e) => handleColorInput(e.currentTarget.value)}
+          className="absolute inset-0 h-full w-full opacity-0"
+          tabIndex={-1}
+        />
+      </label>
+
+      {editing ? (
+        <div className="flex min-w-0 flex-1 items-center gap-1" onClick={(e) => e.stopPropagation()}>
+          <input
+            autoFocus
+            value={name}
+            onChange={(e) => setName(e.target.value)}
+            onKeyDown={handleKeyDown}
+            onBlur={handleRename}
+            className="min-w-0 flex-1 rounded border border-border bg-background px-1.5 py-0.5 text-xs outline-none focus:border-primary"
+          />
+          <button onClick={handleRename} className="shrink-0 text-primary">
+            <Check className="h-3 w-3" />
+          </button>
+          <button
+            onClick={() => {
+              setName(status.name)
+              setEditing(false)
+            }}
+            className="shrink-0 text-muted-foreground"
+          >
+            <X className="h-3 w-3" />
+          </button>
+        </div>
+      ) : (
+        <span className="flex-1 truncate text-xs">{status.name}</span>
+      )}
+
+      {!editing && (
+        <div className="flex shrink-0 items-center gap-0.5">
+          <button
+            onClick={(e) => {
+              e.stopPropagation()
+              setEditing(true)
+            }}
+            title="Rename status"
+            className="p-0.5 text-muted-foreground/40 opacity-0 transition-opacity hover:text-foreground group-hover:opacity-100"
+          >
+            <Pencil className="h-3 w-3" />
+          </button>
+
+          {status.is_default ? (
+            <span title="Default status">
+              <Star className="h-3 w-3 fill-current text-muted-foreground" />
+            </span>
+          ) : (
+            <button
+              onClick={handleSetDefault}
+              title="Set as default"
+              className="p-0.5 text-muted-foreground/40 opacity-0 transition-opacity hover:text-foreground group-hover:opacity-100"
+            >
+              <Star className="h-3 w-3" />
+            </button>
+          )}
+
+          {!status.is_default && (
+            <button
+              onClick={handleDelete}
+              disabled={deleting}
+              title="Delete status"
+              className="p-0.5 text-muted-foreground opacity-0 transition-colors group-hover:opacity-100 hover:text-destructive"
+            >
+              <Trash2 className="h-3.5 w-3.5" />
+            </button>
+          )}
+        </div>
+      )}
+    </div>
+  )
+}
