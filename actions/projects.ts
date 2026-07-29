@@ -2,7 +2,7 @@
 
 import { createClient } from '@/lib/supabase/server'
 import { revalidatePath } from 'next/cache'
-import type { AppMode } from '@/types/database'
+import type { AppMode, Project } from '@/types/database'
 
 interface CreateProjectInput {
   title: string
@@ -37,7 +37,7 @@ export async function createProject(input: CreateProjectInput) {
     return { error: projectError.message }
   }
 
-  const project = projectData as { id: string; [key: string]: unknown }
+  const project = projectData as Project
 
   const { error: layerError } = await supabase
     .from('layers')
