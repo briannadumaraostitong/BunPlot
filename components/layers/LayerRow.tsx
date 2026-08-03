@@ -127,7 +127,7 @@ export function LayerRow({
         <button
           {...attributes}
           {...listeners}
-          className="cursor-grab active:cursor-grabbing text-muted-foreground opacity-0 group-hover:opacity-100 transition-opacity shrink-0"
+          className="relative cursor-grab active:cursor-grabbing text-muted-foreground opacity-100 md:opacity-0 md:group-hover:opacity-100 transition-opacity shrink-0 after:absolute after:-inset-1.5"
         >
           <GripVertical className="h-3.5 w-3.5" />
         </button>
@@ -135,7 +135,7 @@ export function LayerRow({
         <div className="relative shrink-0">
           <button
             onClick={() => colorInputRef.current?.click()}
-            className="h-3 w-3 rounded-full ring-1 ring-inset ring-black/15 dark:ring-white/15 transition-transform hover:scale-125 focus:outline-none"
+            className="relative h-3 w-3 rounded-full ring-1 ring-inset ring-black/15 dark:ring-white/15 transition-transform hover:scale-125 focus:outline-none after:absolute after:-inset-1.5"
             style={{ backgroundColor: layer.color }}
             title="Click to change color"
           />
@@ -157,14 +157,17 @@ export function LayerRow({
               onChange={(e) => setName(e.target.value)}
               onKeyDown={handleKeyDown}
               onBlur={handleRename}
-              className="flex-1 min-w-0 text-xs bg-background border border-border rounded px-1.5 py-0.5 outline-none focus:border-primary"
+              className="flex-1 min-w-0 text-base md:text-xs bg-background border border-border rounded px-1.5 py-0.5 outline-none focus:border-primary"
             />
-            <button onClick={handleRename} className="text-primary shrink-0">
+            <button
+              onClick={handleRename}
+              className="relative text-primary shrink-0 after:absolute after:-inset-y-1.5 after:-inset-x-0.5"
+            >
               <Check className="h-3 w-3" />
             </button>
             <button
               onClick={() => { setName(layer.name); setEditing(false) }}
-              className="text-muted-foreground shrink-0"
+              className="relative text-muted-foreground shrink-0 after:absolute after:-inset-y-1.5 after:-inset-x-0.5"
             >
               <X className="h-3 w-3" />
             </button>
@@ -180,10 +183,10 @@ export function LayerRow({
         )}
 
         {!editing && (
-          <div className="flex items-center gap-0.5 opacity-0 group-hover:opacity-100 transition-opacity">
+          <div className="flex items-center gap-0.5 opacity-100 md:opacity-0 md:group-hover:opacity-100 transition-opacity">
             <button
               onClick={onToggleVisibility}
-              className="text-muted-foreground hover:text-foreground p-0.5"
+              className="relative text-muted-foreground hover:text-foreground p-0.5 after:absolute after:-inset-y-1.5"
             >
               {layer.visible ? (
                 <Eye className="h-3.5 w-3.5" />
@@ -196,7 +199,7 @@ export function LayerRow({
               <button
                 onClick={handleDelete}
                 disabled={deleting}
-                className="text-muted-foreground hover:text-destructive p-0.5 transition-colors"
+                className="relative text-muted-foreground hover:text-destructive p-0.5 transition-colors after:absolute after:-inset-y-1.5"
               >
                 <Trash2 className="h-3.5 w-3.5" />
               </button>
@@ -399,7 +402,7 @@ function EventCardStacked({
         {...attributes}
         {...listeners}
         onClick={(e) => e.stopPropagation()}
-        className="absolute top-1.5 right-1 h-4 w-4 flex items-center justify-center text-muted-foreground opacity-0 group-hover:opacity-100 cursor-grab active:cursor-grabbing transition-opacity"
+        className="absolute top-1.5 right-1 h-4 w-4 flex items-center justify-center text-muted-foreground opacity-100 md:opacity-0 md:group-hover:opacity-100 cursor-grab active:cursor-grabbing transition-opacity after:absolute after:-inset-1.5"
       >
         <GripVertical className="h-3 w-3" />
       </button>

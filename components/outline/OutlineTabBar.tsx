@@ -66,7 +66,7 @@ export function OutlineTabBar({
           type="button"
           onClick={onAdd}
           title="New document"
-          className="flex h-6 w-6 shrink-0 items-center justify-center rounded-md text-muted-foreground transition-colors hover:bg-secondary hover:text-foreground"
+          className="relative flex h-6 w-6 shrink-0 items-center justify-center rounded-md text-muted-foreground transition-colors hover:bg-secondary hover:text-foreground after:absolute after:-inset-y-1 after:-inset-x-0.5"
         >
           <Plus className="h-3.5 w-3.5" />
         </button>
@@ -155,7 +155,7 @@ function OutlineTab({
       }}
       title={editing ? undefined : `${outline.name} — double-click to rename`}
       className={cn(
-        'group relative flex h-6 max-w-40 shrink-0 cursor-pointer items-center gap-1 rounded-md px-2 text-xs font-medium transition-colors select-none',
+        'group relative flex h-6 max-w-40 shrink-0 cursor-pointer items-center gap-1 rounded-md px-2 text-xs font-medium transition-colors select-none after:absolute after:-inset-y-1 after:-inset-x-0.5',
         active
           ? 'bg-secondary text-foreground'
           : 'text-muted-foreground hover:bg-secondary/50 hover:text-foreground'
@@ -170,7 +170,7 @@ function OutlineTab({
           onKeyDown={handleKeyDown}
           onBlur={commitRename}
           onClick={(e) => e.stopPropagation()}
-          className="w-24 rounded border border-border bg-background px-1 py-0 text-xs outline-none focus:border-primary"
+          className="w-24 rounded border border-border bg-background px-1 py-0 text-base md:text-xs outline-none focus:border-primary"
         />
       ) : (
         <span className="truncate">{outline.name}</span>
@@ -183,7 +183,7 @@ function OutlineTab({
             onDeleteRequest()
           }}
           title="Delete document"
-          className="shrink-0 text-muted-foreground opacity-0 transition-opacity hover:text-destructive group-hover:opacity-100"
+          className="relative shrink-0 text-muted-foreground opacity-100 md:opacity-0 transition-opacity hover:text-destructive md:group-hover:opacity-100 after:absolute after:-inset-y-1 after:-inset-x-0.5"
         >
           <X className="h-3 w-3" />
         </button>

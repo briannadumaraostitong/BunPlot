@@ -108,7 +108,7 @@ export function CharacterNode({
           onRemoveFromTree()
         }}
         title="Remove from this tree"
-        className="absolute -top-2 -left-2 flex h-4 w-4 items-center justify-center rounded-full border border-border bg-card text-muted-foreground opacity-0 shadow-sm transition-opacity hover:text-destructive group-hover:opacity-100"
+        className="absolute -top-2 -left-2 flex h-4 w-4 items-center justify-center rounded-full border border-border bg-card text-muted-foreground opacity-100 md:opacity-0 shadow-sm transition-opacity hover:text-destructive md:group-hover:opacity-100 after:absolute after:-inset-2.5"
       >
         <Unlink className="h-2.5 w-2.5" />
       </button>

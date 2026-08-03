@@ -83,7 +83,7 @@ export function CharacterRow({
             e.stopPropagation()
             colorInputRef.current?.click()
           }}
-          className="absolute -bottom-0.5 -right-0.5 h-2.5 w-2.5 rounded-full border border-background transition-transform hover:scale-125"
+          className="absolute -bottom-0.5 -right-0.5 h-2.5 w-2.5 rounded-full border border-background transition-transform hover:scale-125 after:absolute after:-inset-1.5"
           style={{ backgroundColor: character.color ?? '#6366F1' }}
           title="Click to change color"
         />
@@ -110,7 +110,7 @@ export function CharacterRow({
         disabled={hasRelationships || deleting}
         title={hasRelationships ? 'Remove relationships before deleting' : 'Delete character'}
         className={cn(
-          'shrink-0 p-0.5 opacity-0 group-hover:opacity-100 transition-opacity',
+          'relative shrink-0 p-0.5 opacity-100 md:opacity-0 md:group-hover:opacity-100 transition-opacity after:absolute after:-inset-1.5',
           hasRelationships
             ? 'text-muted-foreground/40 cursor-not-allowed'
             : 'text-muted-foreground hover:text-destructive'

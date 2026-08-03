@@ -100,7 +100,7 @@ export function EventCharactersField({
               <button
                 onClick={() => onRemove(character.id)}
                 title={`Remove ${character.name}`}
-                className="shrink-0 text-muted-foreground opacity-0 transition-opacity hover:text-destructive group-hover:opacity-100"
+                className="relative shrink-0 text-muted-foreground opacity-100 md:opacity-0 transition-opacity hover:text-destructive md:group-hover:opacity-100 after:absolute after:-inset-1.5"
               >
                 <X className="h-3 w-3" />
               </button>

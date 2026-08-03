@@ -69,7 +69,7 @@ export function FolderSection({ folder, projects, allFolders, statsByProject }: 
       <div className="group flex items-center gap-1.5">
         <button
           onClick={handleToggleCollapsed}
-          className="text-muted-foreground hover:text-foreground p-0.5 shrink-0"
+          className="relative text-muted-foreground hover:text-foreground p-0.5 shrink-0 after:absolute after:-inset-2"
         >
           {collapsed ? (
             <ChevronRight className="h-4 w-4" />
@@ -86,14 +86,17 @@ export function FolderSection({ folder, projects, allFolders, statsByProject }: 
               onChange={(e) => setName(e.target.value)}
               onKeyDown={handleKeyDown}
               onBlur={handleRename}
-              className="text-sm font-semibold bg-background border border-border rounded px-1.5 py-0.5 outline-none focus:border-primary"
+              className="text-base md:text-sm font-semibold bg-background border border-border rounded px-1.5 py-0.5 outline-none focus:border-primary"
             />
-            <button onClick={handleRename} className="text-primary shrink-0">
+            <button
+              onClick={handleRename}
+              className="relative text-primary shrink-0 after:absolute after:-inset-y-2.5 after:-inset-x-0.5"
+            >
               <Check className="h-3.5 w-3.5" />
             </button>
             <button
               onClick={() => { setName(folder.name); setEditing(false) }}
-              className="text-muted-foreground shrink-0"
+              className="relative text-muted-foreground shrink-0 after:absolute after:-inset-y-2.5 after:-inset-x-0.5"
             >
               <X className="h-3.5 w-3.5" />
             </button>
@@ -115,7 +118,7 @@ export function FolderSection({ folder, projects, allFolders, statsByProject }: 
         {!editing && (
           <button
             onClick={() => setConfirmDelete(true)}
-            className="ml-1 text-muted-foreground hover:text-destructive p-0.5 opacity-0 group-hover:opacity-100 transition-opacity"
+            className="relative ml-1 text-muted-foreground hover:text-destructive p-0.5 opacity-100 md:opacity-0 md:group-hover:opacity-100 transition-opacity after:absolute after:-inset-2"
           >
             <Trash2 className="h-3.5 w-3.5" />
           </button>

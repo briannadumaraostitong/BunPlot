@@ -455,7 +455,7 @@ function ToolbarBtn({
         if (!disabled) onClick()
       }}
       className={cn(
-        'h-7 w-7 flex items-center justify-center rounded-md transition-colors',
+        'relative h-7 w-7 flex items-center justify-center rounded-md transition-colors after:absolute after:-inset-1',
         disabled
           ? 'text-muted-foreground opacity-50 cursor-not-allowed'
           : active

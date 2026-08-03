@@ -126,7 +126,7 @@ export function RelationshipModal({
               value={label}
               onChange={(e) => setLabel(e.target.value)}
               placeholder="e.g. estranged father, childhood rival"
-              className="h-8 text-xs bg-background"
+              className="h-8 md:text-xs bg-background"
             />
           </div>
 

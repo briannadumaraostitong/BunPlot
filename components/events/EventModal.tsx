@@ -190,7 +190,7 @@ function ToolbarBtn({
         e.preventDefault();
         onClick();
       }}
-      className="h-7 w-7 flex items-center justify-center rounded-md hover:bg-secondary text-muted-foreground hover:text-foreground transition-colors"
+      className="relative h-7 w-7 flex items-center justify-center rounded-md hover:bg-secondary text-muted-foreground hover:text-foreground transition-colors after:absolute after:-inset-1"
     >
       {children}
     </button>

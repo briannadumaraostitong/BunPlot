@@ -65,7 +65,7 @@ export function ChapterLinkPicker({ chapter, allChapters, projectId }: ChapterLi
               : 'Add "continues from" link'
           }
           className={cn(
-            'flex h-5 w-5 shrink-0 items-center justify-center rounded transition-colors hover:bg-secondary',
+            'relative flex h-5 w-5 shrink-0 items-center justify-center rounded transition-colors hover:bg-secondary after:absolute after:-inset-y-2.5 after:-inset-x-1.5',
             hasLinks ? 'text-foreground' : 'text-muted-foreground/40 hover:text-muted-foreground'
           )}
         >
@@ -90,7 +90,7 @@ export function ChapterLinkPicker({ chapter, allChapters, projectId }: ChapterLi
                   <button
                     onClick={() => handleRemove(link.id)}
                     title={`Remove link to ${link.continues_from.title}`}
-                    className="shrink-0 text-muted-foreground opacity-0 transition-opacity hover:text-destructive group-hover:opacity-100"
+                    className="relative shrink-0 text-muted-foreground opacity-100 md:opacity-0 transition-opacity hover:text-destructive md:group-hover:opacity-100 after:absolute after:-inset-1.5"
                   >
                     <X className="h-3 w-3" />
                   </button>

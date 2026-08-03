@@ -1,7 +1,7 @@
 'use client'
 
 import { useRef, useState } from 'react'
-import { X, MapPin, Loader2 } from 'lucide-react'
+import { X, MapPin, Loader2, Camera } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { Button } from '@/components/ui/button'
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs'
@@ -111,7 +111,12 @@ function PlaceDetailContent({
         <span className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">
           Place
         </span>
-        <Button variant="ghost" size="icon-sm" onClick={onClose}>
+        <Button
+          variant="ghost"
+          size="icon-sm"
+          onClick={onClose}
+          className="relative after:absolute after:-inset-2"
+        >
           <X className="h-3.5 w-3.5" />
         </Button>
       </div>
@@ -146,7 +151,7 @@ function PlaceDetailContent({
           <div className="flex items-center gap-2">
             <button
               onClick={() => colorInputRef.current?.click()}
-              className="h-6 w-6 shrink-0 rounded-full ring-1 ring-inset ring-black/15 dark:ring-white/15 transition-transform hover:scale-110"
+              className="relative h-6 w-6 shrink-0 rounded-full ring-1 ring-inset ring-black/15 dark:ring-white/15 transition-transform hover:scale-110 after:absolute after:-inset-2.5"
               style={{ backgroundColor: place.color ?? '#6366F1' }}
               title="Click to change color"
             />
@@ -306,10 +311,24 @@ function CoverImageField({
         )}
       </div>
 
+      {/* Mobile has no hover to discover the overlay above, so this corner badge
+          stays persistently visible below md instead — desktop keeps the hover
+          overlay unchanged. */}
+      <div
+        className="absolute left-1.5 top-1.5 flex h-6 w-6 items-center justify-center rounded-full bg-background/90 text-muted-foreground shadow-sm md:hidden"
+        title={place.cover_url ? 'Replace image' : 'Upload image'}
+      >
+        {uploading ? (
+          <Loader2 className="h-3.5 w-3.5 animate-spin" />
+        ) : (
+          <Camera className="h-3.5 w-3.5" />
+        )}
+      </div>
+
       {place.cover_url && !uploading && (
         <button
           onClick={handleRemove}
-          className="absolute right-1.5 top-1.5 flex h-6 w-6 items-center justify-center rounded-full bg-background/90 text-muted-foreground opacity-0 shadow-sm transition-opacity hover:text-destructive group-hover:opacity-100"
+          className="absolute right-1.5 top-1.5 flex h-6 w-6 items-center justify-center rounded-full bg-background/90 text-muted-foreground opacity-100 md:opacity-0 shadow-sm transition-opacity hover:text-destructive md:group-hover:opacity-100 after:absolute after:-inset-2.5"
           title="Remove image"
         >
           <X className="h-3.5 w-3.5" />

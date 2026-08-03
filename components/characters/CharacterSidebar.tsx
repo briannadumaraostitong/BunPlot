@@ -58,7 +58,7 @@ export function CharacterSidebar({
         <Button
           variant="ghost"
           size="icon"
-          className="h-6 w-6 ml-auto"
+          className="relative h-6 w-6 ml-auto after:absolute after:-inset-2.5"
           onClick={() => setCollapsed((c) => !c)}
         >
           {collapsed ? (

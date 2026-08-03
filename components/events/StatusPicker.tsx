@@ -213,13 +213,13 @@ function StatusRow({
         {...attributes}
         {...listeners}
         onClick={(e) => e.stopPropagation()}
-        className="shrink-0 cursor-grab text-muted-foreground opacity-0 transition-opacity active:cursor-grabbing group-hover:opacity-100"
+        className="relative shrink-0 cursor-grab text-muted-foreground opacity-100 transition-opacity active:cursor-grabbing after:absolute after:-inset-1.5 md:opacity-0 md:group-hover:opacity-100"
       >
         <GripVertical className="h-3.5 w-3.5" />
       </button>
 
       <label
-        className="relative h-3 w-3 shrink-0 cursor-pointer rounded-full ring-1 ring-inset ring-black/15 transition-transform hover:scale-125 dark:ring-white/15"
+        className="relative h-3 w-3 shrink-0 cursor-pointer rounded-full ring-1 ring-inset ring-black/15 transition-transform hover:scale-125 dark:ring-white/15 after:absolute after:-inset-1.5"
         style={{ backgroundColor: status.color }}
         title="Click to change color"
         onClick={(e) => e.stopPropagation()}
@@ -241,9 +241,12 @@ function StatusRow({
             onChange={(e) => setName(e.target.value)}
             onKeyDown={handleKeyDown}
             onBlur={handleRename}
-            className="min-w-0 flex-1 rounded border border-border bg-background px-1.5 py-0.5 text-xs outline-none focus:border-primary"
+            className="min-w-0 flex-1 rounded border border-border bg-background px-1.5 py-0.5 text-base md:text-xs outline-none focus:border-primary"
           />
-          <button onClick={handleRename} className="shrink-0 text-primary">
+          <button
+            onClick={handleRename}
+            className="relative shrink-0 text-primary after:absolute after:-inset-y-1.5 after:-inset-x-0.5"
+          >
             <Check className="h-3 w-3" />
           </button>
           <button
@@ -251,7 +254,7 @@ function StatusRow({
               setName(status.name)
               setEditing(false)
             }}
-            className="shrink-0 text-muted-foreground"
+            className="relative shrink-0 text-muted-foreground after:absolute after:-inset-y-1.5 after:-inset-x-0.5"
           >
             <X className="h-3 w-3" />
           </button>
@@ -268,7 +271,7 @@ function StatusRow({
               setEditing(true)
             }}
             title="Rename status"
-            className="p-0.5 text-muted-foreground/40 opacity-0 transition-opacity hover:text-foreground group-hover:opacity-100"
+            className="relative p-0.5 text-muted-foreground/40 opacity-100 transition-opacity hover:text-foreground md:opacity-0 md:group-hover:opacity-100 after:absolute after:-inset-y-1.5"
           >
             <Pencil className="h-3 w-3" />
           </button>
@@ -281,7 +284,7 @@ function StatusRow({
             <button
               onClick={handleSetDefault}
               title="Set as default"
-              className="p-0.5 text-muted-foreground/40 opacity-0 transition-opacity hover:text-foreground group-hover:opacity-100"
+              className="relative p-0.5 text-muted-foreground/40 opacity-100 transition-opacity hover:text-foreground md:opacity-0 md:group-hover:opacity-100 after:absolute after:-inset-y-1.5"
             >
               <Star className="h-3 w-3" />
             </button>
@@ -292,7 +295,7 @@ function StatusRow({
               onClick={handleDelete}
               disabled={deleting}
               title="Delete status"
-              className="p-0.5 text-muted-foreground opacity-0 transition-colors group-hover:opacity-100 hover:text-destructive"
+              className="relative p-0.5 text-muted-foreground opacity-100 transition-colors md:opacity-0 md:group-hover:opacity-100 hover:text-destructive after:absolute after:-inset-y-1.5"
             >
               <Trash2 className="h-3.5 w-3.5" />
             </button>

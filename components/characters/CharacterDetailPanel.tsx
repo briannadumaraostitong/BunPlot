@@ -137,7 +137,12 @@ function CharacterDetailContent({
         <span className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">
           Character
         </span>
-        <Button variant="ghost" size="icon-sm" onClick={onClose}>
+        <Button
+          variant="ghost"
+          size="icon-sm"
+          onClick={onClose}
+          className="relative after:absolute after:-inset-2"
+        >
           <X className="h-3.5 w-3.5" />
         </Button>
       </div>
@@ -153,7 +158,7 @@ function CharacterDetailContent({
             </div>
             <button
               onClick={() => colorInputRef.current?.click()}
-              className="absolute -bottom-0.5 -right-0.5 h-4 w-4 rounded-full border-2 border-card transition-transform hover:scale-125"
+              className="absolute -bottom-0.5 -right-0.5 h-4 w-4 rounded-full border-2 border-card transition-transform hover:scale-125 after:absolute after:-inset-3.5"
               style={{ backgroundColor: character.color ?? '#6366F1' }}
               title="Click to change color"
             />

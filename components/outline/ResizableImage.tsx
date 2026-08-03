@@ -199,7 +199,7 @@ function ResizeHandle({
     <div
       onPointerDown={onPointerDown}
       className={cn(
-        'absolute z-10 h-2.5 w-2.5 rounded-full border border-border bg-card shadow-md',
+        'absolute z-10 h-2.5 w-2.5 rounded-full border border-border bg-card shadow-md after:absolute after:-inset-2.5',
         positionClass
       )}
     />

@@ -229,7 +229,7 @@ function ChapterCell({
         <button
           onClick={handleDelete}
           disabled={deleting}
-          className="opacity-0 group-hover:opacity-100 text-muted-foreground hover:text-destructive transition-opacity shrink-0"
+          className="relative opacity-100 md:opacity-0 md:group-hover:opacity-100 text-muted-foreground hover:text-destructive transition-opacity shrink-0 after:absolute after:-inset-y-2.5 after:-inset-x-1.5"
         >
           {deleting ? (
             <Loader2 className="h-3 w-3 animate-spin" />

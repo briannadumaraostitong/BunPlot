@@ -30,12 +30,12 @@ export function TimelineControls({
         <Button
           variant="ghost"
           size="icon"
-          className="h-7 w-7"
+          className="relative h-7 w-7 after:absolute after:-inset-y-1.5 after:-inset-x-0.5"
           onClick={onZoomOut}
         >
           <ZoomOut className="h-3.5 w-3.5" />
         </Button>
-        <button onClick={onZoomReset}>
+        <button onClick={onZoomReset} className="relative after:absolute after:-inset-y-2.5 after:-inset-x-0.5">
           <Badge
             variant="secondary"
             className="text-xs font-mono cursor-pointer w-12 justify-center"
@@ -46,7 +46,7 @@ export function TimelineControls({
         <Button
           variant="ghost"
           size="icon"
-          className="h-7 w-7"
+          className="relative h-7 w-7 after:absolute after:-inset-y-1.5 after:-inset-x-0.5"
           onClick={onZoomIn}
         >
           <ZoomIn className="h-3.5 w-3.5" />
@@ -54,7 +54,7 @@ export function TimelineControls({
         <Button
           variant="ghost"
           size="icon"
-          className="h-7 w-7"
+          className="relative h-7 w-7 after:absolute after:-inset-y-1.5 after:-inset-x-0.5"
           onClick={onZoomReset}
           title="Reset zoom"
         >
