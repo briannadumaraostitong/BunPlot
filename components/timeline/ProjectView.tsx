@@ -37,11 +37,16 @@ export function ProjectView({ project, initialLayers, initialEvents, initialChap
 
       <div className="border-b border-border px-3 shrink-0 bg-background">
         <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as TabId)}>
-          <TabsList variant="line">
+          <TabsList variant="line" className="h-11 md:h-8">
             {TABS.map(({ id, label, icon: Icon }) => (
-              <TabsTrigger key={id} value={id} className="gap-1.5">
-                <Icon className="h-3.5 w-3.5" />
-                {label}
+              <TabsTrigger
+                key={id}
+                value={id}
+                aria-label={label}
+                className="gap-1.5 px-3.5 md:px-1.5"
+              >
+                <Icon className="h-4 w-4 md:h-3.5 md:w-3.5" />
+                <span className="hidden md:inline">{label}</span>
               </TabsTrigger>
             ))}
           </TabsList>

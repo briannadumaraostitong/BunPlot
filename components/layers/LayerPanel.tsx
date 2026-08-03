@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import {
   DndContext,
   closestCenter,
@@ -40,6 +40,15 @@ export function LayerPanel({
 }: LayerPanelProps) {
   const [collapsed, setCollapsed] = useState(false)
   const [adding, setAdding] = useState(false)
+
+  // Defaults to collapsed below md — checked once on mount, not a live
+  // resize listener, so it doesn't fight the user's own chevron toggle
+  // after the initial render (matches the Tailwind md breakpoint, 768px).
+  useEffect(() => {
+    if (window.matchMedia('(max-width: 767px)').matches) {
+      setCollapsed(true)
+    }
+  }, [])
 
   async function handleAddLayer() {
     if (adding) return
@@ -82,7 +91,7 @@ export function LayerPanel({
         <Button
           variant="ghost"
           size="icon"
-          className="h-6 w-6 ml-auto"
+          className="relative h-6 w-6 ml-auto after:absolute after:-inset-2.5"
           onClick={() => setCollapsed((c) => !c)}
         >
           {collapsed ? (
