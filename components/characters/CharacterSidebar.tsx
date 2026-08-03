@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { Plus, ChevronLeft, ChevronRight, Loader2 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { CharacterRow } from './CharacterRow'
@@ -31,6 +31,15 @@ export function CharacterSidebar({
 }: CharacterSidebarProps) {
   const [collapsed, setCollapsed] = useState(false)
   const [adding, setAdding] = useState(false)
+
+  // Defaults to collapsed below md — checked once on mount, not a live
+  // resize listener, so it doesn't fight the user's own chevron toggle
+  // after the initial render (matches the Tailwind md breakpoint, 768px).
+  useEffect(() => {
+    if (window.matchMedia('(max-width: 767px)').matches) {
+      setCollapsed(true)
+    }
+  }, [])
 
   async function handleAddCharacter() {
     if (adding) return

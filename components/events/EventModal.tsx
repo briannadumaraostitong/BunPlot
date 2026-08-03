@@ -5,6 +5,7 @@ import {
   Trash2,
   Loader2,
   Copy,
+  MoreHorizontal,
   Bold,
   Italic,
   Underline,
@@ -21,6 +22,12 @@ import {
   DialogTitle,
   DialogDescription,
 } from "@/components/ui/dialog";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import {
@@ -160,7 +167,7 @@ function RichTextEditor({
         contentEditable
         suppressContentEditableWarning
         className={cn(
-          "flex-1 p-4 overflow-y-auto scrollbar-thin text-sm leading-relaxed outline-none",
+          "flex-1 min-h-64 md:min-h-0 p-4 overflow-y-auto scrollbar-thin text-sm leading-relaxed outline-none",
           "empty:before:content-[attr(data-placeholder)]",
           "           empty:before:text-muted-foreground",
           "empty:before:pointer-events-none",
@@ -375,12 +382,12 @@ function EventForm({
   }
 
   return (
-    <div className="flex h-160 w-full">
+    <div className="flex flex-col max-h-dvh overflow-y-auto w-full md:h-160 md:max-h-none md:flex-row">
       {/* Left metadata sidebar */}
-      <div className="w-56 border-r border-border p-5 space-y-6 shrink-0 overflow-y-auto scrollbar-thin bg-secondary/20">
+      <div className="grid grid-cols-2 gap-4 border-b border-border p-5 shrink-0 bg-secondary/20 md:grid-cols-1 md:gap-6 md:w-56 md:border-b-0 md:border-r md:overflow-y-auto md:scrollbar-thin">
         <Field label="Layer">
           <Select value={layerId} onValueChange={setLayerId}>
-            <SelectTrigger className="h-8 text-xs bg-background">
+            <SelectTrigger className="h-8 text-xs bg-background w-full md:w-fit">
               <SelectValue />
             </SelectTrigger>
             <SelectContent>
@@ -395,7 +402,7 @@ function EventForm({
 
         <Field label="Chapter">
           <Select value={chapterId} onValueChange={setChapterId}>
-            <SelectTrigger className="h-8 text-xs bg-background">
+            <SelectTrigger className="h-8 text-xs bg-background w-full md:w-fit">
               <SelectValue placeholder="None" />
             </SelectTrigger>
             <SelectContent>
@@ -502,14 +509,50 @@ function EventForm({
         </div>
 
         {/* Bottom bar */}
-        <div className="border-t border-border px-5 py-3 flex items-center justify-between shrink-0">
+        <div className="sticky bottom-0 bg-background border-t border-border px-5 py-3 flex items-center justify-between shrink-0">
           <div className="flex gap-1">
+            {/* Mobile: Delete/Duplicate collapse into an overflow menu, same DropdownMenu pattern as ProjectCard */}
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className="relative md:hidden after:absolute after:-inset-2"
+                >
+                  <MoreHorizontal className="h-3.5 w-3.5" />
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="start">
+                <DropdownMenuItem onClick={handleDuplicate} disabled={duplicating}>
+                  {duplicating ? (
+                    <Loader2 className="h-3.5 w-3.5 mr-2 animate-spin" />
+                  ) : (
+                    <Copy className="h-3.5 w-3.5 mr-2" />
+                  )}
+                  Duplicate
+                </DropdownMenuItem>
+                <DropdownMenuItem
+                  onClick={handleDelete}
+                  disabled={deleting}
+                  className="text-destructive focus:text-destructive"
+                >
+                  {deleting ? (
+                    <Loader2 className="h-3.5 w-3.5 mr-2 animate-spin" />
+                  ) : (
+                    <Trash2 className="h-3.5 w-3.5 mr-2" />
+                  )}
+                  Delete
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
+
+            {/* Desktop: inline buttons, unchanged */}
             <Button
               variant="ghost"
               size="sm"
               onClick={handleDelete}
               disabled={deleting}
-              className="text-destructive hover:text-destructive hover:bg-destructive/10"
+              className="hidden md:inline-flex text-destructive hover:text-destructive hover:bg-destructive/10"
             >
               {deleting ? (
                 <Loader2 className="h-3.5 w-3.5 animate-spin mr-1.5" />
@@ -523,6 +566,7 @@ function EventForm({
               size="sm"
               onClick={handleDuplicate}
               disabled={duplicating}
+              className="hidden md:inline-flex"
             >
               {duplicating ? (
                 <Loader2 className="h-3.5 w-3.5 animate-spin mr-1.5" />

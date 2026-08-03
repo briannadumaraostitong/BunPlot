@@ -66,7 +66,7 @@ export function CharacterDetailPanel({
   return (
     <div
       className={cn(
-        'absolute right-0 top-0 bottom-0 w-72 border-l border-border bg-card shadow-lg flex flex-col transition-transform duration-200',
+        'absolute right-0 top-0 bottom-0 w-full md:w-72 border-l border-border bg-card shadow-lg flex flex-col transition-transform duration-200',
         open ? 'translate-x-0' : 'translate-x-full'
       )}
     >
