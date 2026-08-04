@@ -102,7 +102,7 @@ export function TimelineFlowView({
           Layer
         </span>
         <Select value={selectedLayerId ?? undefined} onValueChange={setSelectedLayerId}>
-          <SelectTrigger className="h-7 w-48 bg-background text-xs">
+          <SelectTrigger className="h-7 w-36 bg-background text-xs sm:w-48">
             <SelectValue placeholder="Select a layer" />
           </SelectTrigger>
           <SelectContent>
@@ -117,7 +117,7 @@ export function TimelineFlowView({
             ))}
           </SelectContent>
         </Select>
-        <span className="text-[11px] text-muted-foreground">
+        <span className="shrink-0 whitespace-nowrap text-[11px] text-muted-foreground">
           {sequence.length} event{sequence.length === 1 ? '' : 's'}
         </span>
       </div>

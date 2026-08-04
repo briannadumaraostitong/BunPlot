@@ -330,7 +330,7 @@ export function TimelineCanvas({
             <button
               onClick={() => setViewMode('grid')}
               className={cn(
-                'rounded-md px-2.5 py-1 text-xs font-medium transition-all',
+                'relative rounded-md px-2.5 py-1 text-xs font-medium transition-all after:absolute after:-inset-y-1 after:-inset-x-0.5',
                 viewMode === 'grid'
                   ? 'bg-background text-foreground shadow-sm'
                   : 'text-muted-foreground hover:text-foreground'
@@ -341,7 +341,7 @@ export function TimelineCanvas({
             <button
               onClick={() => setViewMode('flow')}
               className={cn(
-                'rounded-md px-2.5 py-1 text-xs font-medium transition-all',
+                'relative rounded-md px-2.5 py-1 text-xs font-medium transition-all after:absolute after:-inset-y-1 after:-inset-x-0.5',
                 viewMode === 'flow'
                   ? 'bg-background text-foreground shadow-sm'
                   : 'text-muted-foreground hover:text-foreground'
