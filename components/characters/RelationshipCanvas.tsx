@@ -147,105 +147,107 @@ export const RelationshipCanvas = forwardRef<RelationshipCanvasHandle, Relations
     const positions = new Map(members.map((m) => [m.character_id, { x: m.x, y: m.y }]))
 
     return (
-      <div
-        ref={scrollRef}
-        className={cn(
-          'relative h-full overflow-auto scrollbar-thin bg-secondary/10 transition-colors',
-          dragOver && 'bg-accent/5'
-        )}
-      >
+      <div className="relative h-full">
         <div
-          ref={contentRef}
-          className="relative"
-          style={{ width: CANVAS_WIDTH, height: CANVAS_HEIGHT }}
-          onClick={handleCanvasClick}
-          onDragOver={(e) => {
-            e.preventDefault()
-            e.dataTransfer.dropEffect = 'copy'
-            setDragOver(true)
-          }}
-          onDragLeave={() => setDragOver(false)}
-          onDrop={handleDrop}
+          ref={scrollRef}
+          className={cn(
+            'h-full overflow-auto scrollbar-thin bg-secondary/10 transition-colors',
+            dragOver && 'bg-accent/5'
+          )}
         >
-          <svg className="absolute inset-0 pointer-events-none" width={CANVAS_WIDTH} height={CANVAS_HEIGHT}>
-            <defs>
-              <marker id="rel-arrow" markerWidth="8" markerHeight="8" refX="7" refY="4" orient="auto">
-                <path d="M0,0 L8,4 L0,8 Z" className="fill-muted-foreground" />
-              </marker>
-            </defs>
+          <div
+            ref={contentRef}
+            className="relative"
+            style={{ width: CANVAS_WIDTH, height: CANVAS_HEIGHT }}
+            onClick={handleCanvasClick}
+            onDragOver={(e) => {
+              e.preventDefault()
+              e.dataTransfer.dropEffect = 'copy'
+              setDragOver(true)
+            }}
+            onDragLeave={() => setDragOver(false)}
+            onDrop={handleDrop}
+          >
+            <svg className="absolute inset-0 pointer-events-none" width={CANVAS_WIDTH} height={CANVAS_HEIGHT}>
+              <defs>
+                <marker id="rel-arrow" markerWidth="8" markerHeight="8" refX="7" refY="4" orient="auto">
+                  <path d="M0,0 L8,4 L0,8 Z" className="fill-muted-foreground" />
+                </marker>
+              </defs>
+              {relationships.map((rel) => {
+                const source = positions.get(rel.source_character_id)
+                const target = positions.get(rel.target_character_id)
+                if (!source || !target) return null
+                const symmetric = SYMMETRIC_TYPES.has(rel.relationship_type)
+                return (
+                  <line
+                    key={rel.id}
+                    x1={source.x + NODE_WIDTH / 2}
+                    y1={source.y + NODE_HEIGHT / 2}
+                    x2={target.x + NODE_WIDTH / 2}
+                    y2={target.y + NODE_HEIGHT / 2}
+                    className="stroke-muted-foreground/50"
+                    strokeWidth={1.5}
+                    markerEnd={symmetric ? undefined : 'url(#rel-arrow)'}
+                  />
+                )
+              })}
+            </svg>
+
             {relationships.map((rel) => {
               const source = positions.get(rel.source_character_id)
               const target = positions.get(rel.target_character_id)
               if (!source || !target) return null
-              const symmetric = SYMMETRIC_TYPES.has(rel.relationship_type)
+              const midX = (source.x + target.x) / 2 + NODE_WIDTH / 2
+              const midY = (source.y + target.y) / 2 + NODE_HEIGHT / 2
               return (
-                <line
+                <div
                   key={rel.id}
-                  x1={source.x + NODE_WIDTH / 2}
-                  y1={source.y + NODE_HEIGHT / 2}
-                  x2={target.x + NODE_WIDTH / 2}
-                  y2={target.y + NODE_HEIGHT / 2}
-                  className="stroke-muted-foreground/50"
-                  strokeWidth={1.5}
-                  markerEnd={symmetric ? undefined : 'url(#rel-arrow)'}
+                  className="group absolute z-10 flex items-center gap-1 -translate-x-1/2 -translate-y-1/2 rounded-full border border-border bg-card px-2 py-0.5 text-[10px] text-muted-foreground shadow-sm"
+                  style={{ left: midX, top: midY }}
+                >
+                  <span className="capitalize">{rel.relationship_label || rel.relationship_type}</span>
+                  <button
+                    onClick={() => handleDeleteRelationship(rel.id)}
+                    className="relative opacity-100 md:opacity-0 md:group-hover:opacity-100 hover:text-destructive transition-opacity after:absolute after:-inset-1.5"
+                    title="Remove relationship"
+                  >
+                    <X className="h-2.5 w-2.5" />
+                  </button>
+                </div>
+              )
+            })}
+
+            {members.map((member) => {
+              const character = charactersById.get(member.character_id)
+              if (!character) return null
+              return (
+                <CharacterNode
+                  key={character.id}
+                  character={character}
+                  x={member.x}
+                  y={member.y}
+                  selected={character.id === selectedCharacterId}
+                  pending={character.id === pendingSourceId}
+                  onClick={() => onNodeClick(character)}
+                  onDragMove={(x, y) => handleDragMove(character.id, x, y)}
+                  onDragEnd={(x, y) => handleDragEnd(character.id, x, y)}
+                  onRemoveFromTree={() => handleRemoveMember(character.id)}
                 />
               )
             })}
-          </svg>
-
-          {relationships.map((rel) => {
-            const source = positions.get(rel.source_character_id)
-            const target = positions.get(rel.target_character_id)
-            if (!source || !target) return null
-            const midX = (source.x + target.x) / 2 + NODE_WIDTH / 2
-            const midY = (source.y + target.y) / 2 + NODE_HEIGHT / 2
-            return (
-              <div
-                key={rel.id}
-                className="group absolute z-10 flex items-center gap-1 -translate-x-1/2 -translate-y-1/2 rounded-full border border-border bg-card px-2 py-0.5 text-[10px] text-muted-foreground shadow-sm"
-                style={{ left: midX, top: midY }}
-              >
-                <span className="capitalize">{rel.relationship_label || rel.relationship_type}</span>
-                <button
-                  onClick={() => handleDeleteRelationship(rel.id)}
-                  className="relative opacity-100 md:opacity-0 md:group-hover:opacity-100 hover:text-destructive transition-opacity after:absolute after:-inset-1.5"
-                  title="Remove relationship"
-                >
-                  <X className="h-2.5 w-2.5" />
-                </button>
-              </div>
-            )
-          })}
-
-          {members.map((member) => {
-            const character = charactersById.get(member.character_id)
-            if (!character) return null
-            return (
-              <CharacterNode
-                key={character.id}
-                character={character}
-                x={member.x}
-                y={member.y}
-                selected={character.id === selectedCharacterId}
-                pending={character.id === pendingSourceId}
-                onClick={() => onNodeClick(character)}
-                onDragMove={(x, y) => handleDragMove(character.id, x, y)}
-                onDragEnd={(x, y) => handleDragEnd(character.id, x, y)}
-                onRemoveFromTree={() => handleRemoveMember(character.id)}
-              />
-            )
-          })}
-
-          {members.length === 0 && (
-            <div className="absolute inset-0 flex items-center justify-center px-8 pointer-events-none">
-              <p className="text-sm text-muted-foreground text-center max-w-64">
-                {characters.length === 0
-                  ? 'Add a character in the sidebar to get started.'
-                  : 'Drag a character from the sidebar onto the canvas to add them to this tree.'}
-              </p>
-            </div>
-          )}
+          </div>
         </div>
+
+        {members.length === 0 && (
+          <div className="absolute inset-0 flex items-center justify-center px-8 pointer-events-none">
+            <p className="text-sm text-muted-foreground text-center max-w-64">
+              {characters.length === 0
+                ? 'Add a character in the sidebar to get started.'
+                : 'Add a character from the sidebar to place them on this tree.'}
+            </p>
+          </div>
+        )}
       </div>
     )
   }
