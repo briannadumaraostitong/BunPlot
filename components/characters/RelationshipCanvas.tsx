@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useRef, useState } from 'react'
+import { forwardRef, useEffect, useImperativeHandle, useRef, useState } from 'react'
 import { X } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { CharacterNode, NODE_WIDTH, NODE_HEIGHT } from './CharacterNode'
@@ -17,6 +17,13 @@ const CANVAS_HEIGHT = 1400
 
 const SYMMETRIC_TYPES = new Set(['sibling', 'spouse', 'friend', 'enemy', 'rival', 'other'])
 
+export interface RelationshipCanvasHandle {
+  // Mobile fallback for CharacterRow's native-HTML5-drag add-to-canvas, which
+  // doesn't fire on touch — places the character centered in whatever's
+  // currently scrolled into view instead of at a drop coordinate.
+  addCharacterToCanvas: (characterId: string) => void
+}
+
 interface RelationshipCanvasProps {
   projectId: string
   treeId: string
@@ -29,183 +36,217 @@ interface RelationshipCanvasProps {
   onRelationshipDeleted: (id: string) => void
 }
 
-export function RelationshipCanvas({
-  projectId,
-  treeId,
-  characters,
-  relationships,
-  selectedCharacterId,
-  pendingSourceId,
-  onNodeClick,
-  onBackgroundClick,
-  onRelationshipDeleted,
-}: RelationshipCanvasProps) {
-  // This component is remounted via `key={treeId}` by the parent, so member
-  // state naturally resets when switching trees.
-  const [members, setMembers] = useState<FamilyTreeMember[]>([])
-  const [dragOver, setDragOver] = useState(false)
-  const contentRef = useRef<HTMLDivElement>(null)
+export const RelationshipCanvas = forwardRef<RelationshipCanvasHandle, RelationshipCanvasProps>(
+  function RelationshipCanvas(
+    {
+      projectId,
+      treeId,
+      characters,
+      relationships,
+      selectedCharacterId,
+      pendingSourceId,
+      onNodeClick,
+      onBackgroundClick,
+      onRelationshipDeleted,
+    },
+    ref
+  ) {
+    // This component is remounted via `key={treeId}` by the parent, so member
+    // state naturally resets when switching trees.
+    const [members, setMembers] = useState<FamilyTreeMember[]>([])
+    const [dragOver, setDragOver] = useState(false)
+    const scrollRef = useRef<HTMLDivElement>(null)
+    const contentRef = useRef<HTMLDivElement>(null)
 
-  useEffect(() => {
-    let cancelled = false
-    ;(async () => {
-      const data = await getFamilyTreeMembers(treeId)
-      if (!cancelled) setMembers(data)
-    })()
-    return () => {
-      cancelled = true
+    useEffect(() => {
+      let cancelled = false
+      ;(async () => {
+        const data = await getFamilyTreeMembers(treeId)
+        if (!cancelled) setMembers(data)
+      })()
+      return () => {
+        cancelled = true
+      }
+    }, [treeId])
+
+    function addOrUpdateMember(characterId: string, x: number, y: number) {
+      setMembers((prev) => {
+        const exists = prev.some((m) => m.character_id === characterId)
+        if (exists) return prev.map((m) => (m.character_id === characterId ? { ...m, x, y } : m))
+        return [
+          ...prev,
+          { tree_id: treeId, character_id: characterId, x, y, created_at: new Date().toISOString() },
+        ]
+      })
+      saveFamilyTreeMemberPosition(treeId, characterId, x, y)
     }
-  }, [treeId])
 
-  function handleDragMove(characterId: string, x: number, y: number) {
-    setMembers((prev) => prev.map((m) => (m.character_id === characterId ? { ...m, x, y } : m)))
-  }
+    useImperativeHandle(
+      ref,
+      () => ({
+        addCharacterToCanvas(characterId: string) {
+          // Already placed — leave it where it is rather than surprise-move it.
+          if (members.some((m) => m.character_id === characterId)) return
 
-  function handleDragEnd(characterId: string, x: number, y: number) {
-    setMembers((prev) => prev.map((m) => (m.character_id === characterId ? { ...m, x, y } : m)))
-    saveFamilyTreeMemberPosition(treeId, characterId, x, y)
-  }
+          const scrollEl = scrollRef.current
+          const scrollLeft = scrollEl?.scrollLeft ?? 0
+          const scrollTop = scrollEl?.scrollTop ?? 0
+          const viewWidth = scrollEl?.clientWidth ?? 0
+          const viewHeight = scrollEl?.clientHeight ?? 0
+          // Small cascade so several taps in a row don't stack exactly on top
+          // of each other.
+          const cascade = (members.length % 6) * 24
+          const x = Math.max(0, scrollLeft + viewWidth / 2 - NODE_WIDTH / 2 + cascade)
+          const y = Math.max(0, scrollTop + viewHeight / 2 - NODE_HEIGHT / 2 + cascade)
+          addOrUpdateMember(characterId, x, y)
+        },
+      }),
+      [members]
+    )
 
-  function handleRemoveMember(characterId: string) {
-    setMembers((prev) => prev.filter((m) => m.character_id !== characterId))
-    removeFamilyTreeMember(treeId, characterId)
-  }
+    function handleDragMove(characterId: string, x: number, y: number) {
+      setMembers((prev) => prev.map((m) => (m.character_id === characterId ? { ...m, x, y } : m)))
+    }
 
-  function handleDrop(e: React.DragEvent) {
-    e.preventDefault()
-    setDragOver(false)
-    const characterId = e.dataTransfer.getData('text/plain')
-    if (!characterId || !contentRef.current) return
+    function handleDragEnd(characterId: string, x: number, y: number) {
+      setMembers((prev) => prev.map((m) => (m.character_id === characterId ? { ...m, x, y } : m)))
+      saveFamilyTreeMemberPosition(treeId, characterId, x, y)
+    }
 
-    const rect = contentRef.current.getBoundingClientRect()
-    const x = Math.max(0, e.clientX - rect.left - NODE_WIDTH / 2)
-    const y = Math.max(0, e.clientY - rect.top - NODE_HEIGHT / 2)
+    function handleRemoveMember(characterId: string) {
+      setMembers((prev) => prev.filter((m) => m.character_id !== characterId))
+      removeFamilyTreeMember(treeId, characterId)
+    }
 
-    setMembers((prev) => {
-      const exists = prev.some((m) => m.character_id === characterId)
-      if (exists) return prev.map((m) => (m.character_id === characterId ? { ...m, x, y } : m))
-      return [
-        ...prev,
-        { tree_id: treeId, character_id: characterId, x, y, created_at: new Date().toISOString() },
-      ]
-    })
-    saveFamilyTreeMemberPosition(treeId, characterId, x, y)
-  }
+    function handleDrop(e: React.DragEvent) {
+      e.preventDefault()
+      setDragOver(false)
+      const characterId = e.dataTransfer.getData('text/plain')
+      if (!characterId || !contentRef.current) return
 
-  async function handleDeleteRelationship(id: string) {
-    onRelationshipDeleted(id)
-    await deleteRelationship(id, projectId)
-  }
+      const rect = contentRef.current.getBoundingClientRect()
+      const x = Math.max(0, e.clientX - rect.left - NODE_WIDTH / 2)
+      const y = Math.max(0, e.clientY - rect.top - NODE_HEIGHT / 2)
 
-  function handleCanvasClick(e: React.MouseEvent) {
-    if (e.target === e.currentTarget) onBackgroundClick()
-  }
+      addOrUpdateMember(characterId, x, y)
+    }
 
-  const charactersById = new Map(characters.map((c) => [c.id, c]))
-  // Relationships where only one side is placed on this tree simply don't draw a
-  // line — they still show up in the character detail panel either way, since
-  // that view isn't scoped to a single tree.
-  const positions = new Map(members.map((m) => [m.character_id, { x: m.x, y: m.y }]))
+    async function handleDeleteRelationship(id: string) {
+      onRelationshipDeleted(id)
+      await deleteRelationship(id, projectId)
+    }
 
-  return (
-    <div
-      className={cn(
-        'relative h-full overflow-auto scrollbar-thin bg-secondary/10 transition-colors',
-        dragOver && 'bg-accent/5'
-      )}
-    >
+    function handleCanvasClick(e: React.MouseEvent) {
+      if (e.target === e.currentTarget) onBackgroundClick()
+    }
+
+    const charactersById = new Map(characters.map((c) => [c.id, c]))
+    // Relationships where only one side is placed on this tree simply don't draw a
+    // line — they still show up in the character detail panel either way, since
+    // that view isn't scoped to a single tree.
+    const positions = new Map(members.map((m) => [m.character_id, { x: m.x, y: m.y }]))
+
+    return (
       <div
-        ref={contentRef}
-        className="relative"
-        style={{ width: CANVAS_WIDTH, height: CANVAS_HEIGHT }}
-        onClick={handleCanvasClick}
-        onDragOver={(e) => {
-          e.preventDefault()
-          e.dataTransfer.dropEffect = 'copy'
-          setDragOver(true)
-        }}
-        onDragLeave={() => setDragOver(false)}
-        onDrop={handleDrop}
+        ref={scrollRef}
+        className={cn(
+          'relative h-full overflow-auto scrollbar-thin bg-secondary/10 transition-colors',
+          dragOver && 'bg-accent/5'
+        )}
       >
-        <svg className="absolute inset-0 pointer-events-none" width={CANVAS_WIDTH} height={CANVAS_HEIGHT}>
-          <defs>
-            <marker id="rel-arrow" markerWidth="8" markerHeight="8" refX="7" refY="4" orient="auto">
-              <path d="M0,0 L8,4 L0,8 Z" className="fill-muted-foreground" />
-            </marker>
-          </defs>
+        <div
+          ref={contentRef}
+          className="relative"
+          style={{ width: CANVAS_WIDTH, height: CANVAS_HEIGHT }}
+          onClick={handleCanvasClick}
+          onDragOver={(e) => {
+            e.preventDefault()
+            e.dataTransfer.dropEffect = 'copy'
+            setDragOver(true)
+          }}
+          onDragLeave={() => setDragOver(false)}
+          onDrop={handleDrop}
+        >
+          <svg className="absolute inset-0 pointer-events-none" width={CANVAS_WIDTH} height={CANVAS_HEIGHT}>
+            <defs>
+              <marker id="rel-arrow" markerWidth="8" markerHeight="8" refX="7" refY="4" orient="auto">
+                <path d="M0,0 L8,4 L0,8 Z" className="fill-muted-foreground" />
+              </marker>
+            </defs>
+            {relationships.map((rel) => {
+              const source = positions.get(rel.source_character_id)
+              const target = positions.get(rel.target_character_id)
+              if (!source || !target) return null
+              const symmetric = SYMMETRIC_TYPES.has(rel.relationship_type)
+              return (
+                <line
+                  key={rel.id}
+                  x1={source.x + NODE_WIDTH / 2}
+                  y1={source.y + NODE_HEIGHT / 2}
+                  x2={target.x + NODE_WIDTH / 2}
+                  y2={target.y + NODE_HEIGHT / 2}
+                  className="stroke-muted-foreground/50"
+                  strokeWidth={1.5}
+                  markerEnd={symmetric ? undefined : 'url(#rel-arrow)'}
+                />
+              )
+            })}
+          </svg>
+
           {relationships.map((rel) => {
             const source = positions.get(rel.source_character_id)
             const target = positions.get(rel.target_character_id)
             if (!source || !target) return null
-            const symmetric = SYMMETRIC_TYPES.has(rel.relationship_type)
+            const midX = (source.x + target.x) / 2 + NODE_WIDTH / 2
+            const midY = (source.y + target.y) / 2 + NODE_HEIGHT / 2
             return (
-              <line
+              <div
                 key={rel.id}
-                x1={source.x + NODE_WIDTH / 2}
-                y1={source.y + NODE_HEIGHT / 2}
-                x2={target.x + NODE_WIDTH / 2}
-                y2={target.y + NODE_HEIGHT / 2}
-                className="stroke-muted-foreground/50"
-                strokeWidth={1.5}
-                markerEnd={symmetric ? undefined : 'url(#rel-arrow)'}
+                className="group absolute z-10 flex items-center gap-1 -translate-x-1/2 -translate-y-1/2 rounded-full border border-border bg-card px-2 py-0.5 text-[10px] text-muted-foreground shadow-sm"
+                style={{ left: midX, top: midY }}
+              >
+                <span className="capitalize">{rel.relationship_label || rel.relationship_type}</span>
+                <button
+                  onClick={() => handleDeleteRelationship(rel.id)}
+                  className="relative opacity-100 md:opacity-0 md:group-hover:opacity-100 hover:text-destructive transition-opacity after:absolute after:-inset-1.5"
+                  title="Remove relationship"
+                >
+                  <X className="h-2.5 w-2.5" />
+                </button>
+              </div>
+            )
+          })}
+
+          {members.map((member) => {
+            const character = charactersById.get(member.character_id)
+            if (!character) return null
+            return (
+              <CharacterNode
+                key={character.id}
+                character={character}
+                x={member.x}
+                y={member.y}
+                selected={character.id === selectedCharacterId}
+                pending={character.id === pendingSourceId}
+                onClick={() => onNodeClick(character)}
+                onDragMove={(x, y) => handleDragMove(character.id, x, y)}
+                onDragEnd={(x, y) => handleDragEnd(character.id, x, y)}
+                onRemoveFromTree={() => handleRemoveMember(character.id)}
               />
             )
           })}
-        </svg>
 
-        {relationships.map((rel) => {
-          const source = positions.get(rel.source_character_id)
-          const target = positions.get(rel.target_character_id)
-          if (!source || !target) return null
-          const midX = (source.x + target.x) / 2 + NODE_WIDTH / 2
-          const midY = (source.y + target.y) / 2 + NODE_HEIGHT / 2
-          return (
-            <div
-              key={rel.id}
-              className="group absolute z-10 flex items-center gap-1 -translate-x-1/2 -translate-y-1/2 rounded-full border border-border bg-card px-2 py-0.5 text-[10px] text-muted-foreground shadow-sm"
-              style={{ left: midX, top: midY }}
-            >
-              <span className="capitalize">{rel.relationship_label || rel.relationship_type}</span>
-              <button
-                onClick={() => handleDeleteRelationship(rel.id)}
-                className="relative opacity-100 md:opacity-0 md:group-hover:opacity-100 hover:text-destructive transition-opacity after:absolute after:-inset-1.5"
-                title="Remove relationship"
-              >
-                <X className="h-2.5 w-2.5" />
-              </button>
+          {members.length === 0 && (
+            <div className="absolute inset-0 flex items-center justify-center px-8 pointer-events-none">
+              <p className="text-sm text-muted-foreground text-center max-w-64">
+                {characters.length === 0
+                  ? 'Add a character in the sidebar to get started.'
+                  : 'Drag a character from the sidebar onto the canvas to add them to this tree.'}
+              </p>
             </div>
-          )
-        })}
-
-        {members.map((member) => {
-          const character = charactersById.get(member.character_id)
-          if (!character) return null
-          return (
-            <CharacterNode
-              key={character.id}
-              character={character}
-              x={member.x}
-              y={member.y}
-              selected={character.id === selectedCharacterId}
-              pending={character.id === pendingSourceId}
-              onClick={() => onNodeClick(character)}
-              onDragMove={(x, y) => handleDragMove(character.id, x, y)}
-              onDragEnd={(x, y) => handleDragEnd(character.id, x, y)}
-              onRemoveFromTree={() => handleRemoveMember(character.id)}
-            />
-          )
-        })}
-
-        {members.length === 0 && (
-          <div className="absolute inset-0 flex items-center justify-center px-8 pointer-events-none">
-            <p className="text-sm text-muted-foreground text-center max-w-64">
-              {characters.length === 0
-                ? 'Add a character in the sidebar to get started.'
-                : 'Drag a character from the sidebar onto the canvas to add them to this tree.'}
-            </p>
-          </div>
-        )}
+          )}
+        </div>
       </div>
-    </div>
-  )
-}
+    )
+  }
+)

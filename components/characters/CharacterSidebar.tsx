@@ -17,6 +17,7 @@ interface CharacterSidebarProps {
   onCharacterAdded: (character: Character) => void
   onCharacterColorChanged: (id: string, color: string) => void
   onCharacterDeleted: (id: string) => void
+  onAddToCanvas: (characterId: string) => void
 }
 
 export function CharacterSidebar({
@@ -28,6 +29,7 @@ export function CharacterSidebar({
   onCharacterAdded,
   onCharacterColorChanged,
   onCharacterDeleted,
+  onAddToCanvas,
 }: CharacterSidebarProps) {
   const [collapsed, setCollapsed] = useState(false)
   const [adding, setAdding] = useState(false)
@@ -95,6 +97,7 @@ export function CharacterSidebar({
                   onSelect={() => onSelect(character.id)}
                   onColorChanged={(color) => onCharacterColorChanged(character.id, color)}
                   onDeleted={() => onCharacterDeleted(character.id)}
+                  onAddToCanvas={() => onAddToCanvas(character.id)}
                 />
               ))
             )}

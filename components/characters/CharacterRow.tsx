@@ -1,7 +1,7 @@
 'use client'
 
 import { useRef, useState } from 'react'
-import { Trash2, Loader2 } from 'lucide-react'
+import { Trash2, Loader2, Plus } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { playClickSound } from '@/lib/sound'
 import { deleteCharacter, updateCharacter } from '@/actions/characters'
@@ -21,6 +21,7 @@ interface CharacterRowProps {
   onSelect: () => void
   onColorChanged: (color: string) => void
   onDeleted: () => void
+  onAddToCanvas: () => void
 }
 
 export function CharacterRow({
@@ -30,6 +31,7 @@ export function CharacterRow({
   onSelect,
   onColorChanged,
   onDeleted,
+  onAddToCanvas,
 }: CharacterRowProps) {
   const [deleting, setDeleting] = useState(false)
   const [error, setError] = useState<string | null>(null)
@@ -104,6 +106,17 @@ export function CharacterRow({
           <p className="text-[10px] text-muted-foreground truncate">{character.role}</p>
         )}
       </div>
+
+      <button
+        onClick={(e) => {
+          e.stopPropagation()
+          onAddToCanvas()
+        }}
+        title="Add to canvas"
+        className="relative shrink-0 p-0.5 text-muted-foreground transition-colors hover:text-foreground after:absolute after:-inset-1.5 md:hidden"
+      >
+        <Plus className="h-3.5 w-3.5" />
+      </button>
 
       <button
         onClick={handleDelete}

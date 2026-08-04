@@ -1,10 +1,10 @@
 'use client'
 
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import { Loader2 } from 'lucide-react'
 import { CharacterSidebar } from './CharacterSidebar'
 import { FamilyTreeTabBar } from './FamilyTreeTabBar'
-import { RelationshipCanvas } from './RelationshipCanvas'
+import { RelationshipCanvas, type RelationshipCanvasHandle } from './RelationshipCanvas'
 import { CharacterDetailPanel } from './CharacterDetailPanel'
 import { RelationshipModal } from './RelationshipModal'
 import {
@@ -35,6 +35,8 @@ export function CharactersPanel({ projectId }: CharactersPanelProps) {
     source: Character | null
     target: Character | null
   }>({ open: false, source: null, target: null })
+
+  const canvasRef = useRef<RelationshipCanvasHandle>(null)
 
   useEffect(() => {
     let cancelled = false
@@ -89,6 +91,12 @@ export function CharactersPanel({ projectId }: CharactersPanelProps) {
 
   function handleCancelConnect() {
     setPendingSourceId(null)
+  }
+
+  // Mobile fallback for CharacterRow's native-HTML5-drag add-to-canvas,
+  // which doesn't fire on touch — see RelationshipCanvasHandle.
+  function handleAddCharacterToCanvas(characterId: string) {
+    canvasRef.current?.addCharacterToCanvas(characterId)
   }
 
   async function handleRelationshipCreated() {
@@ -148,6 +156,7 @@ export function CharactersPanel({ projectId }: CharactersPanelProps) {
           setCharacters((prev) => prev.filter((c) => c.id !== id))
           setSelectedCharacterId((current) => (current === id ? null : current))
         }}
+        onAddToCanvas={handleAddCharacterToCanvas}
       />
 
       <div className="flex flex-col flex-1 min-w-0 overflow-hidden">
@@ -173,6 +182,7 @@ export function CharactersPanel({ projectId }: CharactersPanelProps) {
           {activeTreeId && (
             <RelationshipCanvas
               key={activeTreeId}
+              ref={canvasRef}
               projectId={projectId}
               treeId={activeTreeId}
               characters={characters}
