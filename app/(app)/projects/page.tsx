@@ -1,11 +1,17 @@
+import Link from 'next/link'
 import { createClient } from '@/lib/supabase/server'
 import { ProjectCard } from '@/components/projects/ProjectCard'
 import { NewProjectDialog } from '@/components/projects/NewProjectDialog'
+import { cn } from '@/lib/utils'
 import type { Metadata } from 'next'
 import type { Project } from '@/types/database'
 import type { ProjectStats } from '@/components/projects/ProjectCard'
 
 export const metadata: Metadata = { title: 'Projects' }
+
+interface Props {
+  searchParams: Promise<{ view?: string }>
+}
 
 // Mirrors the Tiptap JSON walker in PlaceCard.tsx / dashboard/page.tsx — no
 // server-safe editor.getText() exists without a real editor instance, so
@@ -26,7 +32,10 @@ function countWords(content: Record<string, unknown> | null | undefined): number
   return text ? text.split(/\s+/).length : 0
 }
 
-export default async function ProjectsPage() {
+export default async function ProjectsPage({ searchParams }: Props) {
+  const { view } = await searchParams
+  const showArchived = view === 'archived'
+
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
 
@@ -34,7 +43,7 @@ export default async function ProjectsPage() {
     .from('projects')
     .select('*')
     .eq('owner_id', user!.id)
-    .eq('archived', false)
+    .eq('archived', showArchived)
     .order('updated_at', { ascending: false })
 
   const projects = (data ?? []) as Project[]
@@ -86,7 +95,33 @@ export default async function ProjectsPage() {
             {projects.length} project{projects.length !== 1 ? 's' : ''}
           </p>
         </div>
-        <NewProjectDialog />
+        <div className="flex items-center gap-2">
+          <div className="inline-flex items-center gap-1 rounded-lg bg-secondary/50 p-1">
+            <Link
+              href="/projects"
+              className={cn(
+                'relative rounded-md px-2.5 py-1 text-xs font-medium transition-all after:absolute after:-inset-y-1 after:-inset-x-0.5',
+                !showArchived
+                  ? 'bg-background text-foreground shadow-sm'
+                  : 'text-muted-foreground hover:text-foreground'
+              )}
+            >
+              Active
+            </Link>
+            <Link
+              href="/projects?view=archived"
+              className={cn(
+                'relative rounded-md px-2.5 py-1 text-xs font-medium transition-all after:absolute after:-inset-y-1 after:-inset-x-0.5',
+                showArchived
+                  ? 'bg-background text-foreground shadow-sm'
+                  : 'text-muted-foreground hover:text-foreground'
+              )}
+            >
+              Archived
+            </Link>
+          </div>
+          <NewProjectDialog />
+        </div>
       </div>
 
       {projects.length > 0 ? (
@@ -94,6 +129,10 @@ export default async function ProjectsPage() {
           {projects.map((project) => (
             <ProjectCard key={project.id} project={project} stats={statsByProject[project.id]} />
           ))}
+        </div>
+      ) : showArchived ? (
+        <div className="flex flex-col items-center justify-center h-64 text-center space-y-3 rounded-xl border border-dashed border-border">
+          <p className="text-muted-foreground text-sm">No archived projects</p>
         </div>
       ) : (
         <div className="flex flex-col items-center justify-center h-64 text-center space-y-3 rounded-xl border border-dashed border-border">

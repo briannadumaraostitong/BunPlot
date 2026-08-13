@@ -96,6 +96,20 @@ export async function archiveProject(id: string) {
 
   if (error) return { error: error.message }
   revalidatePath('/dashboard')
+  revalidatePath('/projects')
+  return { success: true }
+}
+
+export async function unarchiveProject(id: string) {
+  const supabase = await createClient()
+  const { error } = await supabase
+    .from('projects')
+    .update({ archived: false } as never)
+    .eq('id', id)
+
+  if (error) return { error: error.message }
+  revalidatePath('/dashboard')
+  revalidatePath('/projects')
   return { success: true }
 }
 

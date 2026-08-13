@@ -3,7 +3,7 @@
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { formatDistanceToNow } from 'date-fns'
-import { MoreHorizontal, Archive, Trash2, FolderInput, FolderMinus } from 'lucide-react'
+import { MoreHorizontal, Archive, ArchiveRestore, Trash2, FolderInput, FolderMinus } from 'lucide-react'
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -21,7 +21,7 @@ import {
 } from '@/components/ui/dialog'
 import { Button } from '@/components/ui/button'
 import { cn } from '@/lib/utils'
-import { deleteProject, archiveProject, moveProjectToFolder } from '@/actions/projects'
+import { deleteProject, archiveProject, unarchiveProject, moveProjectToFolder } from '@/actions/projects'
 import type { Project, ProjectFolder } from '@/types/database'
 import { useState } from 'react'
 
@@ -56,6 +56,11 @@ export function ProjectCard({ project, folders = [], stats }: ProjectCardProps) 
     router.refresh()
   }
 
+  async function handleUnarchive() {
+    await unarchiveProject(project.id)
+    router.refresh()
+  }
+
   async function handleMoveToFolder(folderId: string | null) {
     await moveProjectToFolder(project.id, folderId)
     router.refresh()
@@ -65,7 +70,8 @@ export function ProjectCard({ project, folders = [], stats }: ProjectCardProps) 
     <>
       <div className={cn(
         'group relative rounded-xl border border-border bg-card',
-        'hover:shadow-md transition-all duration-150'
+        'hover:shadow-md transition-all duration-150',
+        project.archived && 'opacity-60 hover:opacity-100'
       )}>
         {/* Color strip */}
         <div className="h-2 rounded-t-xl bg-primary" />
@@ -73,9 +79,16 @@ export function ProjectCard({ project, folders = [], stats }: ProjectCardProps) 
         <div className="p-4 space-y-3">
           <div className="flex items-start justify-between gap-2">
             <Link href={`/projects/${project.id}`} className="flex-1 min-w-0">
-              <h3 className="font-semibold text-sm leading-tight truncate hover:text-primary transition-colors">
-                {project.title}
-              </h3>
+              <div className="flex items-center gap-1.5">
+                <h3 className="min-w-0 truncate font-semibold text-sm leading-tight hover:text-primary transition-colors">
+                  {project.title}
+                </h3>
+                {project.archived && (
+                  <span className="shrink-0 rounded-full border border-border bg-secondary/50 px-1.5 py-0.5 text-[10px] font-medium text-muted-foreground">
+                    Archived
+                  </span>
+                )}
+              </div>
               {project.description && (
                 <p className="text-xs text-muted-foreground mt-1 line-clamp-2">
                   {project.description}
@@ -120,12 +133,21 @@ export function ProjectCard({ project, folders = [], stats }: ProjectCardProps) 
                     </DropdownMenuSubContent>
                   </DropdownMenuSub>
                 )}
-                <DropdownMenuItem
-                  className="text-muted-foreground"
-                  onClick={handleArchive}
-                >
-                  <Archive className="h-3.5 w-3.5 mr-2" /> Archive
-                </DropdownMenuItem>
+                {project.archived ? (
+                  <DropdownMenuItem
+                    className="text-muted-foreground"
+                    onClick={handleUnarchive}
+                  >
+                    <ArchiveRestore className="h-3.5 w-3.5 mr-2" /> Unarchive
+                  </DropdownMenuItem>
+                ) : (
+                  <DropdownMenuItem
+                    className="text-muted-foreground"
+                    onClick={handleArchive}
+                  >
+                    <Archive className="h-3.5 w-3.5 mr-2" /> Archive
+                  </DropdownMenuItem>
+                )}
                 <DropdownMenuItem
                   className="text-destructive focus:text-destructive"
                   onClick={() => setConfirmDelete(true)}
