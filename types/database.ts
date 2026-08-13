@@ -4,7 +4,6 @@
 import type { ThemeSetting } from '@/lib/themes'
 
 export type AppMode = 'basic' | 'advanced'
-export type EventStatus = 'draft' | 'outline' | 'written' | 'revised' | 'final'
 export type LayerType = 'main' | 'character' | 'subplot' | 'theme' | 'custom'
 export type RelationshipType = 'parent' | 'sibling' | 'spouse' | 'friend' | 'enemy' | 'mentor' | 'rival' | 'other'
 export type PlaceType = 'city' | 'town' | 'village' | 'building' | 'room' | 'country' | 'region' | 'world' | 'other'
@@ -163,7 +162,6 @@ export interface Event {
   duration: number
   color: string | null
   icon: string | null
-  status: EventStatus
   status_id: string
   tension_level: number | null
   word_count: number | null
@@ -257,7 +255,6 @@ export interface EventWithCharacters extends Event {
 // ── Filter Types ─────────────────────────────────────────────
 
 export interface EventFilters {
-  status?: EventStatus[]
   tags?: string[]
   character_ids?: string[]
   layer_ids?: string[]
@@ -366,7 +363,6 @@ export interface Database {
     }
     Enums: {
       app_mode: AppMode
-      event_status: EventStatus
       layer_type: LayerType
       relationship_type: RelationshipType
       place_type: PlaceType

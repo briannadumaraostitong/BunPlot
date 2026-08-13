@@ -2,7 +2,6 @@
 
 import { createClient } from '@/lib/supabase/server'
 import { revalidatePath } from 'next/cache'
-import type { EventStatus } from '@/types/database'
 
 interface CreateEventInput {
   project_id: string
@@ -58,7 +57,6 @@ export async function updateEvent(
     position: number
     duration: number
     color: string
-    status: EventStatus
     status_id: string
     tension_level: number
     word_count: number

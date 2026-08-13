@@ -4,7 +4,6 @@ CREATE EXTENSION IF NOT EXISTS "pgcrypto";
 
 -- ENUMS
 CREATE TYPE app_mode AS ENUM ('basic', 'advanced');
-CREATE TYPE event_status AS ENUM ('draft', 'outline', 'written', 'revised', 'final');
 CREATE TYPE layer_type AS ENUM ('main', 'character', 'subplot', 'theme', 'custom');
 CREATE TYPE relationship_type AS ENUM ('parent', 'sibling', 'spouse', 'friend', 'enemy', 'mentor', 'rival', 'other');
 CREATE TYPE place_type AS ENUM ('city', 'town', 'village', 'building', 'room', 'country', 'region', 'world', 'other');
@@ -67,6 +66,25 @@ CREATE TABLE projects (
   created_at      TIMESTAMPTZ NOT NULL DEFAULT NOW(),
   updated_at      TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
+
+-- Auto-seed default statuses on project creation, so status_id always
+-- has something to attach to (mirrors handle_new_user above).
+CREATE OR REPLACE FUNCTION seed_default_statuses()
+RETURNS TRIGGER LANGUAGE plpgsql SECURITY DEFINER SET search_path = public AS $$
+BEGIN
+  INSERT INTO statuses (project_id, name, color, is_default, position) VALUES
+    (NEW.id, 'Draft',   '#71717a', TRUE,  0),
+    (NEW.id, 'Outline', '#6366F1', FALSE, 1),
+    (NEW.id, 'Written', '#F59E0B', FALSE, 2),
+    (NEW.id, 'Revised', '#8B5CF6', FALSE, 3),
+    (NEW.id, 'Final',   '#10B981', FALSE, 4);
+  RETURN NEW;
+END;
+$$;
+
+CREATE TRIGGER on_project_created_seed_statuses
+  AFTER INSERT ON projects
+  FOR EACH ROW EXECUTE FUNCTION seed_default_statuses();
 
 -- LAYER GROUPS
 CREATE TABLE layer_groups (
@@ -150,8 +168,7 @@ CREATE TABLE events (
   duration        FLOAT NOT NULL DEFAULT 0,
   color           TEXT,
   icon            TEXT,
-  status          event_status NOT NULL DEFAULT 'draft',
-  status_id       UUID REFERENCES statuses(id) ON DELETE SET NULL,
+  status_id       UUID NOT NULL REFERENCES statuses(id) ON DELETE RESTRICT,
   tension_level   SMALLINT CHECK (tension_level BETWEEN 0 AND 10),
   word_count      INTEGER,
   custom_fields   JSONB NOT NULL DEFAULT '{}',
@@ -261,7 +278,6 @@ CREATE INDEX idx_events_position    ON events(layer_id, position);
 CREATE INDEX idx_events_dates       ON events(project_id, start_date, end_date);
 CREATE INDEX idx_events_tags        ON events USING GIN(tags);
 CREATE INDEX idx_events_custom      ON events USING GIN(custom_fields);
-CREATE INDEX idx_events_status      ON events(project_id, status);
 CREATE INDEX idx_events_status_id   ON events(project_id, status_id);
 CREATE INDEX idx_statuses_project   ON statuses(project_id);
 CREATE UNIQUE INDEX idx_statuses_one_default_per_project
