@@ -3,7 +3,7 @@
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { formatDistanceToNow } from 'date-fns'
-import { MoreHorizontal, Archive, ArchiveRestore, Trash2, FolderInput, FolderMinus } from 'lucide-react'
+import { MoreHorizontal, Archive, ArchiveRestore, Trash2, FolderInput, FolderMinus, Pencil, Check, X } from 'lucide-react'
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -21,7 +21,7 @@ import {
 } from '@/components/ui/dialog'
 import { Button } from '@/components/ui/button'
 import { cn } from '@/lib/utils'
-import { deleteProject, archiveProject, unarchiveProject, moveProjectToFolder } from '@/actions/projects'
+import { deleteProject, archiveProject, unarchiveProject, moveProjectToFolder, updateProject } from '@/actions/projects'
 import type { Project, ProjectFolder } from '@/types/database'
 import { useState } from 'react'
 
@@ -42,6 +42,8 @@ export function ProjectCard({ project, folders = [], stats }: ProjectCardProps) 
   const router = useRouter()
   const [confirmDelete, setConfirmDelete] = useState(false)
   const [loading, setLoading] = useState(false)
+  const [editingTitle, setEditingTitle] = useState(false)
+  const [title, setTitle] = useState(project.title)
 
   async function handleDelete() {
     setLoading(true)
@@ -61,6 +63,25 @@ export function ProjectCard({ project, folders = [], stats }: ProjectCardProps) 
     router.refresh()
   }
 
+  async function handleRenameTitle() {
+    if (!title.trim() || title === project.title) {
+      setTitle(project.title)
+      setEditingTitle(false)
+      return
+    }
+    await updateProject(project.id, { title: title.trim() })
+    setEditingTitle(false)
+    router.refresh()
+  }
+
+  function handleTitleKeyDown(e: React.KeyboardEvent) {
+    if (e.key === 'Enter') handleRenameTitle()
+    if (e.key === 'Escape') {
+      setTitle(project.title)
+      setEditingTitle(false)
+    }
+  }
+
   async function handleMoveToFolder(folderId: string | null) {
     await moveProjectToFolder(project.id, folderId)
     router.refresh()
@@ -78,23 +99,48 @@ export function ProjectCard({ project, folders = [], stats }: ProjectCardProps) 
 
         <div className="p-4 space-y-3">
           <div className="flex items-start justify-between gap-2">
-            <Link href={`/projects/${project.id}`} className="flex-1 min-w-0">
-              <div className="flex items-center gap-1.5">
-                <h3 className="min-w-0 truncate font-semibold text-sm leading-tight hover:text-primary transition-colors">
-                  {project.title}
-                </h3>
-                {project.archived && (
-                  <span className="shrink-0 rounded-full border border-border bg-secondary/50 px-1.5 py-0.5 text-[10px] font-medium text-muted-foreground">
-                    Archived
-                  </span>
-                )}
+            {editingTitle ? (
+              <div className="flex items-center gap-1 flex-1 min-w-0">
+                <input
+                  autoFocus
+                  value={title}
+                  onChange={(e) => setTitle(e.target.value)}
+                  onKeyDown={handleTitleKeyDown}
+                  onBlur={handleRenameTitle}
+                  className="min-w-0 flex-1 text-sm font-semibold bg-background border border-border rounded px-1.5 py-0.5 outline-none focus:border-primary"
+                />
+                <button
+                  onClick={handleRenameTitle}
+                  className="relative text-primary shrink-0 after:absolute after:-inset-y-1.5 after:-inset-x-0.5"
+                >
+                  <Check className="h-3.5 w-3.5" />
+                </button>
+                <button
+                  onClick={() => { setTitle(project.title); setEditingTitle(false) }}
+                  className="relative text-muted-foreground shrink-0 after:absolute after:-inset-y-1.5 after:-inset-x-0.5"
+                >
+                  <X className="h-3.5 w-3.5" />
+                </button>
               </div>
-              {project.description && (
-                <p className="text-xs text-muted-foreground mt-1 line-clamp-2">
-                  {project.description}
-                </p>
-              )}
-            </Link>
+            ) : (
+              <Link href={`/projects/${project.id}`} className="flex-1 min-w-0">
+                <div className="flex items-center gap-1.5">
+                  <h3 className="min-w-0 truncate font-semibold text-sm leading-tight hover:text-primary transition-colors">
+                    {title}
+                  </h3>
+                  {project.archived && (
+                    <span className="shrink-0 rounded-full border border-border bg-secondary/50 px-1.5 py-0.5 text-[10px] font-medium text-muted-foreground">
+                      Archived
+                    </span>
+                  )}
+                </div>
+                {project.description && (
+                  <p className="text-xs text-muted-foreground mt-1 line-clamp-2">
+                    {project.description}
+                  </p>
+                )}
+              </Link>
+            )}
 
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
@@ -107,6 +153,12 @@ export function ProjectCard({ project, folders = [], stats }: ProjectCardProps) 
                 </Button>
               </DropdownMenuTrigger>
               <DropdownMenuContent align="end">
+                <DropdownMenuItem
+                  className="text-muted-foreground"
+                  onClick={() => setEditingTitle(true)}
+                >
+                  <Pencil className="h-3.5 w-3.5 mr-2" /> Rename
+                </DropdownMenuItem>
                 {folders.length > 0 && (
                   <DropdownMenuSub>
                     <DropdownMenuSubTrigger className="text-muted-foreground">

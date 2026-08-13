@@ -72,6 +72,8 @@ export async function updateProject(
 
   if (error) return { error: error.message }
   revalidatePath(`/projects/${id}`)
+  revalidatePath('/dashboard')
+  revalidatePath('/projects')
   return { success: true }
 }
 
