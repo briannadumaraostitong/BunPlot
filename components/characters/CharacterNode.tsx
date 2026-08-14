@@ -81,7 +81,7 @@ export function CharacterNode({
       onPointerMove={handlePointerMove}
       onPointerUp={handlePointerUp}
       className={cn(
-        'group absolute flex items-center gap-2 rounded-lg bg-card px-2.5 py-2 shadow-sm select-none cursor-grab active:cursor-grabbing transition-shadow',
+        'group absolute flex items-center gap-2 rounded-lg bg-card px-2.5 py-2 shadow-sm select-none touch-none cursor-grab active:cursor-grabbing transition-shadow',
         pending ? 'border-2' : 'border',
         dragging ? 'shadow-lg z-20' : 'z-10 hover:shadow-md',
         selected && 'ring-2 ring-ring ring-offset-1'
