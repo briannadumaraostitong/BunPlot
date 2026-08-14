@@ -361,11 +361,18 @@ export interface Database {
         Update: Partial<Omit<ChapterLink, 'id' | 'created_at'>>
       }
     }
+    Views: { [_ in never]: never }
     Enums: {
       app_mode: AppMode
       layer_type: LayerType
       relationship_type: RelationshipType
       place_type: PlaceType
+    }
+    Functions: {
+      duplicate_project: {
+        Args: { p_source_project_id: string; p_new_title: string; p_mode: string }
+        Returns: string
+      }
     }
   }
 }

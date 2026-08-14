@@ -506,3 +506,171 @@ GRANT SELECT, INSERT, UPDATE, DELETE ON TABLE places TO anon, authenticated, ser
 GRANT SELECT, INSERT, UPDATE, DELETE ON TABLE event_places TO anon, authenticated, service_role;
 GRANT SELECT, INSERT, UPDATE, DELETE ON TABLE chapter_links TO anon, authenticated, service_role;
 GRANT SELECT, INSERT, UPDATE, DELETE ON TABLE statuses TO anon, authenticated, service_role;
+
+-- DUPLICATE PROJECT
+-- Single-transaction deep clone: builds an old-id -> new-id temp table per
+-- entity type, then inserts every dependent/junction table joined against
+-- those maps. p_mode = 'full' clones everything; 'structure' clones only
+-- layers/statuses/chapters (+ chapter_links, since chapter-to-chapter
+-- continuation is structural, not content) as a blank-content template.
+-- layer_groups is intentionally never cloned — confirmed unused app-wide
+-- (no code creates rows there), so cloned layers just get group_id = NULL.
+CREATE OR REPLACE FUNCTION duplicate_project(
+  p_source_project_id UUID,
+  p_new_title TEXT,
+  p_mode TEXT
+) RETURNS UUID
+LANGUAGE plpgsql SECURITY DEFINER SET search_path = public AS $$
+DECLARE
+  v_new_project_id UUID;
+BEGIN
+  IF NOT owns_project(p_source_project_id) THEN
+    RAISE EXCEPTION 'Not authorized to duplicate this project';
+  END IF;
+
+  IF p_mode NOT IN ('full', 'structure') THEN
+    RAISE EXCEPTION 'Invalid mode: %', p_mode;
+  END IF;
+
+  -- 1. PROJECT
+  INSERT INTO projects (owner_id, folder_id, title, description, cover_image_url, mode, settings, timeline_start, timeline_end, archived)
+  SELECT owner_id, folder_id, p_new_title, description, cover_image_url, mode, settings, timeline_start, timeline_end, FALSE
+  FROM projects WHERE id = p_source_project_id
+  RETURNING id INTO v_new_project_id;
+
+  -- on_project_created_seed_statuses just fired and seeded 5 default
+  -- statuses onto v_new_project_id. Undo that before cloning the source
+  -- project's real statuses below, otherwise the cloned default collides
+  -- with the trigger-seeded one on idx_statuses_one_default_per_project.
+  DELETE FROM statuses WHERE project_id = v_new_project_id;
+
+  -- 2. LAYERS
+  CREATE TEMP TABLE layer_map ON COMMIT DROP AS
+    SELECT id AS old_id, gen_random_uuid() AS new_id
+    FROM layers WHERE project_id = p_source_project_id;
+
+  INSERT INTO layers (id, project_id, group_id, name, type, color, position, visible, locked, metadata)
+  SELECT m.new_id, v_new_project_id, NULL, l.name, l.type, l.color, l.position, l.visible, l.locked, l.metadata
+  FROM layers l JOIN layer_map m ON m.old_id = l.id;
+
+  -- 3. STATUSES
+  CREATE TEMP TABLE status_map ON COMMIT DROP AS
+    SELECT id AS old_id, gen_random_uuid() AS new_id
+    FROM statuses WHERE project_id = p_source_project_id;
+
+  INSERT INTO statuses (id, project_id, name, color, is_default, position)
+  SELECT m.new_id, v_new_project_id, s.name, s.color, s.is_default, s.position
+  FROM statuses s JOIN status_map m ON m.old_id = s.id;
+
+  -- 4. CHAPTERS
+  CREATE TEMP TABLE chapter_map ON COMMIT DROP AS
+    SELECT id AS old_id, gen_random_uuid() AS new_id
+    FROM chapters WHERE project_id = p_source_project_id;
+
+  INSERT INTO chapters (id, project_id, title, position)
+  SELECT m.new_id, v_new_project_id, c.title, c.position
+  FROM chapters c JOIN chapter_map m ON m.old_id = c.id;
+
+  -- 5. CHAPTER LINKS
+  INSERT INTO chapter_links (project_id, chapter_id, continues_from_chapter_id)
+  SELECT v_new_project_id, cm1.new_id, cm2.new_id
+  FROM chapter_links cl
+  JOIN chapter_map cm1 ON cm1.old_id = cl.chapter_id
+  JOIN chapter_map cm2 ON cm2.old_id = cl.continues_from_chapter_id
+  WHERE cl.project_id = p_source_project_id;
+
+  IF p_mode = 'full' THEN
+    -- 6. CHARACTERS
+    CREATE TEMP TABLE character_map ON COMMIT DROP AS
+      SELECT id AS old_id, gen_random_uuid() AS new_id
+      FROM characters WHERE project_id = p_source_project_id;
+
+    INSERT INTO characters (id, project_id, name, role, description, color, avatar_url, notes, custom_fields)
+    SELECT m.new_id, v_new_project_id, c.name, c.role, c.description, c.color, c.avatar_url, c.notes, c.custom_fields
+    FROM characters c JOIN character_map m ON m.old_id = c.id;
+
+    -- 7. PLACES
+    CREATE TEMP TABLE place_map ON COMMIT DROP AS
+      SELECT id AS old_id, gen_random_uuid() AS new_id
+      FROM places WHERE project_id = p_source_project_id;
+
+    INSERT INTO places (id, project_id, name, type, color, description, notes, image_url)
+    SELECT m.new_id, v_new_project_id, p.name, p.type, p.color, p.description, p.notes, p.image_url
+    FROM places p JOIN place_map m ON m.old_id = p.id;
+
+    -- 8. EVENTS (chapter_id is nullable, hence the LEFT JOIN — every other
+    -- map join is required, matching each column's NOT NULL constraint)
+    CREATE TEMP TABLE event_map ON COMMIT DROP AS
+      SELECT id AS old_id, gen_random_uuid() AS new_id
+      FROM events WHERE project_id = p_source_project_id;
+
+    INSERT INTO events (
+      id, project_id, layer_id, chapter_id, title, description, notes,
+      start_date, end_date, position, duration, color, icon, status_id,
+      tension_level, word_count, custom_fields, attachments, tags
+    )
+    SELECT
+      em.new_id, v_new_project_id, lm.new_id, cm.new_id,
+      e.title, e.description, e.notes, e.start_date, e.end_date, e.position,
+      e.duration, e.color, e.icon, sm.new_id, e.tension_level, e.word_count,
+      e.custom_fields, e.attachments, e.tags
+    FROM events e
+    JOIN event_map em ON em.old_id = e.id
+    JOIN layer_map lm ON lm.old_id = e.layer_id
+    LEFT JOIN chapter_map cm ON cm.old_id = e.chapter_id
+    JOIN status_map sm ON sm.old_id = e.status_id;
+
+    -- 9. EVENT <-> CHARACTER / PLACE
+    INSERT INTO event_characters (event_id, character_id, role)
+    SELECT em.new_id, chm.new_id, ec.role
+    FROM event_characters ec
+    JOIN event_map em ON em.old_id = ec.event_id
+    JOIN character_map chm ON chm.old_id = ec.character_id;
+
+    INSERT INTO event_places (event_id, place_id)
+    SELECT em.new_id, plm.new_id
+    FROM event_places ep
+    JOIN event_map em ON em.old_id = ep.event_id
+    JOIN place_map plm ON plm.old_id = ep.place_id;
+
+    -- 10. EVENT DEPENDENCIES
+    INSERT INTO event_dependencies (project_id, source_id, target_id, label, style, color)
+    SELECT v_new_project_id, em1.new_id, em2.new_id, ed.label, ed.style, ed.color
+    FROM event_dependencies ed
+    JOIN event_map em1 ON em1.old_id = ed.source_id
+    JOIN event_map em2 ON em2.old_id = ed.target_id
+    WHERE ed.project_id = p_source_project_id;
+
+    -- 11. CHARACTER RELATIONSHIPS
+    INSERT INTO character_relationships (project_id, source_character_id, target_character_id, relationship_type, relationship_label)
+    SELECT v_new_project_id, cm1.new_id, cm2.new_id, cr.relationship_type, cr.relationship_label
+    FROM character_relationships cr
+    JOIN character_map cm1 ON cm1.old_id = cr.source_character_id
+    JOIN character_map cm2 ON cm2.old_id = cr.target_character_id
+    WHERE cr.project_id = p_source_project_id;
+
+    -- 12. FAMILY TREES + MEMBERS
+    CREATE TEMP TABLE tree_map ON COMMIT DROP AS
+      SELECT id AS old_id, gen_random_uuid() AS new_id
+      FROM family_trees WHERE project_id = p_source_project_id;
+
+    INSERT INTO family_trees (id, project_id, name, position)
+    SELECT m.new_id, v_new_project_id, ft.name, ft.position
+    FROM family_trees ft JOIN tree_map m ON m.old_id = ft.id;
+
+    INSERT INTO family_tree_members (tree_id, character_id, x, y)
+    SELECT tm.new_id, chm.new_id, ftm.x, ftm.y
+    FROM family_tree_members ftm
+    JOIN tree_map tm ON tm.old_id = ftm.tree_id
+    JOIN character_map chm ON chm.old_id = ftm.character_id;
+
+    -- 13. OUTLINES (content copied verbatim, no remapping needed)
+    INSERT INTO outlines (project_id, name, position, content)
+    SELECT v_new_project_id, o.name, o.position, o.content
+    FROM outlines o
+    WHERE o.project_id = p_source_project_id;
+  END IF;
+
+  RETURN v_new_project_id;
+END;
+$$;

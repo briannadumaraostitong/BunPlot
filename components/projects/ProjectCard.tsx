@@ -3,7 +3,7 @@
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { formatDistanceToNow } from 'date-fns'
-import { MoreHorizontal, Archive, ArchiveRestore, Trash2, FolderInput, FolderMinus, Pencil, Check, X } from 'lucide-react'
+import { MoreHorizontal, Archive, ArchiveRestore, Trash2, FolderInput, FolderMinus, Pencil, Copy, Check, X } from 'lucide-react'
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -20,6 +20,7 @@ import {
   DialogTitle,
 } from '@/components/ui/dialog'
 import { Button } from '@/components/ui/button'
+import { DuplicateProjectDialog } from './DuplicateProjectDialog'
 import { cn } from '@/lib/utils'
 import { deleteProject, archiveProject, unarchiveProject, moveProjectToFolder, updateProject } from '@/actions/projects'
 import type { Project, ProjectFolder } from '@/types/database'
@@ -41,6 +42,7 @@ interface ProjectCardProps {
 export function ProjectCard({ project, folders = [], stats }: ProjectCardProps) {
   const router = useRouter()
   const [confirmDelete, setConfirmDelete] = useState(false)
+  const [duplicateOpen, setDuplicateOpen] = useState(false)
   const [loading, setLoading] = useState(false)
   const [editingTitle, setEditingTitle] = useState(false)
   const [title, setTitle] = useState(project.title)
@@ -159,6 +161,12 @@ export function ProjectCard({ project, folders = [], stats }: ProjectCardProps) 
                 >
                   <Pencil className="h-3.5 w-3.5 mr-2" /> Rename
                 </DropdownMenuItem>
+                <DropdownMenuItem
+                  className="text-muted-foreground"
+                  onClick={() => setDuplicateOpen(true)}
+                >
+                  <Copy className="h-3.5 w-3.5 mr-2" /> Duplicate
+                </DropdownMenuItem>
                 {folders.length > 0 && (
                   <DropdownMenuSub>
                     <DropdownMenuSubTrigger className="text-muted-foreground">
@@ -222,6 +230,8 @@ export function ProjectCard({ project, folders = [], stats }: ProjectCardProps) 
           </div>
         </div>
       </div>
+
+      <DuplicateProjectDialog project={project} open={duplicateOpen} onOpenChange={setDuplicateOpen} />
 
       {/* Delete confirmation dialog */}
       <Dialog open={confirmDelete} onOpenChange={setConfirmDelete}>

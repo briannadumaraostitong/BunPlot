@@ -89,6 +89,29 @@ export async function moveProjectToFolder(id: string, folderId: string | null) {
   return { success: true }
 }
 
+export async function duplicateProject(
+  id: string,
+  title: string,
+  mode: 'full' | 'structure'
+): Promise<{ error: string } | { id: string }> {
+  const supabase = await createClient()
+  // `as never` cast: Database['public']['Tables'] entries don't declare
+  // `Relationships`, so they don't structurally satisfy postgrest-js's
+  // GenericTable — the same untyped-client gap CLAUDE.md documents for
+  // .insert()/.update(), here breaking .rpc()'s Args inference for the
+  // whole Functions map instead.
+  const { data, error } = await supabase.rpc('duplicate_project', {
+    p_source_project_id: id,
+    p_new_title: title,
+    p_mode: mode,
+  } as never)
+
+  if (error) return { error: error.message }
+  revalidatePath('/dashboard')
+  revalidatePath('/projects')
+  return { id: data }
+}
+
 export async function archiveProject(id: string) {
   const supabase = await createClient()
   const { error } = await supabase
