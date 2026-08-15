@@ -674,3 +674,72 @@ BEGIN
   RETURN v_new_project_id;
 END;
 $$;
+
+-- Trigram indexes power fast ILIKE '%term%' substring search (pg_trgm's
+-- main use case — GIN trigram indexes accelerate pattern-match queries that
+-- a plain btree index can't help with at all).
+CREATE EXTENSION IF NOT EXISTS pg_trgm;
+
+CREATE INDEX IF NOT EXISTS idx_characters_name_trgm ON characters USING GIN (name gin_trgm_ops);
+CREATE INDEX IF NOT EXISTS idx_events_title_trgm    ON events USING GIN (title gin_trgm_ops);
+CREATE INDEX IF NOT EXISTS idx_places_name_trgm     ON places USING GIN (name gin_trgm_ops);
+CREATE INDEX IF NOT EXISTS idx_chapters_title_trgm  ON chapters USING GIN (title gin_trgm_ops);
+
+-- SEARCH ENTITIES
+-- SECURITY INVOKER (the default, stated explicitly to contrast with
+-- duplicate_project's SECURITY DEFINER): runs as the calling user, so
+-- characters_select/events_select/places_select's existing owns_project(...)
+-- RLS policies apply automatically — no hand-rolled authorization check.
+-- p_project_id is nullable: NULL searches across every project the calling
+-- user owns (RLS still scopes that to their own rows), a specific UUID
+-- scopes to just that project. Either way RLS is what actually enforces
+-- ownership — p_project_id only changes what the function expresses, not
+-- who's allowed to see what.
+-- v1 scope: titles/names only (characters.name, events.title, places.name,
+-- chapters.title). No tags (column's empty everywhere, no UI sets it yet),
+-- no character_relationships (not independently searchable right now).
+-- search_path includes `extensions` because Supabase installs pg_trgm
+-- there by default, not `public` — similarity() wouldn't resolve otherwise.
+-- Joins to projects for project_id/project_title so the all-projects search
+-- UI can label each result with its parent project — RLS on projects
+-- (SECURITY INVOKER, same as everything else here) already scopes that join
+-- to projects the calling user owns, same as the entity tables themselves.
+CREATE OR REPLACE FUNCTION search_entities(p_query TEXT, p_project_id UUID DEFAULT NULL)
+RETURNS TABLE (
+  entity_type TEXT,
+  id UUID,
+  title TEXT,
+  rank REAL,
+  project_id UUID,
+  project_title TEXT
+)
+LANGUAGE sql SECURITY INVOKER SET search_path = public, extensions AS $$
+  SELECT 'character', c.id, c.name, similarity(c.name, p_query) AS rank, c.project_id, p.title
+  FROM characters c JOIN projects p ON p.id = c.project_id
+  WHERE (p_project_id IS NULL OR c.project_id = p_project_id)
+    AND c.name ILIKE '%' || p_query || '%'
+
+  UNION ALL
+
+  SELECT 'event', e.id, e.title, similarity(e.title, p_query) AS rank, e.project_id, p.title
+  FROM events e JOIN projects p ON p.id = e.project_id
+  WHERE (p_project_id IS NULL OR e.project_id = p_project_id)
+    AND e.title ILIKE '%' || p_query || '%'
+
+  UNION ALL
+
+  SELECT 'place', pl.id, pl.name, similarity(pl.name, p_query) AS rank, pl.project_id, p.title
+  FROM places pl JOIN projects p ON p.id = pl.project_id
+  WHERE (p_project_id IS NULL OR pl.project_id = p_project_id)
+    AND pl.name ILIKE '%' || p_query || '%'
+
+  UNION ALL
+
+  SELECT 'chapter', ch.id, ch.title, similarity(ch.title, p_query) AS rank, ch.project_id, p.title
+  FROM chapters ch JOIN projects p ON p.id = ch.project_id
+  WHERE (p_project_id IS NULL OR ch.project_id = p_project_id)
+    AND ch.title ILIKE '%' || p_query || '%'
+
+  ORDER BY rank DESC
+  LIMIT 50;
+$$;
