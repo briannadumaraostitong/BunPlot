@@ -19,16 +19,25 @@ import type { Character, CharacterRelationship, FamilyTree } from '@/types/datab
 
 interface CharactersPanelProps {
   projectId: string
+  initialSelectedCharacterId?: string
 }
 
-export function CharactersPanel({ projectId }: CharactersPanelProps) {
+export function CharactersPanel({ projectId, initialSelectedCharacterId }: CharactersPanelProps) {
   const [loading, setLoading] = useState(true)
   const [characters, setCharacters] = useState<Character[]>([])
   const [relationships, setRelationships] = useState<CharacterRelationship[]>([])
   const [trees, setTrees] = useState<FamilyTree[]>([])
   const [activeTreeId, setActiveTreeId] = useState<string | null>(null)
 
-  const [selectedCharacterId, setSelectedCharacterId] = useState<string | null>(null)
+  // Trusts the deep-linked id until the fetch below resolves and validates
+  // it against the real character list, clearing it if unmatched — a
+  // stale/bad id would otherwise open CharacterDetailPanel with
+  // open: true and character: null (same failure mode fixed in
+  // TimelineCanvas, handled differently here since characters load async
+  // rather than being available synchronously via a prop).
+  const [selectedCharacterId, setSelectedCharacterId] = useState<string | null>(
+    initialSelectedCharacterId ?? null
+  )
   const [pendingSourceId, setPendingSourceId] = useState<string | null>(null)
   const [modalState, setModalState] = useState<{
     open: boolean
@@ -51,6 +60,9 @@ export function CharactersPanel({ projectId }: CharactersPanelProps) {
       setRelationships(relationshipsData)
       setTrees(treesData)
       setActiveTreeId(treesData[0]?.id ?? null)
+      setSelectedCharacterId((current) =>
+        current && !charactersData.some((c) => c.id === current) ? null : current
+      )
       setLoading(false)
     })()
     return () => {

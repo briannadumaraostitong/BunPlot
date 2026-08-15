@@ -265,6 +265,17 @@ export interface EventFilters {
   search?: string
 }
 
+// ── Search Types ──────────────────────────────────────────────
+
+export interface SearchResult {
+  entity_type: 'character' | 'event' | 'place' | 'chapter'
+  id: string
+  title: string
+  rank: number
+  project_id: string
+  project_title: string
+}
+
 // ── Supabase Database type (for createClient<Database>()) ───
 
 export interface Database {
@@ -372,6 +383,10 @@ export interface Database {
       duplicate_project: {
         Args: { p_source_project_id: string; p_new_title: string; p_mode: string }
         Returns: string
+      }
+      search_entities: {
+        Args: { p_query: string; p_project_id?: string | null }
+        Returns: SearchResult[]
       }
     }
   }

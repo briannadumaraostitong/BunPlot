@@ -42,6 +42,7 @@ interface TimelineCanvasProps {
   initialEvents: Event[]
   initialChapters: Chapter[]
   initialStatuses: Status[]
+  initialSelectedEventId?: string
 }
 
 const TRACK_HEIGHT = 90
@@ -52,6 +53,7 @@ export function TimelineCanvas({
   initialEvents,
   initialChapters,
   initialStatuses,
+  initialSelectedEventId,
 }: TimelineCanvasProps) {
   const {
     layers,
@@ -79,8 +81,16 @@ export function TimelineCanvas({
 
   const { statuses, reorder: reorderStatusLocal } = useStatuses(project.id, initialStatuses)
 
-  const [selectedEvent, setSelectedEvent] = useState<Event | null>(null)
-  const [modalOpen, setModalOpen] = useState(false)
+  // Lazy-init from initialEvents (already available synchronously, unlike
+  // Characters/Places' async-fetched lists) so a /search deep-link opens
+  // straight into the matched event's modal on first render. Both derive
+  // from the same lookup so a stale/bad id can't open an empty modal —
+  // modalOpen only starts true if the event was actually found.
+  const initialSelectedEvent = initialSelectedEventId
+    ? (initialEvents.find((e) => e.id === initialSelectedEventId) ?? null)
+    : null
+  const [selectedEvent, setSelectedEvent] = useState<Event | null>(initialSelectedEvent)
+  const [modalOpen, setModalOpen] = useState(initialSelectedEvent !== null)
   const [labelWidth, setLabelWidth] = useState(DEFAULT_LABEL_WIDTH)
   const [chapterWidth, setChapterWidth] = useState(DEFAULT_CHAPTER_WIDTH)
   const [activeEvent, setActiveEvent] = useState<Event | null>(null)

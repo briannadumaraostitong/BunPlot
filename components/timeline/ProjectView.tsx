@@ -1,6 +1,7 @@
 'use client'
 
 import { useState } from 'react'
+import { useSearchParams } from 'next/navigation'
 import { Check, X, GanttChartSquare, List, Users, MapPin, type LucideIcon } from 'lucide-react'
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { TimelineCanvas } from './TimelineCanvas'
@@ -27,8 +28,20 @@ const TABS: { id: TabId; label: string; icon: LucideIcon }[] = [
   { id: 'places', label: 'Places', icon: MapPin },
 ]
 
+const VALID_TAB_IDS: TabId[] = ['timeline', 'outline', 'characters', 'places']
+
 export function ProjectView({ project, initialLayers, initialEvents, initialChapters, initialStatuses }: ProjectViewProps) {
-  const [activeTab, setActiveTab] = useState<TabId>('timeline')
+  const searchParams = useSearchParams()
+
+  // Read once on first render — these drive the initial deep-linked
+  // tab/entity from a /search result click, not a live-synced URL state.
+  // Switching tabs afterward is still plain client state, same as before.
+  const [activeTab, setActiveTab] = useState<TabId>(() => {
+    const tabParam = searchParams.get('tab')
+    return VALID_TAB_IDS.includes(tabParam as TabId) ? (tabParam as TabId) : 'timeline'
+  })
+  const [initialEntityId] = useState(() => searchParams.get('entity') ?? undefined)
+
   const [editingTitle, setEditingTitle] = useState(false)
   const [title, setTitle] = useState(project.title)
 
@@ -114,11 +127,15 @@ export function ProjectView({ project, initialLayers, initialEvents, initialChap
             initialEvents={initialEvents}
             initialChapters={initialChapters}
             initialStatuses={initialStatuses}
+            initialSelectedEventId={initialEntityId}
           />
         ) : activeTab === 'outline' ? (
           <OutlineEditor projectId={project.id} />
         ) : activeTab === 'characters' ? (
-          <CharactersPanel projectId={project.id} />
+          <CharactersPanel
+            projectId={project.id}
+            initialSelectedCharacterId={initialEntityId}
+          />
         ) : (
           <PlacesPanel
             projectId={project.id}
@@ -126,6 +143,7 @@ export function ProjectView({ project, initialLayers, initialEvents, initialChap
             initialLayers={initialLayers}
             initialChapters={initialChapters}
             initialStatuses={initialStatuses}
+            initialSelectedPlaceId={initialEntityId}
           />
         )}
       </div>

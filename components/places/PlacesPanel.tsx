@@ -21,6 +21,7 @@ interface PlacesPanelProps {
   initialLayers: Layer[]
   initialChapters: Chapter[]
   initialStatuses: Status[]
+  initialSelectedPlaceId?: string
 }
 
 export function PlacesPanel({
@@ -29,12 +30,19 @@ export function PlacesPanel({
   initialLayers,
   initialChapters,
   initialStatuses,
+  initialSelectedPlaceId,
 }: PlacesPanelProps) {
   const [loading, setLoading] = useState(true)
   const [places, setPlaces] = useState<PlaceWithCover[]>([])
   const [eventPlaceLinks, setEventPlaceLinks] = useState<EventPlaceLink[]>([])
   const [allCharacters, setAllCharacters] = useState<Character[]>([])
-  const [selectedPlaceId, setSelectedPlaceId] = useState<string | null>(null)
+  // Trusts the deep-linked id until the fetch below resolves and validates
+  // it against the real place list, clearing it if unmatched — same
+  // failure mode fixed in CharactersPanel/TimelineCanvas: a stale/bad id
+  // would otherwise open PlaceDetailPanel with open: true and place: null.
+  const [selectedPlaceId, setSelectedPlaceId] = useState<string | null>(
+    initialSelectedPlaceId ?? null
+  )
   const [search, setSearch] = useState('')
   const [typeFilter, setTypeFilter] = useState<PlaceType | 'all'>('all')
 
@@ -56,6 +64,9 @@ export function PlacesPanel({
       if (cancelled) return
       setPlaces(placesData)
       setEventPlaceLinks(linksData)
+      setSelectedPlaceId((current) =>
+        current && !placesData.some((p) => p.id === current) ? null : current
+      )
       setLoading(false)
     })()
     return () => {
