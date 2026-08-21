@@ -1,8 +1,9 @@
 'use client'
 
 import { useState } from 'react'
+import Link from 'next/link'
 import { useSearchParams } from 'next/navigation'
-import { Check, X, GanttChartSquare, List, Users, MapPin, type LucideIcon } from 'lucide-react'
+import { Check, X, GanttChartSquare, List, Users, MapPin, Search, type LucideIcon } from 'lucide-react'
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { TimelineCanvas } from './TimelineCanvas'
 import { OutlineEditor } from '@/components/outline/OutlineEditor'
@@ -101,7 +102,7 @@ export function ProjectView({ project, initialLayers, initialEvents, initialChap
         )}
       </div>
 
-      <div className="border-b border-border px-3 shrink-0 bg-background">
+      <div className="border-b border-border px-3 shrink-0 bg-background flex items-center justify-between">
         <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as TabId)}>
           <TabsList variant="line" className="h-11 md:h-8">
             {TABS.map(({ id, label, icon: Icon }) => (
@@ -117,6 +118,14 @@ export function ProjectView({ project, initialLayers, initialEvents, initialChap
             ))}
           </TabsList>
         </Tabs>
+
+        <Link
+          href={`/search?project=${project.id}`}
+          aria-label="Search this project"
+          className="flex items-center justify-center h-8 w-8 rounded-md text-muted-foreground hover:bg-secondary hover:text-foreground transition-colors"
+        >
+          <Search className="h-4 w-4" />
+        </Link>
       </div>
 
       <div className="flex-1 min-h-0 overflow-hidden">

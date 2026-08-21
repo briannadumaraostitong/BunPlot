@@ -3,7 +3,7 @@
 import Link from 'next/link'
 import Image from 'next/image'
 import { usePathname, useRouter } from 'next/navigation'
-import { LayoutDashboard, FolderOpen, Settings, LogOut } from 'lucide-react'
+import { LayoutDashboard, FolderOpen, Settings, Search, LogOut } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { createClient } from '@/lib/supabase/client'
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
@@ -14,6 +14,7 @@ import type { Profile } from '@/types/database'
 const NAV_ITEMS = [
   { href: '/dashboard', label: 'Dashboard', icon: LayoutDashboard },
   { href: '/projects',  label: 'Projects',  icon: FolderOpen },
+  { href: '/search',    label: 'Search',    icon: Search },
 ]
 
 interface SidebarProps {
