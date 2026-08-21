@@ -70,6 +70,17 @@ export interface Chapter {
   created_at: string
 }
 
+export interface Panel {
+  id: string
+  project_id: string
+  chapter_id: string
+  position: number
+  image_url: string | null
+  caption: string | null
+  created_at: string
+  updated_at: string
+}
+
 export interface Outline {
   id: string
   project_id: string
