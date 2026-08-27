@@ -50,6 +50,10 @@ export async function updateChapter(
 
 export async function deleteChapter(id: string, projectId: string) {
   const supabase = await createClient()
+  // panels.chapter_id cascades on delete, but that only removes the DB rows —
+  // their Storage objects under attachments/panels/{projectId}/{id}/ are orphaned.
+  // No cleanup call here yet; add a storage.list()+remove() pass over that prefix
+  // when panels ship.
   const { error } = await supabase
     .from('chapters')
     .delete()
