@@ -115,3 +115,17 @@ export async function deletePanel(id: string, projectId: string) {
   revalidatePath(`/projects/${projectId}`)
   return { success: true }
 }
+
+export async function reorderPanels(projectId: string, orderedIds: string[]) {
+  const supabase = await createClient()
+  await Promise.all(
+    orderedIds.map((id, index) =>
+      supabase
+        .from('panels')
+        .update({ position: index } as never)
+        .eq('id', id)
+    )
+  )
+  revalidatePath(`/projects/${projectId}`)
+  return { success: true }
+}

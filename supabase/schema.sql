@@ -263,6 +263,18 @@ CREATE TABLE chapter_links (
   UNIQUE (chapter_id, continues_from_chapter_id)
 );
 
+-- PANELS (manga-style storyboard grid, one row per panel within a chapter)
+CREATE TABLE panels (
+  id          UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  project_id  UUID NOT NULL REFERENCES projects(id) ON DELETE CASCADE,
+  chapter_id  UUID NOT NULL REFERENCES chapters(id) ON DELETE CASCADE,
+  position    FLOAT NOT NULL DEFAULT 0,
+  image_url   TEXT,
+  caption     TEXT,
+  created_at  TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  updated_at  TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+
 -- INDEXES
 CREATE INDEX idx_projects_owner     ON projects(owner_id);
 CREATE INDEX idx_projects_archived  ON projects(owner_id, archived);
@@ -301,6 +313,7 @@ CREATE INDEX idx_ftm_character      ON family_tree_members(character_id);
 CREATE INDEX idx_cl_project         ON chapter_links(project_id);
 CREATE INDEX idx_cl_chapter         ON chapter_links(chapter_id);
 CREATE INDEX idx_cl_continues_from  ON chapter_links(continues_from_chapter_id);
+CREATE INDEX idx_panels_chapter     ON panels(chapter_id, position);
 
 -- UPDATED_AT TRIGGER
 CREATE OR REPLACE FUNCTION update_updated_at_column()
@@ -347,6 +360,10 @@ CREATE TRIGGER set_updated_at_places
   BEFORE UPDATE ON places
   FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
 
+CREATE TRIGGER set_updated_at_panels
+  BEFORE UPDATE ON panels
+  FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
+
 -- ROW LEVEL SECURITY
 ALTER TABLE profiles              ENABLE ROW LEVEL SECURITY;
 ALTER TABLE project_folders       ENABLE ROW LEVEL SECURITY;
@@ -365,6 +382,7 @@ ALTER TABLE character_relationships ENABLE ROW LEVEL SECURITY;
 ALTER TABLE family_trees          ENABLE ROW LEVEL SECURITY;
 ALTER TABLE family_tree_members   ENABLE ROW LEVEL SECURITY;
 ALTER TABLE chapter_links         ENABLE ROW LEVEL SECURITY;
+ALTER TABLE panels                ENABLE ROW LEVEL SECURITY;
 
 -- PROFILES RLS
 CREATE POLICY "Users can view their own profile"
@@ -492,6 +510,12 @@ CREATE POLICY "chapter_links_insert" ON chapter_links FOR INSERT WITH CHECK (own
 CREATE POLICY "chapter_links_update" ON chapter_links FOR UPDATE USING (owns_project(project_id));
 CREATE POLICY "chapter_links_delete" ON chapter_links FOR DELETE USING (owns_project(project_id));
 
+-- PANELS RLS
+CREATE POLICY "panels_select" ON panels FOR SELECT USING (owns_project(project_id));
+CREATE POLICY "panels_insert" ON panels FOR INSERT WITH CHECK (owns_project(project_id));
+CREATE POLICY "panels_update" ON panels FOR UPDATE USING (owns_project(project_id));
+CREATE POLICY "panels_delete" ON panels FOR DELETE USING (owns_project(project_id));
+
 -- GRANTS
 -- RLS policies control row-level access, but Postgres also requires the
 -- underlying table-level privilege to be granted — RLS doesn't substitute
@@ -505,7 +529,15 @@ GRANT SELECT, INSERT, UPDATE, DELETE ON TABLE family_tree_members TO anon, authe
 GRANT SELECT, INSERT, UPDATE, DELETE ON TABLE places TO anon, authenticated, service_role;
 GRANT SELECT, INSERT, UPDATE, DELETE ON TABLE event_places TO anon, authenticated, service_role;
 GRANT SELECT, INSERT, UPDATE, DELETE ON TABLE chapter_links TO anon, authenticated, service_role;
+GRANT SELECT, INSERT, UPDATE, DELETE ON TABLE panels TO anon, authenticated, service_role;
 GRANT SELECT, INSERT, UPDATE, DELETE ON TABLE statuses TO anon, authenticated, service_role;
+
+-- REALTIME PUBLICATION
+-- panels is the first table whose realtime membership is tracked here in
+-- schema.sql rather than added ad hoc via the dashboard/SQL editor (see
+-- feedback_supabase_table_grants memory) — usePanels is its first
+-- postgres_changes subscriber.
+ALTER PUBLICATION supabase_realtime ADD TABLE panels;
 
 -- DUPLICATE PROJECT
 -- Single-transaction deep clone: builds an old-id -> new-id temp table per
