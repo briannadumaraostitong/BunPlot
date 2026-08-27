@@ -13,6 +13,8 @@ export interface PanelWithCover extends Panel {
   cover_url: string | null
 }
 
+export type ActionResult = { error: string } | { success: true }
+
 async function withPanelCoverUrls(
   supabase: Awaited<ReturnType<typeof createClient>>,
   panels: Panel[]
@@ -59,7 +61,7 @@ export async function createPanel(
   chapterId: string,
   position: number,
   caption?: string
-) {
+): Promise<{ error: string } | PanelWithCover> {
   const supabase = await createClient()
   const { data, error } = await supabase
     .from('panels')
@@ -85,7 +87,7 @@ export async function updatePanel(
     position: number
     image_url: string | null
   }>
-) {
+): Promise<ActionResult> {
   const supabase = await createClient()
   const { error } = await supabase.from('panels').update(updates as never).eq('id', id)
   if (error) return { error: error.message }
@@ -93,7 +95,7 @@ export async function updatePanel(
   return { success: true }
 }
 
-export async function deletePanel(id: string, projectId: string) {
+export async function deletePanel(id: string, projectId: string): Promise<ActionResult> {
   const supabase = await createClient()
 
   const { data } = await supabase
@@ -116,7 +118,7 @@ export async function deletePanel(id: string, projectId: string) {
   return { success: true }
 }
 
-export async function reorderPanels(projectId: string, orderedIds: string[]) {
+export async function reorderPanels(projectId: string, orderedIds: string[]): Promise<ActionResult> {
   const supabase = await createClient()
   await Promise.all(
     orderedIds.map((id, index) =>

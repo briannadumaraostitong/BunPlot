@@ -8,6 +8,7 @@ import {
   updatePanel,
   deletePanel,
   type PanelWithCover,
+  type ActionResult,
 } from '@/actions/panels'
 
 export function usePanels(projectId: string, chapterId: string, initial: PanelWithCover[] = []) {
@@ -23,7 +24,14 @@ export function usePanels(projectId: string, chapterId: string, initial: PanelWi
   }, [chapterId])
 
   useEffect(() => {
-    refresh()
+    let cancelled = false
+    ;(async () => {
+      if (cancelled) return
+      await refresh()
+    })()
+    return () => {
+      cancelled = true
+    }
   }, [refresh])
 
   useEffect(() => {
@@ -44,7 +52,7 @@ export function usePanels(projectId: string, chapterId: string, initial: PanelWi
     return () => { supabase.removeChannel(channel) }
   }, [chapterId, refresh, supabase])
 
-  async function addPanel(caption?: string) {
+  async function addPanel(caption?: string): Promise<{ error: string } | PanelWithCover> {
     const nextPosition = panels.length > 0 ? Math.max(...panels.map((p) => p.position)) + 1 : 0
     const result = await createPanel(projectId, chapterId, nextPosition, caption)
     if ('error' in result) return result
@@ -52,12 +60,15 @@ export function usePanels(projectId: string, chapterId: string, initial: PanelWi
     return result
   }
 
-  async function editPanel(id: string, updates: Parameters<typeof updatePanel>[2]) {
+  async function editPanel(
+    id: string,
+    updates: Parameters<typeof updatePanel>[2]
+  ): Promise<ActionResult> {
     setPanels((prev) => prev.map((p) => (p.id === id ? { ...p, ...updates } : p)))
     return updatePanel(id, projectId, updates)
   }
 
-  async function removePanel(id: string) {
+  async function removePanel(id: string): Promise<ActionResult> {
     setPanels((prev) => prev.filter((p) => p.id !== id))
     return deletePanel(id, projectId)
   }

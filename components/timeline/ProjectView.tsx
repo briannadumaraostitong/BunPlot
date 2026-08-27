@@ -3,12 +3,13 @@
 import { useState } from 'react'
 import Link from 'next/link'
 import { useSearchParams } from 'next/navigation'
-import { Check, X, GanttChartSquare, List, Users, MapPin, Search, type LucideIcon } from 'lucide-react'
+import { Check, X, GanttChartSquare, List, Users, MapPin, LayoutGrid, Search, type LucideIcon } from 'lucide-react'
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { TimelineCanvas } from './TimelineCanvas'
 import { OutlineEditor } from '@/components/outline/OutlineEditor'
 import { CharactersPanel } from '@/components/characters/CharactersPanel'
 import { PlacesPanel } from '@/components/places/PlacesPanel'
+import { PanelsBoard } from '@/components/panels/PanelsBoard'
 import { updateProject } from '@/actions/projects'
 import type { Project, Layer, Event, Chapter, Status } from '@/types/database'
 
@@ -20,16 +21,17 @@ interface ProjectViewProps {
   initialStatuses: Status[]
 }
 
-type TabId = 'timeline' | 'outline' | 'characters' | 'places'
+type TabId = 'timeline' | 'outline' | 'characters' | 'places' | 'panels'
 
 const TABS: { id: TabId; label: string; icon: LucideIcon }[] = [
   { id: 'timeline', label: 'Timeline', icon: GanttChartSquare },
   { id: 'outline', label: 'Outline', icon: List },
   { id: 'characters', label: 'Characters', icon: Users },
   { id: 'places', label: 'Places', icon: MapPin },
+  { id: 'panels', label: 'Panels', icon: LayoutGrid },
 ]
 
-const VALID_TAB_IDS: TabId[] = ['timeline', 'outline', 'characters', 'places']
+const VALID_TAB_IDS: TabId[] = ['timeline', 'outline', 'characters', 'places', 'panels']
 
 export function ProjectView({ project, initialLayers, initialEvents, initialChapters, initialStatuses }: ProjectViewProps) {
   const searchParams = useSearchParams()
@@ -145,7 +147,7 @@ export function ProjectView({ project, initialLayers, initialEvents, initialChap
             projectId={project.id}
             initialSelectedCharacterId={initialEntityId}
           />
-        ) : (
+        ) : activeTab === 'places' ? (
           <PlacesPanel
             projectId={project.id}
             initialEvents={initialEvents}
@@ -154,6 +156,8 @@ export function ProjectView({ project, initialLayers, initialEvents, initialChap
             initialStatuses={initialStatuses}
             initialSelectedPlaceId={initialEntityId}
           />
+        ) : (
+          <PanelsBoard projectId={project.id} initialChapters={initialChapters} />
         )}
       </div>
     </div>
