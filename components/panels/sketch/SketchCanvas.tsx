@@ -20,6 +20,11 @@ import type { SketchTool } from './types'
 
 export const CANVAS_WIDTH = 640
 export const CANVAS_HEIGHT = 854
+// Display size (CSS pixels) at 100% zoom — separate from CANVAS_WIDTH/HEIGHT,
+// which is the fixed internal pixel-buffer resolution and never changes.
+// Chosen to roughly match how large the canvas rendered before zoom existed
+// (fit within the modal's h-160 content area).
+const BASE_DISPLAY_WIDTH = 480
 const BACKGROUND_COLOR = '#ffffff'
 const MAX_HISTORY = 50
 const MARQUEE_COLOR = '#0ea5e9'
@@ -38,6 +43,10 @@ interface SketchCanvasProps {
   tool: SketchTool
   color: string
   brushSize: number
+  zoom: number
+  // Forwarded to the outer wrapper div so the parent can measure its rect
+  // for cursor-anchored zoom — see SketchModal's zoomAtPoint.
+  wrapperRef?: React.Ref<HTMLDivElement>
   initialImageUrl: string | null
   onHistoryChange: (hasHistory: boolean) => void
 }
@@ -74,7 +83,7 @@ function hexToRgb(hex: string): [number, number, number] {
 }
 
 export const SketchCanvas = forwardRef<SketchCanvasHandle, SketchCanvasProps>(function SketchCanvas(
-  { tool, color, brushSize, initialImageUrl, onHistoryChange },
+  { tool, color, brushSize, zoom, wrapperRef, initialImageUrl, onHistoryChange },
   ref
 ) {
   const mainCanvasRef = useRef<HTMLCanvasElement>(null)
@@ -470,11 +479,11 @@ export const SketchCanvas = forwardRef<SketchCanvasHandle, SketchCanvasProps>(fu
     }
   }
 
+  const displayWidth = BASE_DISPLAY_WIDTH * zoom
+  const displayHeight = displayWidth * (CANVAS_HEIGHT / CANVAS_WIDTH)
+
   return (
-    <div
-      className="relative mx-auto h-full"
-      style={{ aspectRatio: `${CANVAS_WIDTH} / ${CANVAS_HEIGHT}` }}
-    >
+    <div ref={wrapperRef} className="relative" style={{ width: displayWidth, height: displayHeight }}>
       <canvas
         ref={mainCanvasRef}
         width={CANVAS_WIDTH}

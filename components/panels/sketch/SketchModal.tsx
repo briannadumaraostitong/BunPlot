@@ -1,13 +1,13 @@
 'use client'
 
-import { useEffect, useRef, useState } from 'react'
+import { useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react'
 import { Loader2 } from 'lucide-react'
 import { Dialog, DialogContent, DialogTitle, DialogDescription } from '@/components/ui/dialog'
 import { Button } from '@/components/ui/button'
 import { createClient } from '@/lib/supabase/client'
 import { SketchToolbar } from './SketchToolbar'
 import { SketchCanvas, type SketchCanvasHandle } from './SketchCanvas'
-import { BRUSH_MIN, BRUSH_MAX, type SketchTool } from './types'
+import { BRUSH_MIN, BRUSH_MAX, ZOOM_WHEEL_FACTOR, clampZoom, type SketchTool } from './types'
 import type { PanelWithCover } from '@/actions/panels'
 
 const SKETCH_SIGNED_URL_TTL = 60 * 60 * 24 // 24h, matches actions/panels.ts's cover-url TTL
@@ -28,14 +28,93 @@ interface SketchModalProps {
   onSaved: (panelId: string, imageUrl: string, coverUrl: string) => void
 }
 
+interface ZoomAnchor {
+  cursorX: number // cursor position relative to the scroll container's viewport
+  cursorY: number
+  fracX: number // cursor position as a fraction across the canvas wrapper
+  fracY: number
+}
+
 export function SketchModal({ panel, projectId, chapterId, open, onClose, onSaved }: SketchModalProps) {
   const canvasRef = useRef<SketchCanvasHandle>(null)
+  const scrollContainerRef = useRef<HTMLDivElement>(null)
+  const canvasWrapperRef = useRef<HTMLDivElement>(null)
+  const pendingZoomAnchorRef = useRef<ZoomAnchor | null>(null)
   const [tool, setTool] = useState<SketchTool>('pen')
   const [color, setColor] = useState('#18181b')
   const [brushSize, setBrushSize] = useState(6)
+  const [zoom, setZoom] = useState(1)
+  const zoomRef = useRef(zoom)
+  // useLayoutEffect, not useEffect — guarantees the ref is current before
+  // any subsequent user interaction, including a rapid second wheel tick or
+  // button click landing before a plain effect would've flushed.
+  useLayoutEffect(() => {
+    zoomRef.current = zoom
+  }, [zoom])
   const [canUndo, setCanUndo] = useState(false)
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState<string | null>(null)
+
+  // Zooms so that whatever's at (clientX, clientY) on screen stays visually
+  // in place — records the cursor's position as a fraction across the canvas
+  // wrapper (zoom-invariant) plus its viewport-relative position (the spot to
+  // keep it pinned to), then the useLayoutEffect below corrects scrollLeft/Top
+  // once the resize has actually taken effect. Reads zoomRef rather than the
+  // closed-over `zoom` state so it stays correct even when called from the
+  // wheel effect, whose own closure is only refreshed when `open` changes.
+  const zoomAtPoint = useCallback((clientX: number, clientY: number, nextZoomRaw: number) => {
+    const nextZoom = clampZoom(nextZoomRaw)
+    if (nextZoom === zoomRef.current) return
+
+    const container = scrollContainerRef.current
+    const wrapper = canvasWrapperRef.current
+    if (container && wrapper) {
+      const containerRect = container.getBoundingClientRect()
+      const wrapperRect = wrapper.getBoundingClientRect()
+      pendingZoomAnchorRef.current = {
+        cursorX: clientX - containerRect.left,
+        cursorY: clientY - containerRect.top,
+        fracX: (clientX - wrapperRect.left) / wrapperRect.width,
+        fracY: (clientY - wrapperRect.top) / wrapperRect.height,
+      }
+    }
+    setZoom(nextZoom)
+  }, [])
+
+  // Toolbar buttons have no meaningful canvas-relative cursor position, so
+  // they anchor to the center of the currently visible viewport instead —
+  // the closest equivalent to "wherever the cursor is."
+  function handleZoomButtonChange(nextZoom: number) {
+    const container = scrollContainerRef.current
+    if (!container) {
+      setZoom(clampZoom(nextZoom))
+      return
+    }
+    const rect = container.getBoundingClientRect()
+    zoomAtPoint(rect.left + rect.width / 2, rect.top + rect.height / 2, nextZoom)
+  }
+
+  // Runs after the zoom-triggered re-render has resized the canvas wrapper
+  // but before the browser paints, so the scroll correction is invisible —
+  // no flash of the "wrong" position before it snaps to the right one.
+  useLayoutEffect(() => {
+    const anchor = pendingZoomAnchorRef.current
+    pendingZoomAnchorRef.current = null
+    if (!anchor) return
+
+    const container = scrollContainerRef.current
+    const wrapper = canvasWrapperRef.current
+    if (!container || !wrapper) return
+
+    const containerRect = container.getBoundingClientRect()
+    const wrapperRect = wrapper.getBoundingClientRect()
+
+    const actualX = wrapperRect.left - containerRect.left + anchor.fracX * wrapperRect.width
+    const actualY = wrapperRect.top - containerRect.top + anchor.fracY * wrapperRect.height
+
+    container.scrollLeft += actualX - anchor.cursorX
+    container.scrollTop += actualY - anchor.cursorY
+  }, [zoom])
 
   function handleToolChange(next: SketchTool) {
     // Switching tools commits any in-progress select-and-move rather than
@@ -111,6 +190,44 @@ export function SketchModal({ panel, projectId, chapterId, open, onClose, onSave
     return () => document.removeEventListener('keydown', handleKeyDown)
   }, [open])
 
+  // Ctrl+wheel or trackpad pinch (browsers report pinch-zoom as a
+  // ctrlKey-true wheel event) zooms; plain wheel/trackpad scroll is left
+  // alone so it pans natively via the container's own scrolling instead.
+  // Attached as a native listener with { passive: false }, not React's
+  // onWheel — React can register scroll-related synthetic listeners as
+  // passive, which would silently prevent preventDefault() from actually
+  // stopping the browser's own Ctrl+wheel page zoom from also firing.
+  //
+  // This is a callback ref (with a React 19 cleanup-function return), not a
+  // useEffect keyed on `open` — this div only exists in the DOM while
+  // `panel` is truthy (which is exactly when `open` is true), but Radix's
+  // Dialog wraps its content in Presence for exit-animation support, which
+  // tracks its own "mounted" state via a separate effect rather than
+  // rendering children synchronously the instant `open` flips true. That
+  // meant `open` becoming true and this div actually landing in the DOM
+  // could be two different commits — a useEffect keyed on `open` fired
+  // after the first one, before Presence had finished mounting the div in
+  // the second, so scrollContainerRef.current was still null when it ran.
+  // A callback ref sidesteps that entirely: React calls it exactly when the
+  // node is actually attached, in whichever commit that turns out to be.
+  const attachScrollContainer = useCallback(
+    (el: HTMLDivElement | null) => {
+      scrollContainerRef.current = el
+      if (!el) return
+
+      function handleWheel(e: WheelEvent) {
+        if (!e.ctrlKey) return
+        e.preventDefault()
+        const factor = e.deltaY < 0 ? ZOOM_WHEEL_FACTOR : 1 / ZOOM_WHEEL_FACTOR
+        zoomAtPoint(e.clientX, e.clientY, zoomRef.current * factor)
+      }
+
+      el.addEventListener('wheel', handleWheel, { passive: false })
+      return () => el.removeEventListener('wheel', handleWheel)
+    },
+    [zoomAtPoint]
+  )
+
   async function handleSave() {
     if (!panel || saving) return
     setSaving(true)
@@ -172,17 +289,24 @@ export function SketchModal({ panel, projectId, chapterId, open, onClose, onSave
                 onColorChange={setColor}
                 brushSize={brushSize}
                 onBrushSizeChange={setBrushSize}
+                zoom={zoom}
+                onZoomChange={handleZoomButtonChange}
                 canUndo={canUndo}
                 onUndo={() => canvasRef.current?.undo()}
                 onClear={() => canvasRef.current?.clear()}
               />
 
-              <div className="flex flex-1 items-center justify-center overflow-auto bg-secondary/20 p-4">
+              <div
+                ref={attachScrollContainer}
+                className="grid flex-1 place-items-center overflow-auto bg-secondary/20 p-4"
+              >
                 <SketchCanvas
                   ref={canvasRef}
+                  wrapperRef={canvasWrapperRef}
                   tool={tool}
                   color={color}
                   brushSize={brushSize}
+                  zoom={zoom}
                   initialImageUrl={panel.cover_url}
                   onHistoryChange={setCanUndo}
                 />
