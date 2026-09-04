@@ -5,8 +5,10 @@ import { DndContext, closestCenter, type DragEndEvent } from '@dnd-kit/core'
 import { SortableContext, rectSortingStrategy } from '@dnd-kit/sortable'
 import { Plus, Loader2 } from 'lucide-react'
 import { PanelCard } from './PanelCard'
+import { SketchModal } from './sketch/SketchModal'
 import { usePanels } from '@/hooks/usePanels'
 import { reorderPanels } from '@/actions/panels'
+import type { PanelWithCover } from '@/actions/panels'
 
 interface PanelGridProps {
   projectId: string
@@ -14,9 +16,13 @@ interface PanelGridProps {
 }
 
 export function PanelGrid({ projectId, chapterId }: PanelGridProps) {
-  const { panels, loading, addPanel, editPanel, removePanel, reorder } = usePanels(projectId, chapterId)
+  const { panels, loading, addPanel, editPanel, removePanel, setPanelImage, reorder } = usePanels(
+    projectId,
+    chapterId
+  )
   const [adding, setAdding] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  const [sketchingPanel, setSketchingPanel] = useState<PanelWithCover | null>(null)
 
   async function handleAddPanel() {
     if (adding) return
@@ -64,6 +70,7 @@ export function PanelGrid({ projectId, chapterId }: PanelGridProps) {
                 panel={panel}
                 onCaptionChanged={(caption) => editPanel(panel.id, { caption })}
                 onDeleted={() => removePanel(panel.id)}
+                onOpenSketch={() => setSketchingPanel(panel)}
               />
             ))}
 
@@ -84,6 +91,15 @@ export function PanelGrid({ projectId, chapterId }: PanelGridProps) {
           </div>
         </SortableContext>
       </DndContext>
+
+      <SketchModal
+        panel={sketchingPanel}
+        projectId={projectId}
+        chapterId={chapterId}
+        open={sketchingPanel !== null}
+        onClose={() => setSketchingPanel(null)}
+        onSaved={(id, imageUrl, coverUrl) => setPanelImage(id, imageUrl, coverUrl)}
+      />
     </div>
   )
 }

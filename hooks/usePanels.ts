@@ -73,6 +73,17 @@ export function usePanels(projectId: string, chapterId: string, initial: PanelWi
     return deletePanel(id, projectId)
   }
 
+  // cover_url is a signed URL, not a persisted column — the caller (the sketch
+  // save flow) already computed it client-side, same as CoverImageField does
+  // for Places, so it's applied optimistically here alongside the real
+  // image_url persist.
+  async function setPanelImage(id: string, imageUrl: string, coverUrl: string): Promise<ActionResult> {
+    setPanels((prev) =>
+      prev.map((p) => (p.id === id ? { ...p, image_url: imageUrl, cover_url: coverUrl } : p))
+    )
+    return updatePanel(id, projectId, { image_url: imageUrl })
+  }
+
   function reorder(from: number, to: number) {
     setPanels((prev) => {
       const next = [...prev]
@@ -82,5 +93,5 @@ export function usePanels(projectId: string, chapterId: string, initial: PanelWi
     })
   }
 
-  return { panels, setPanels, loading, refresh, addPanel, editPanel, removePanel, reorder }
+  return { panels, setPanels, loading, refresh, addPanel, editPanel, removePanel, setPanelImage, reorder }
 }
