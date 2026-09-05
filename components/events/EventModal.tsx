@@ -277,15 +277,6 @@ function EventForm({
   const [linkedDataLoading, setLinkedDataLoading] = useState(true);
   const [suggestedCharacters, setSuggestedCharacters] = useState<Character[]>([]);
 
-  // An event is "new" (never saved since creation) when created_at and
-  // updated_at are still identical — Postgres's NOW() resolves once per
-  // transaction, so INSERT sets both columns to the same value, and only the
-  // set_updated_at_events trigger (which only fires on UPDATE) ever changes
-  // updated_at afterward. EventForm has no autosave — updateEvent only runs
-  // from the explicit Save button — so this stays true for as long as the
-  // user is looking at a freshly created event, however long that takes.
-  const isNewEvent = event.created_at === event.updated_at;
-
   // Places/characters are each a single fast lookup by event id — fetched
   // together so their loading state is shared. Suggestions run separately
   // (below) since they're a nice-to-have that can involve a second, slower
@@ -311,7 +302,7 @@ function EventForm({
 
   useEffect(() => {
     const chapterId = event.chapter_id;
-    if (!isNewEvent || !chapterId) {
+    if (!chapterId) {
       setSuggestedCharacters([]);
       return;
     }
@@ -323,7 +314,7 @@ function EventForm({
     return () => {
       cancelled = true;
     };
-  }, [isNewEvent, event.chapter_id]);
+  }, [event.chapter_id]);
 
   async function handleAddPlace(place: Place) {
     setPlaces((prev) => [...prev, place]);

@@ -54,7 +54,11 @@ export function EventCharactersField({
         Characters
       </div>
 
-      {visibleSuggestions.length > 0 && (
+      {/* Held back until the linked-character fetch resolves — the two run as
+          independent effects, and if suggestions land first, linkedIds is
+          still empty and already-linked characters would flash up as
+          suggestions before being filtered out. */}
+      {!loading && visibleSuggestions.length > 0 && (
         <div className="space-y-1">
           <div className="flex items-center gap-1 text-[10px] text-muted-foreground">
             <Sparkles className="h-3 w-3" />
