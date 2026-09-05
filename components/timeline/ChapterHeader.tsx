@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useRef, useCallback } from 'react'
+import { useState } from 'react'
 import { Plus, X, Loader2 } from 'lucide-react'
 import { createChapter, updateChapter, deleteChapter } from '@/actions/chapters'
 import { ChapterLinkPicker } from './ChapterLinkPicker'
@@ -116,30 +116,29 @@ function ResizableCell({
   className?: string
   children: React.ReactNode
 }) {
-  const startX = useRef(0)
-  const startWidth = useRef(0)
-
-  const onMouseMove = useCallback((e: MouseEvent) => {
-    const delta = e.clientX - startX.current
-    const newWidth = Math.min(maxWidth, Math.max(minWidth, startWidth.current + delta))
-    onWidthChange(newWidth)
-  }, [minWidth, maxWidth, onWidthChange])
-
-  const onMouseUp = useCallback(() => {
-    document.removeEventListener('mousemove', onMouseMove)
-    document.removeEventListener('mouseup', onMouseUp)
-    document.body.style.cursor = ''
-    document.body.style.userSelect = ''
-  }, [onMouseMove])
-
   function onMouseDown(e: React.MouseEvent) {
     e.preventDefault()
-    startX.current = e.clientX
-    startWidth.current = width
+    const startX = e.clientX
+    const startWidth = width
+
+    function handleMouseMove(ev: MouseEvent) {
+      const delta = ev.clientX - startX
+      onWidthChange(Math.min(maxWidth, Math.max(minWidth, startWidth + delta)))
+    }
+
+    // Declared alongside handleMouseMove so both identities are fixed for the
+    // life of one drag — exactly the pair registered here is the pair removed.
+    function handleMouseUp() {
+      document.removeEventListener('mousemove', handleMouseMove)
+      document.removeEventListener('mouseup', handleMouseUp)
+      document.body.style.cursor = ''
+      document.body.style.userSelect = ''
+    }
+
     document.body.style.cursor = 'col-resize'
     document.body.style.userSelect = 'none'
-    document.addEventListener('mousemove', onMouseMove)
-    document.addEventListener('mouseup', onMouseUp)
+    document.addEventListener('mousemove', handleMouseMove)
+    document.addEventListener('mouseup', handleMouseUp)
   }
 
   return (
