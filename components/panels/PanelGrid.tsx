@@ -71,6 +71,7 @@ export function PanelGrid({ projectId, chapterId }: PanelGridProps) {
                 onCaptionChanged={(caption) => editPanel(panel.id, { caption })}
                 onDeleted={() => removePanel(panel.id)}
                 onOpenSketch={() => setSketchingPanel(panel)}
+                onImageUploaded={(imageUrl, coverUrl) => setPanelImage(panel.id, imageUrl, coverUrl)}
               />
             ))}
 

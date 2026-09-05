@@ -539,6 +539,15 @@ GRANT SELECT, INSERT, UPDATE, DELETE ON TABLE statuses TO anon, authenticated, s
 -- postgres_changes subscriber.
 ALTER PUBLICATION supabase_realtime ADD TABLE panels;
 
+-- Under the default replica identity a DELETE only writes the primary key to
+-- the WAL, so `old` carries no chapter_id and usePanels' filter
+-- (chapter_id=eq.…) can never match — remote deletes were silently never
+-- delivered. FULL logs the whole old row so the filter matches and the
+-- payload is usable. chapters, events, layers and statuses were already set
+-- to FULL out-of-band; panels was missed, and is recorded here so the setting
+-- isn't invisible to the tracked schema again.
+ALTER TABLE panels REPLICA IDENTITY FULL;
+
 -- DUPLICATE PROJECT
 -- Single-transaction deep clone: builds an old-id -> new-id temp table per
 -- entity type, then inserts every dependent/junction table joined against

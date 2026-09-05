@@ -79,6 +79,17 @@ export async function createPanel(
   return { ...(data as Panel), cover_url: null }
 }
 
+// Signs a single path, for panels arriving over realtime from another client.
+// getPanelsForChapter would re-sign every panel in the chapter, changing every
+// <img src> and forcing the whole grid to re-download.
+export async function signPanelImage(path: string): Promise<string | null> {
+  const supabase = await createClient()
+  const { data } = await supabase.storage
+    .from('attachments')
+    .createSignedUrl(path, COVER_SIGNED_URL_TTL)
+  return data?.signedUrl ?? null
+}
+
 export async function updatePanel(
   id: string,
   projectId: string,

@@ -1,38 +1,53 @@
 'use client'
 
-import { useEffect, useState, useCallback } from 'react'
+import { useEffect, useState, useCallback, useRef } from 'react'
 import { createClient } from '@/lib/supabase/client'
 import {
   getPanelsForChapter,
   createPanel,
   updatePanel,
   deletePanel,
+  signPanelImage,
   type PanelWithCover,
   type ActionResult,
 } from '@/actions/panels'
+import type { Panel } from '@/types/database'
 
 export function usePanels(projectId: string, chapterId: string, initial: PanelWithCover[] = []) {
   const [panels, setPanels] = useState<PanelWithCover[]>(initial)
-  const [loading, setLoading] = useState(false)
+  // Gates the first load of a chapter only. Realtime changes are applied in
+  // place below, so they must never flip this back on — doing so unmounts the
+  // whole grid behind PanelGrid's spinner, which reads as a page reload.
+  const [loading, setLoading] = useState(true)
   const supabase = createClient()
 
+  // Lets the realtime handler compare an incoming row against what we already
+  // hold without taking a dependency on `panels`, which would tear down and
+  // re-subscribe the channel on every change.
+  const panelsRef = useRef(panels)
+  useEffect(() => {
+    panelsRef.current = panels
+  }, [panels])
+
+  // Background refetch — deliberately leaves `loading` alone.
   const refresh = useCallback(async () => {
-    setLoading(true)
     const data = await getPanelsForChapter(chapterId)
     setPanels(data)
-    setLoading(false)
   }, [chapterId])
 
   useEffect(() => {
     let cancelled = false
     ;(async () => {
+      setLoading(true)
+      const data = await getPanelsForChapter(chapterId)
       if (cancelled) return
-      await refresh()
+      setPanels(data)
+      setLoading(false)
     })()
     return () => {
       cancelled = true
     }
-  }, [refresh])
+  }, [chapterId])
 
   useEffect(() => {
     const channel = supabase
@@ -45,12 +60,52 @@ export function usePanels(projectId: string, chapterId: string, initial: PanelWi
           table: 'panels',
           filter: `chapter_id=eq.${chapterId}`,
         },
-        () => { refresh() }
+        async (payload) => {
+          // Applied in place rather than refetching the chapter. A refetch
+          // re-signs every cover URL — changing every <img src> and forcing a
+          // re-download — and a drag would fire one per reordered row. Merging
+          // in place also makes this client's own echo a no-op instead of a
+          // visible reload.
+          if (payload.eventType === 'DELETE') {
+            // Relies on panels being REPLICA IDENTITY FULL; under the default
+            // the filter above never matches a DELETE at all.
+            const { id } = payload.old as Partial<Panel>
+            if (id) setPanels((prev) => prev.filter((p) => p.id !== id))
+            return
+          }
+
+          const row = payload.new as Panel
+          const existing = panelsRef.current.find((p) => p.id === row.id)
+          // cover_url is a signed URL derived from image_url, not a column, so
+          // it survives anything that leaves image_url alone — which is what
+          // keeps caption edits and drags from re-minting every image.
+          const imageChanged = row.image_url !== (existing?.image_url ?? null)
+
+          setPanels((prev) => {
+            const merged = prev.some((p) => p.id === row.id)
+              ? prev.map((p) =>
+                  p.id === row.id
+                    ? { ...p, ...row, cover_url: imageChanged ? null : p.cover_url }
+                    : p
+                )
+              : [...prev, { ...row, cover_url: null }]
+            return merged.sort((a, b) => a.position - b.position)
+          })
+
+          if (row.image_url && imageChanged) {
+            const signed = await signPanelImage(row.image_url)
+            if (signed) {
+              setPanels((prev) =>
+                prev.map((p) => (p.id === row.id ? { ...p, cover_url: signed } : p))
+              )
+            }
+          }
+        }
       )
       .subscribe()
 
     return () => { supabase.removeChannel(channel) }
-  }, [chapterId, refresh, supabase])
+  }, [chapterId, supabase])
 
   async function addPanel(caption?: string): Promise<{ error: string } | PanelWithCover> {
     const nextPosition = panels.length > 0 ? Math.max(...panels.map((p) => p.position)) + 1 : 0
