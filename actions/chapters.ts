@@ -35,14 +35,15 @@ export async function createChapter(projectId: string, title: string) {
 export async function updateChapter(
   id: string,
   projectId: string,
-  title: string
+  updates: Partial<{
+    title: string
+    description: Record<string, unknown>
+    pov_character_id: string | null
+    word_count: number | null
+  }>
 ) {
   const supabase = await createClient()
-  const { error } = await supabase
-    .from('chapters')
-    .update({ title } as never)
-    .eq('id', id)
-
+  const { error } = await supabase.from('chapters').update(updates as never).eq('id', id)
   if (error) return { error: error.message }
   revalidatePath(`/projects/${projectId}`)
   return { success: true }

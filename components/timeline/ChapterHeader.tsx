@@ -184,7 +184,7 @@ function ChapterCell({
       setEditing(false)
       return
     }
-    await updateChapter(chapter.id, projectId, title.trim())
+    await updateChapter(chapter.id, projectId, { title: title.trim() })
     onRenamed(chapter.id, title.trim())
     setEditing(false)
   }

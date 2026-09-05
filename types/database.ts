@@ -67,6 +67,9 @@ export interface Chapter {
   project_id: string
   title: string
   position: number
+  description: Record<string, unknown>
+  pov_character_id: string | null
+  word_count: number | null
   created_at: string
 }
 

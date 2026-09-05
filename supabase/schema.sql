@@ -250,6 +250,33 @@ CREATE TABLE family_tree_members (
   PRIMARY KEY (tree_id, character_id)
 );
 
+-- CHAPTERS (timeline columns; also the grouping unit for panels)
+-- Reverse-engineered from the live database — this table was created via the
+-- Supabase dashboard and was never tracked here, so schema.sql couldn't
+-- recreate it. Columns, RLS and the FK delete rule below were each confirmed
+-- against information_schema/pg_catalog rather than inferred. Note there is
+-- deliberately no updated_at column and no updated_at trigger, matching live.
+CREATE TABLE chapters (
+  id          UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  project_id  UUID NOT NULL REFERENCES projects(id) ON DELETE CASCADE,
+  title       TEXT NOT NULL,
+  position    INTEGER NOT NULL DEFAULT 0,
+  created_at  TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+
+-- Chapter detail fields. Kept as an ALTER rather than folded into the CREATE
+-- above so this doubles as the migration for existing databases, where the
+-- table already exists without them — running the file top to bottom still
+-- produces the same final shape. description matches the Tiptap-document
+-- pattern used by outlines.content and places.description/notes;
+-- pov_character_id nulls out rather than cascading so deleting a character
+-- doesn't take the chapter with it; word_count is manually entered, same as
+-- events.word_count.
+ALTER TABLE chapters
+  ADD COLUMN description      JSONB NOT NULL DEFAULT '{}',
+  ADD COLUMN pov_character_id UUID REFERENCES characters(id) ON DELETE SET NULL,
+  ADD COLUMN word_count       INTEGER;
+
 -- CHAPTER LINKS ("continues from" — chapter_id inherits/continues from
 -- continues_from_chapter_id; not restricted to adjacent chapters, and a
 -- chapter can have multiple continues_from links for converging storylines)
@@ -381,6 +408,7 @@ ALTER TABLE event_dependencies    ENABLE ROW LEVEL SECURITY;
 ALTER TABLE character_relationships ENABLE ROW LEVEL SECURITY;
 ALTER TABLE family_trees          ENABLE ROW LEVEL SECURITY;
 ALTER TABLE family_tree_members   ENABLE ROW LEVEL SECURITY;
+ALTER TABLE chapters              ENABLE ROW LEVEL SECURITY;
 ALTER TABLE chapter_links         ENABLE ROW LEVEL SECURITY;
 ALTER TABLE panels                ENABLE ROW LEVEL SECURITY;
 
@@ -510,6 +538,14 @@ CREATE POLICY "chapter_links_insert" ON chapter_links FOR INSERT WITH CHECK (own
 CREATE POLICY "chapter_links_update" ON chapter_links FOR UPDATE USING (owns_project(project_id));
 CREATE POLICY "chapter_links_delete" ON chapter_links FOR DELETE USING (owns_project(project_id));
 
+-- CHAPTERS RLS
+-- Already live (created via the dashboard alongside the table); recorded here
+-- so a from-scratch run reproduces them.
+CREATE POLICY "chapters_select" ON chapters FOR SELECT USING (owns_project(project_id));
+CREATE POLICY "chapters_insert" ON chapters FOR INSERT WITH CHECK (owns_project(project_id));
+CREATE POLICY "chapters_update" ON chapters FOR UPDATE USING (owns_project(project_id));
+CREATE POLICY "chapters_delete" ON chapters FOR DELETE USING (owns_project(project_id));
+
 -- PANELS RLS
 CREATE POLICY "panels_select" ON panels FOR SELECT USING (owns_project(project_id));
 CREATE POLICY "panels_insert" ON panels FOR INSERT WITH CHECK (owns_project(project_id));
@@ -528,6 +564,7 @@ GRANT SELECT, INSERT, UPDATE, DELETE ON TABLE family_trees TO anon, authenticate
 GRANT SELECT, INSERT, UPDATE, DELETE ON TABLE family_tree_members TO anon, authenticated, service_role;
 GRANT SELECT, INSERT, UPDATE, DELETE ON TABLE places TO anon, authenticated, service_role;
 GRANT SELECT, INSERT, UPDATE, DELETE ON TABLE event_places TO anon, authenticated, service_role;
+GRANT SELECT, INSERT, UPDATE, DELETE ON TABLE chapters TO anon, authenticated, service_role;
 GRANT SELECT, INSERT, UPDATE, DELETE ON TABLE chapter_links TO anon, authenticated, service_role;
 GRANT SELECT, INSERT, UPDATE, DELETE ON TABLE panels TO anon, authenticated, service_role;
 GRANT SELECT, INSERT, UPDATE, DELETE ON TABLE statuses TO anon, authenticated, service_role;
