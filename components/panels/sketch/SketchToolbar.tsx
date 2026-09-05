@@ -9,6 +9,7 @@ import {
   Circle,
   PaintBucket,
   MousePointer2,
+  Type,
   Undo2,
   Trash2,
   ZoomIn,
@@ -16,7 +17,16 @@ import {
   type LucideIcon,
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
-import { BRUSH_MIN, BRUSH_MAX, ZOOM_MIN, ZOOM_MAX, ZOOM_BUTTON_STEP, type SketchTool } from './types'
+import {
+  BRUSH_MIN,
+  BRUSH_MAX,
+  FONT_SIZE_MIN,
+  FONT_SIZE_MAX,
+  ZOOM_MIN,
+  ZOOM_MAX,
+  ZOOM_BUTTON_STEP,
+  type SketchTool,
+} from './types'
 
 const TOOLS: { id: SketchTool; label: string; icon: LucideIcon }[] = [
   { id: 'pen', label: 'Pen', icon: Pencil },
@@ -26,6 +36,7 @@ const TOOLS: { id: SketchTool; label: string; icon: LucideIcon }[] = [
   { id: 'ellipse', label: 'Ellipse', icon: Circle },
   { id: 'fill', label: 'Fill', icon: PaintBucket },
   { id: 'select', label: 'Select & Move', icon: MousePointer2 },
+  { id: 'text', label: 'Text', icon: Type },
 ]
 
 const PALETTE = ['#18181b', '#ef4444', '#f97316', '#eab308', '#22c55e', '#3b82f6', '#8b5cf6', '#ffffff']
@@ -37,6 +48,8 @@ interface SketchToolbarProps {
   onColorChange: (color: string) => void
   brushSize: number
   onBrushSizeChange: (size: number) => void
+  fontSize: number
+  onFontSizeChange: (size: number) => void
   zoom: number
   onZoomChange: (zoom: number) => void
   canUndo: boolean
@@ -51,6 +64,8 @@ export function SketchToolbar({
   onColorChange,
   brushSize,
   onBrushSizeChange,
+  fontSize,
+  onFontSizeChange,
   zoom,
   onZoomChange,
   canUndo,
@@ -163,6 +178,19 @@ export function SketchToolbar({
           className="w-full"
         />
         <p className="text-center text-[10px] text-muted-foreground">{brushSize}px</p>
+      </div>
+
+      <div className="space-y-1.5 border-t border-border pt-3">
+        <p className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">Font size</p>
+        <input
+          type="range"
+          min={FONT_SIZE_MIN}
+          max={FONT_SIZE_MAX}
+          value={fontSize}
+          onChange={(e) => onFontSizeChange(Number(e.target.value))}
+          className="w-full"
+        />
+        <p className="text-center text-[10px] text-muted-foreground">{fontSize}px</p>
       </div>
     </div>
   )

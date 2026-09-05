@@ -8,6 +8,8 @@ import { createClient } from '@/lib/supabase/client'
 import { SketchToolbar } from './SketchToolbar'
 import { SketchCanvas, type SketchCanvasHandle } from './SketchCanvas'
 import { BRUSH_MIN, BRUSH_MAX, ZOOM_WHEEL_FACTOR, clampZoom, type SketchTool } from './types'
+
+const DEFAULT_FONT_SIZE = 24
 import type { PanelWithCover } from '@/actions/panels'
 
 const SKETCH_SIGNED_URL_TTL = 60 * 60 * 24 // 24h, matches actions/panels.ts's cover-url TTL
@@ -43,6 +45,7 @@ export function SketchModal({ panel, projectId, chapterId, open, onClose, onSave
   const [tool, setTool] = useState<SketchTool>('pen')
   const [color, setColor] = useState('#18181b')
   const [brushSize, setBrushSize] = useState(6)
+  const [fontSize, setFontSize] = useState(DEFAULT_FONT_SIZE)
   const [zoom, setZoom] = useState(1)
   const zoomRef = useRef(zoom)
   // useLayoutEffect, not useEffect — guarantees the ref is current before
@@ -117,9 +120,10 @@ export function SketchModal({ panel, projectId, chapterId, open, onClose, onSave
   }, [zoom])
 
   function handleToolChange(next: SketchTool) {
-    // Switching tools commits any in-progress select-and-move rather than
-    // leaving it floating and unrecoverable.
+    // Switching tools commits any in-progress select-and-move or pending
+    // text edit rather than leaving it floating/open and unrecoverable.
     canvasRef.current?.commitFloatingSelection()
+    canvasRef.current?.commitPendingText()
     setTool(next)
   }
 
@@ -148,31 +152,43 @@ export function SketchModal({ panel, projectId, chapterId, open, onClose, onSave
       switch (e.key.toLowerCase()) {
         case 'p':
           canvasRef.current?.commitFloatingSelection()
+          canvasRef.current?.commitPendingText()
           setTool('pen')
           break
         case 'e':
           canvasRef.current?.commitFloatingSelection()
+          canvasRef.current?.commitPendingText()
           setTool('eraser')
           break
         case 'l':
           canvasRef.current?.commitFloatingSelection()
+          canvasRef.current?.commitPendingText()
           setTool('line')
           break
         case 'r':
           canvasRef.current?.commitFloatingSelection()
+          canvasRef.current?.commitPendingText()
           setTool('rectangle')
           break
         case 'o':
           canvasRef.current?.commitFloatingSelection()
+          canvasRef.current?.commitPendingText()
           setTool('ellipse')
           break
         case 'f':
           canvasRef.current?.commitFloatingSelection()
+          canvasRef.current?.commitPendingText()
           setTool('fill')
           break
         case 'v':
           canvasRef.current?.commitFloatingSelection()
+          canvasRef.current?.commitPendingText()
           setTool('select')
+          break
+        case 't':
+          canvasRef.current?.commitFloatingSelection()
+          canvasRef.current?.commitPendingText()
+          setTool('text')
           break
         case '[':
           setBrushSize((s) => Math.max(BRUSH_MIN, s - 1))
@@ -269,11 +285,13 @@ export function SketchModal({ panel, projectId, chapterId, open, onClose, onSave
         className="sm:max-w-4xl p-0 overflow-hidden gap-0 bg-card"
         onEscapeKeyDown={(e) => {
           // Radix closes the dialog on Escape by default. If there's a
-          // floating selection, the first Escape should just deselect —
-          // so we commit it and suppress the close; only when there's
-          // nothing to deselect does Escape fall through to closing.
+          // floating selection or a pending text edit, the first Escape
+          // should just resolve that — so we commit it and suppress the
+          // close; only when there's nothing pending does Escape fall
+          // through to closing.
+          const hadText = canvasRef.current?.commitPendingText()
           const hadSelection = canvasRef.current?.commitFloatingSelection()
-          if (hadSelection) e.preventDefault()
+          if (hadText || hadSelection) e.preventDefault()
         }}
       >
         <DialogTitle className="sr-only">Sketch panel</DialogTitle>
@@ -289,6 +307,8 @@ export function SketchModal({ panel, projectId, chapterId, open, onClose, onSave
                 onColorChange={setColor}
                 brushSize={brushSize}
                 onBrushSizeChange={setBrushSize}
+                fontSize={fontSize}
+                onFontSizeChange={setFontSize}
                 zoom={zoom}
                 onZoomChange={handleZoomButtonChange}
                 canUndo={canUndo}
@@ -306,6 +326,7 @@ export function SketchModal({ panel, projectId, chapterId, open, onClose, onSave
                   tool={tool}
                   color={color}
                   brushSize={brushSize}
+                  fontSize={fontSize}
                   zoom={zoom}
                   initialImageUrl={panel.cover_url}
                   onHistoryChange={setCanUndo}

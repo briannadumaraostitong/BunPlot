@@ -1,6 +1,7 @@
 'use client'
 
-import { forwardRef, useCallback, useEffect, useImperativeHandle, useRef } from 'react'
+import { forwardRef, useCallback, useEffect, useImperativeHandle, useRef, useState } from 'react'
+import { createPortal, flushSync } from 'react-dom'
 import { floodFill } from '@/lib/sketch/floodFill'
 import { getStrokeOutline, outlineToPath2D } from '@/lib/sketch/strokePath'
 import {
@@ -28,6 +29,7 @@ const BASE_DISPLAY_WIDTH = 480
 const BACKGROUND_COLOR = '#ffffff'
 const MAX_HISTORY = 50
 const MARQUEE_COLOR = '#0ea5e9'
+const TEXT_LINE_HEIGHT = 1.2
 
 export interface SketchCanvasHandle {
   undo: () => void
@@ -36,6 +38,8 @@ export interface SketchCanvasHandle {
   // Escape handler in particular) use this to know whether the action did
   // anything.
   commitFloatingSelection: () => boolean
+  // Same convention — whether there was a pending text edit to resolve.
+  commitPendingText: () => boolean
   exportBlob: () => Promise<Blob | null>
 }
 
@@ -43,6 +47,7 @@ interface SketchCanvasProps {
   tool: SketchTool
   color: string
   brushSize: number
+  fontSize: number
   zoom: number
   // Forwarded to the outer wrapper div so the parent can measure its rect
   // for cursor-anchored zoom — see SketchModal's zoomAtPoint.
@@ -55,6 +60,12 @@ interface Point {
   x: number
   y: number
   pressure: number
+}
+
+interface TextEdit {
+  x: number
+  y: number
+  value: string
 }
 
 interface Selection extends SelectionTransform {
@@ -83,7 +94,7 @@ function hexToRgb(hex: string): [number, number, number] {
 }
 
 export const SketchCanvas = forwardRef<SketchCanvasHandle, SketchCanvasProps>(function SketchCanvas(
-  { tool, color, brushSize, zoom, wrapperRef, initialImageUrl, onHistoryChange },
+  { tool, color, brushSize, fontSize, zoom, wrapperRef, initialImageUrl, onHistoryChange },
   ref
 ) {
   const mainCanvasRef = useRef<HTMLCanvasElement>(null)
@@ -95,9 +106,24 @@ export const SketchCanvas = forwardRef<SketchCanvasHandle, SketchCanvasProps>(fu
   const selectionRef = useRef<Selection | null>(null)
   const interactionRef = useRef<SelectionInteraction | null>(null)
   const isDrawingRef = useRef(false)
+  // Real state, not a ref — unlike everything else transient in this file,
+  // this drives actual JSX (the overlay textarea), which refs can't do.
+  const [textEdit, setTextEdit] = useState<TextEdit | null>(null)
+  // The textarea portals into this div rather than rendering as a literal
+  // sibling of the two <canvas> elements — see the SketchCanvas plan this
+  // implements. Passing the setter directly as the ref means we only ever
+  // portal into a real, mounted node (mirrors SketchModal's attachScrollContainer
+  // pattern), never a stale null on the first render.
+  const [overlayRoot, setOverlayRoot] = useState<HTMLDivElement | null>(null)
 
-  const getMainCtx = useCallback(() => mainCanvasRef.current!.getContext('2d')!, [])
-  const getPreviewCtx = useCallback(() => previewCanvasRef.current!.getContext('2d')!, [])
+  const getMainCtx = useCallback(
+    () => mainCanvasRef.current!.getContext('2d', { willReadFrequently: true })!,
+    [],
+  )
+  const getPreviewCtx = useCallback(
+    () => previewCanvasRef.current!.getContext('2d', { willReadFrequently: true })!,
+    [],
+  )
   const clearPreview = useCallback(() => {
     getPreviewCtx().clearRect(0, 0, CANVAS_WIDTH, CANVAS_HEIGHT)
   }, [getPreviewCtx])
@@ -128,6 +154,27 @@ export const SketchCanvas = forwardRef<SketchCanvasHandle, SketchCanvasProps>(fu
     pushHistory()
     return true
   }, [getMainCtx, clearPreview, pushHistory])
+
+  const commitPendingText = useCallback((): boolean => {
+    const edit = textEdit
+    if (!edit) return false
+    const trimmed = edit.value.trim()
+    if (trimmed) {
+      const mainCtx = getMainCtx()
+      const fontFamily = getComputedStyle(mainCanvasRef.current!).fontFamily || 'sans-serif'
+      mainCtx.font = `${fontSize}px ${fontFamily}`
+      mainCtx.fillStyle = color
+      mainCtx.textBaseline = 'top'
+      mainCtx.textAlign = 'left'
+      const lineHeight = fontSize * TEXT_LINE_HEIGHT
+      edit.value.split('\n').forEach((line, i) => {
+        mainCtx.fillText(line, edit.x, edit.y + i * lineHeight)
+      })
+      pushHistory()
+    }
+    setTextEdit(null)
+    return true
+  }, [textEdit, getMainCtx, fontSize, color, pushHistory])
 
   // Draws the floating selection's content plus its dashed border, resize
   // handles, and rotate handle — called after every change to the floating
@@ -196,6 +243,14 @@ export const SketchCanvas = forwardRef<SketchCanvasHandle, SketchCanvasProps>(fu
     ref,
     () => ({
       undo() {
+        // Same principle as the floating-selection case below — an
+        // in-progress text edit isn't on the history stack either, so
+        // undoing it means discarding it outright, not committing then
+        // stepping back.
+        if (textEdit) {
+          setTextEdit(null)
+          return
+        }
         // Nothing about an in-progress floating selection is on the history
         // stack — not the cut, not any number of moves/resizes/rotations
         // applied to it while still floating (only an actual commit — tool
@@ -218,6 +273,7 @@ export const SketchCanvas = forwardRef<SketchCanvasHandle, SketchCanvasProps>(fu
         onHistoryChange(undoStackRef.current.length > 1)
       },
       clear() {
+        commitPendingText()
         commitFloatingSelection()
         fillBackground(getMainCtx())
         pushHistory()
@@ -225,14 +281,18 @@ export const SketchCanvas = forwardRef<SketchCanvasHandle, SketchCanvasProps>(fu
       commitFloatingSelection() {
         return commitFloatingSelection()
       },
+      commitPendingText() {
+        return commitPendingText()
+      },
       async exportBlob() {
+        commitPendingText()
         commitFloatingSelection()
         return new Promise((resolve) => {
           mainCanvasRef.current!.toBlob((blob) => resolve(blob), 'image/png')
         })
       },
     }),
-    [commitFloatingSelection, getMainCtx, fillBackground, pushHistory, onHistoryChange, clearPreview]
+    [commitFloatingSelection, commitPendingText, getMainCtx, fillBackground, pushHistory, onHistoryChange, clearPreview, textEdit]
   )
 
   function getCanvasPoint(e: React.PointerEvent<HTMLCanvasElement>): Point {
@@ -329,6 +389,10 @@ export const SketchCanvas = forwardRef<SketchCanvasHandle, SketchCanvasProps>(fu
   function updateCursor(point: Point) {
     const el = previewCanvasRef.current
     if (!el) return
+    if (tool === 'text') {
+      el.style.cursor = 'text'
+      return
+    }
     if (tool !== 'select') {
       el.style.cursor = 'crosshair'
       return
@@ -368,6 +432,24 @@ export const SketchCanvas = forwardRef<SketchCanvasHandle, SketchCanvasProps>(fu
       shapeStartRef.current = point
     } else if (tool === 'fill') {
       applyFill(point)
+      isDrawingRef.current = false
+    } else if (tool === 'text') {
+      // Suppress the compatibility mousedown the browser fires after this
+      // pointerdown. Its default action moves focus to the clicked element —
+      // the canvas isn't focusable, so focus would land on <body>, blurring
+      // the textarea we're about to mount. That blur runs commitPendingText,
+      // which unmounts it again, all within this one gesture.
+      e.preventDefault()
+      // Commit any already-open text box (defensive — blur already handles
+      // this in the common click-elsewhere case, but pointer/blur ordering
+      // isn't a cross-browser guarantee worth relying on alone) before
+      // starting a new one at this point.
+      commitPendingText()
+      // flushSync so the textarea is mounted before this handler returns,
+      // guaranteeing autoFocus lands on it.
+      flushSync(() => {
+        setTextEdit({ x: point.x, y: point.y, value: '' })
+      })
       isDrawingRef.current = false
     } else if (tool === 'select') {
       const selection = selectionRef.current
@@ -483,22 +565,66 @@ export const SketchCanvas = forwardRef<SketchCanvasHandle, SketchCanvasProps>(fu
   const displayHeight = displayWidth * (CANVAS_HEIGHT / CANVAS_WIDTH)
 
   return (
-    <div ref={wrapperRef} className="relative" style={{ width: displayWidth, height: displayHeight }}>
-      <canvas
-        ref={mainCanvasRef}
-        width={CANVAS_WIDTH}
-        height={CANVAS_HEIGHT}
-        className="absolute inset-0 h-full w-full rounded-md border border-border"
+    <>
+      <div
+        ref={wrapperRef}
+        className="relative"
+        style={{ width: displayWidth, height: displayHeight, gridColumn: 1, gridRow: 1 }}
+      >
+        <canvas
+          ref={mainCanvasRef}
+          width={CANVAS_WIDTH}
+          height={CANVAS_HEIGHT}
+          className="absolute inset-0 z-0 h-full w-full rounded-md border border-border"
+        />
+        <canvas
+          ref={previewCanvasRef}
+          width={CANVAS_WIDTH}
+          height={CANVAS_HEIGHT}
+          className="absolute inset-0 z-10 h-full w-full touch-none"
+          onPointerDown={handlePointerDown}
+          onPointerMove={handlePointerMove}
+          onPointerUp={handlePointerUp}
+        />
+      </div>
+      {/* Sized and grid-stacked to be pixel-identical to the wrapper above,
+          so the textarea's left/top math (relative to this div) lines up
+          exactly as it would if it were still a direct sibling of the
+          canvases — but it renders into a genuinely separate DOM subtree via
+          the portal below. pointer-events-none lets clicks pass through to
+          the canvas everywhere except the textarea itself. */}
+      <div
+        ref={setOverlayRoot}
+        className="pointer-events-none relative z-20"
+        style={{ width: displayWidth, height: displayHeight, gridColumn: 1, gridRow: 1 }}
       />
-      <canvas
-        ref={previewCanvasRef}
-        width={CANVAS_WIDTH}
-        height={CANVAS_HEIGHT}
-        className="absolute inset-0 h-full w-full touch-none"
-        onPointerDown={handlePointerDown}
-        onPointerMove={handlePointerMove}
-        onPointerUp={handlePointerUp}
-      />
-    </div>
+      {overlayRoot &&
+        textEdit &&
+        createPortal(
+          <textarea
+            autoFocus
+            value={textEdit.value}
+            onChange={(e) => setTextEdit((prev) => (prev ? { ...prev, value: e.target.value } : prev))}
+            onBlur={() => commitPendingText()}
+            onInput={(e) => {
+              const el = e.currentTarget
+              el.style.height = 'auto'
+              el.style.height = `${el.scrollHeight}px`
+            }}
+            className="pointer-events-auto absolute resize-none overflow-hidden bg-transparent p-0 outline-none"
+            style={{
+              left: (textEdit.x / CANVAS_WIDTH) * displayWidth,
+              top: (textEdit.y / CANVAS_HEIGHT) * displayHeight,
+              minWidth: '4ch',
+              minHeight: fontSize * (displayWidth / CANVAS_WIDTH) * TEXT_LINE_HEIGHT,
+              color,
+              fontSize: fontSize * (displayWidth / CANVAS_WIDTH),
+              lineHeight: TEXT_LINE_HEIGHT,
+              border: `1px dashed ${MARQUEE_COLOR}`,
+            }}
+          />,
+          overlayRoot
+        )}
+    </>
   )
 })
