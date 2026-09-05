@@ -1,10 +1,11 @@
 'use client'
 
 import { useState } from 'react'
-import { Plus, X, Loader2 } from 'lucide-react'
+import { Plus, X, Loader2, FileText } from 'lucide-react'
 import { createChapter, updateChapter, deleteChapter } from '@/actions/chapters'
 import { ChapterLinkPicker } from './ChapterLinkPicker'
-import type { Chapter } from '@/types/database'
+import { ChapterDetailModal } from './ChapterDetailModal'
+import type { Chapter, Character, Event } from '@/types/database'
 
 const DEFAULT_CHAPTER_WIDTH = 220
 const MIN_CHAPTER_WIDTH = 120
@@ -17,9 +18,12 @@ const MAX_LABEL_WIDTH = 300
 interface ChapterHeaderProps {
   projectId: string
   chapters: Chapter[]
+  allCharacters: Character[]
+  events: Event[]
   onAdded: () => void
   onRemoved: (id: string) => void
   onRenamed: (id: string, title: string) => void
+  onUpdated: (id: string, updates: Partial<Chapter>) => void
   labelWidth: number
   chapterWidth: number
   onLabelWidthChange: (w: number) => void
@@ -29,9 +33,12 @@ interface ChapterHeaderProps {
 export function ChapterHeader({
   projectId,
   chapters,
+  allCharacters,
+  events,
   onAdded,
   onRemoved,
   onRenamed,
+  onUpdated,
   labelWidth,
   chapterWidth,
   onLabelWidthChange,
@@ -77,8 +84,11 @@ export function ChapterHeader({
             chapter={chapter}
             allChapters={chapters}
             projectId={projectId}
+            allCharacters={allCharacters}
+            events={events}
             onRemoved={onRemoved}
             onRenamed={onRenamed}
+            onUpdated={onUpdated}
           />
         </ResizableCell>
       ))}
@@ -164,18 +174,25 @@ function ChapterCell({
   chapter,
   allChapters,
   projectId,
+  allCharacters,
+  events,
   onRemoved,
   onRenamed,
+  onUpdated,
 }: {
   chapter: Chapter
   allChapters: Chapter[]
   projectId: string
+  allCharacters: Character[]
+  events: Event[]
   onRemoved: (id: string) => void
   onRenamed: (id: string, title: string) => void
+  onUpdated: (id: string, updates: Partial<Chapter>) => void
 }) {
   const [editing, setEditing] = useState(false)
   const [title, setTitle] = useState(chapter.title)
   const [deleting, setDeleting] = useState(false)
+  const [detailOpen, setDetailOpen] = useState(false)
 
   async function handleRename() {
     if (!title.trim() || title === chapter.title) {
@@ -220,6 +237,23 @@ function ChapterCell({
         </span>
       )}
 
+      {/* An explicit button rather than a single-click on the title: the title
+          already owns double-click-to-rename, and a click handler there would
+          fire on the first click of that double-click, making rename
+          unreachable — the same bug that hit StatusPicker's rename. */}
+      {!editing && (
+        <button
+          onClick={(e) => {
+            e.stopPropagation()
+            setDetailOpen(true)
+          }}
+          title="Chapter details"
+          className="relative opacity-100 md:opacity-0 md:group-hover:opacity-100 text-muted-foreground hover:text-foreground transition-opacity shrink-0 after:absolute after:-inset-y-2.5 after:-inset-x-1.5"
+        >
+          <FileText className="h-3 w-3" />
+        </button>
+      )}
+
       {!editing && (
         <ChapterLinkPicker chapter={chapter} allChapters={allChapters} projectId={projectId} />
       )}
@@ -237,6 +271,16 @@ function ChapterCell({
           )}
         </button>
       )}
+
+      <ChapterDetailModal
+        chapter={chapter}
+        projectId={projectId}
+        allCharacters={allCharacters}
+        events={events}
+        open={detailOpen}
+        onClose={() => setDetailOpen(false)}
+        onUpdated={onUpdated}
+      />
     </div>
   )
 }

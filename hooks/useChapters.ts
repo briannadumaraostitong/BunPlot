@@ -45,5 +45,13 @@ export function useChapters(projectId: string, initial: Chapter[] = []) {
     )
   }
 
-  return { chapters, setChapters, refresh, removeChapter, renameChapter }
+  // Optimistic counterpart to updateChapter, matching how PlaceDetailPanel
+  // pairs onUpdated with updatePlace — the realtime subscription above would
+  // eventually catch up, but the modal shouldn't wait on a round trip to show
+  // what was just saved.
+  function updateChapterLocal(id: string, updates: Partial<Chapter>) {
+    setChapters((prev) => prev.map((c) => (c.id === id ? { ...c, ...updates } : c)))
+  }
+
+  return { chapters, setChapters, refresh, removeChapter, renameChapter, updateChapterLocal }
 }

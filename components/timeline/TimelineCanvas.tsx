@@ -77,6 +77,7 @@ export function TimelineCanvas({
     refresh: refreshChapters,
     removeChapter,
     renameChapter,
+    updateChapterLocal,
   } = useChapters(project.id, initialChapters)
 
   const { statuses, reorder: reorderStatusLocal } = useStatuses(project.id, initialStatuses)
@@ -395,9 +396,12 @@ export function TimelineCanvas({
                 <ChapterHeader
                   projectId={project.id}
                   chapters={chapters}
+                  allCharacters={allCharacters}
+                  events={events}
                   onAdded={refreshChapters}
                   onRemoved={removeChapter}
                   onRenamed={renameChapter}
+                  onUpdated={updateChapterLocal}
                   labelWidth={labelWidth}
                   chapterWidth={chapterWidth}
                   onLabelWidthChange={setLabelWidth}
