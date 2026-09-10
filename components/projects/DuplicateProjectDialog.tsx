@@ -93,7 +93,7 @@ export function DuplicateProjectDialog({ project, open, onOpenChange }: Duplicat
               >
                 <p className="text-sm font-medium">Full copy</p>
                 <p className="text-xs text-muted-foreground mt-0.5">
-                  Everything — layers, statuses, chapters, events, characters, places, outlines, and all relationships between them.
+                  Everything: layers, statuses, chapters, events, characters, places, outlines, and all relationships between them.
                 </p>
               </button>
               <button
@@ -108,7 +108,7 @@ export function DuplicateProjectDialog({ project, open, onOpenChange }: Duplicat
               >
                 <p className="text-sm font-medium">Structure only</p>
                 <p className="text-xs text-muted-foreground mt-0.5">
-                  Layers, statuses, and chapters as a starting template — events, characters, and places are left empty.
+                  Layers, statuses, and chapters as a starting template. Events, characters, and places are left empty.
                 </p>
               </button>
             </div>
