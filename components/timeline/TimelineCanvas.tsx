@@ -392,7 +392,7 @@ export function TimelineCanvas({
               placeFilter={placeFilter}
               onPlaceFilterChange={setPlaceFilter}
             />
-            <div className="flex-1 overflow-auto scrollbar-thin">
+            <div className="flex-1 overflow-auto scrollbar-thin p-4">
               <div className="inline-block min-w-full">
                 <ChapterHeader
                   projectId={project.id}
