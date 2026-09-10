@@ -116,7 +116,7 @@ export default async function DashboardPage() {
                   All Projects
                 </h2>
               )}
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+              <div className="grid grid-cols-[repeat(auto-fill,minmax(160px,1fr))] gap-4">
                 {ungroupedProjects.map((project) => (
                   <ProjectCard
                     key={project.id}

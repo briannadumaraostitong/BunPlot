@@ -86,7 +86,7 @@ export async function createProject(input: CreateProjectInput) {
 
 export async function updateProject(
   id: string,
-  updates: { title?: string; description?: string; mode?: AppMode; cover_image_url?: string | null }
+  updates: { title?: string; description?: string | null; mode?: AppMode; cover_image_url?: string | null }
 ) {
   const supabase = await createClient()
   const { error } = await supabase
