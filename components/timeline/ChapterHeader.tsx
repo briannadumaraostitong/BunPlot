@@ -1,7 +1,9 @@
 'use client'
 
 import { useState } from 'react'
-import { Plus, X, Loader2, FileText } from 'lucide-react'
+import { Plus, X, Loader2, FileText, Eye, EyeOff } from 'lucide-react'
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover'
+import { cn } from '@/lib/utils'
 import { createChapter, updateChapter, deleteChapter } from '@/actions/chapters'
 import { ChapterLinkPicker } from './ChapterLinkPicker'
 import { ChapterDetailModal } from './ChapterDetailModal'
@@ -17,7 +19,12 @@ const MAX_LABEL_WIDTH = 300
 
 interface ChapterHeaderProps {
   projectId: string
+  // Every chapter, hidden included — needed for ChapterLinkPicker's "link to"
+  // list and the visibility popover below, neither of which should lose
+  // access to a chapter just because it's currently hidden.
   chapters: Chapter[]
+  // What actually renders as a column. A subset of `chapters`.
+  visibleChapters: Chapter[]
   allCharacters: Character[]
   events: Event[]
   onAdded: () => void
@@ -33,6 +40,7 @@ interface ChapterHeaderProps {
 export function ChapterHeader({
   projectId,
   chapters,
+  visibleChapters,
   allCharacters,
   events,
   onAdded,
@@ -71,7 +79,7 @@ export function ChapterHeader({
       </ResizableCell>
 
       {/* Chapter columns */}
-      {chapters.map((chapter) => (
+      {visibleChapters.map((chapter) => (
         <ResizableCell
           key={chapter.id}
           width={chapterWidth}
@@ -107,7 +115,84 @@ export function ChapterHeader({
         )}
         Add Chapter
       </button>
+
+      {/* Always rendered regardless of chapters.length or how many are
+          hidden — this is the only surface a hidden chapter can be restored
+          from, since (unlike layers' always-present LayerPanel) a hidden
+          chapter's own column, and the toggle on it, disappears with it. */}
+      <ChapterVisibilityPopover chapters={chapters} projectId={projectId} onUpdated={onUpdated} />
     </div>
+  )
+}
+
+function ChapterVisibilityPopover({
+  chapters,
+  projectId,
+  onUpdated,
+}: {
+  chapters: Chapter[]
+  projectId: string
+  onUpdated: (id: string, updates: Partial<Chapter>) => void
+}) {
+  const hiddenCount = chapters.filter((c) => !c.visible).length
+
+  async function handleToggle(chapter: Chapter) {
+    const next = !chapter.visible
+    onUpdated(chapter.id, { visible: next })
+    const result = await updateChapter(chapter.id, projectId, { visible: next })
+    if ('error' in result) {
+      console.error('Chapter visibility update error:', result.error)
+      // Snap the optimistic change back so the UI doesn't keep claiming a
+      // write that never actually landed.
+      onUpdated(chapter.id, { visible: chapter.visible })
+    }
+  }
+
+  return (
+    <Popover>
+      <PopoverTrigger asChild>
+        <button
+          title="Show or hide chapters"
+          className={cn(
+            'relative flex h-7 w-7 shrink-0 items-center justify-center self-center rounded-lg text-muted-foreground transition-colors hover:bg-secondary after:absolute after:-inset-1',
+            hiddenCount > 0 && 'text-foreground'
+          )}
+        >
+          <Eye className="h-3.5 w-3.5" />
+          {hiddenCount > 0 && (
+            <span className="absolute -right-1 -top-1 flex h-4 min-w-4 items-center justify-center rounded-full bg-primary px-1 text-[10px] font-semibold text-primary-foreground">
+              {hiddenCount}
+            </span>
+          )}
+        </button>
+      </PopoverTrigger>
+      <PopoverContent align="start" className="w-56 gap-0 p-1">
+        <p className="px-2 py-1.5 text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">
+          Chapters
+        </p>
+        {chapters.length === 0 ? (
+          <p className="px-2 py-1.5 text-[11px] text-muted-foreground">No chapters yet</p>
+        ) : (
+          chapters.map((chapter) => (
+            <button
+              key={chapter.id}
+              onClick={() => handleToggle(chapter)}
+              className={cn(
+                'flex w-full items-center gap-2 rounded-md px-2 py-1.5 text-left text-xs transition-colors hover:bg-secondary/50',
+                !chapter.visible && 'text-muted-foreground'
+              )}
+            >
+              {chapter.visible ? (
+                <Eye className="h-3.5 w-3.5 shrink-0" />
+              ) : (
+                <EyeOff className="h-3.5 w-3.5 shrink-0" />
+              )}
+              <span className="truncate">{chapter.title}</span>
+            </button>
+          ))
+        )}
+      </PopoverContent>
+    </Popover>
   )
 }
 
@@ -213,6 +298,16 @@ function ChapterCell({
     setDeleting(false)
   }
 
+  async function handleHide(e: React.MouseEvent) {
+    e.stopPropagation()
+    onUpdated(chapter.id, { visible: false })
+    const result = await updateChapter(chapter.id, projectId, { visible: false })
+    if ('error' in result) {
+      console.error('Chapter visibility update error:', result.error)
+      onUpdated(chapter.id, { visible: true })
+    }
+  }
+
   return (
     <div className="group flex items-center justify-between gap-1 px-3 flex-1 min-w-0">
       {editing ? (
@@ -235,6 +330,21 @@ function ChapterCell({
         >
           {chapter.title}
         </span>
+      )}
+
+      {/* Hide-only, not a visible/hidden toggle — this button only ever
+          renders on a chapter that's currently rendering as a column (i.e.
+          currently visible), so there's nothing for it to toggle back from.
+          Restoring a hidden chapter is exclusively the visibility popover's
+          job, since that's the only surface still showing it. */}
+      {!editing && (
+        <button
+          onClick={handleHide}
+          title="Hide chapter"
+          className="relative opacity-100 md:opacity-0 md:group-hover:opacity-100 text-muted-foreground hover:text-foreground transition-opacity shrink-0 after:absolute after:-inset-y-2.5 after:-inset-x-1.5"
+        >
+          <EyeOff className="h-3 w-3" />
+        </button>
       )}
 
       {/* An explicit button rather than a single-click on the title: the title

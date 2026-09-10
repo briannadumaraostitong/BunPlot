@@ -69,6 +69,7 @@ export interface Chapter {
   position: number
   description: Record<string, unknown>
   pov_character_id: string | null
+  visible: boolean
   created_at: string
 }
 

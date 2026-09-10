@@ -283,6 +283,12 @@ ALTER TABLE chapters
   ADD COLUMN description      JSONB NOT NULL DEFAULT '{}',
   ADD COLUMN pov_character_id UUID REFERENCES characters(id) ON DELETE SET NULL;
 
+-- Chapter visibility toggle, mirroring layers.visible exactly (same type and
+-- default) — see the Timeline chapter-visibility feature. DEFAULT TRUE keeps
+-- every existing chapter visible on migration, no surprise disappearances.
+ALTER TABLE chapters
+  ADD COLUMN visible BOOLEAN NOT NULL DEFAULT TRUE;
+
 -- Deferred from CREATE TABLE events above, which runs before chapters exists
 -- in this file. ON DELETE SET NULL confirmed against pg_constraint: deleting
 -- a chapter detaches its events rather than deleting or blocking them.

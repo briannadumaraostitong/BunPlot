@@ -28,12 +28,32 @@ export function useChapters(projectId: string, initial: Chapter[] = []) {
           table: 'chapters',
           filter: `project_id=eq.${projectId}`,
         },
-        () => { refresh() }
+        (payload) => {
+          // Applied in place rather than refetching on every change. A naive
+          // refresh() (the old behavior) reruns on this client's own writes
+          // too, with no origin filtering — for two near-simultaneous edits,
+          // the first one's commit-triggered refetch can land while the
+          // second is still in flight and clobber it with a stale pre-write
+          // snapshot. Same root cause and fix as usePanels' realtime handler.
+          if (payload.eventType === 'DELETE') {
+            const { id } = payload.old as Partial<Chapter>
+            if (id) setChapters((prev) => prev.filter((c) => c.id !== id))
+            return
+          }
+
+          const row = payload.new as Chapter
+          setChapters((prev) => {
+            const merged = prev.some((c) => c.id === row.id)
+              ? prev.map((c) => (c.id === row.id ? { ...c, ...row } : c))
+              : [...prev, row]
+            return merged.sort((a, b) => a.position - b.position)
+          })
+        }
       )
       .subscribe()
 
     return () => { supabase.removeChannel(channel) }
-  }, [projectId, refresh, supabase])
+  }, [projectId, supabase])
 
   function removeChapter(id: string) {
     setChapters((prev) => prev.filter((c) => c.id !== id))

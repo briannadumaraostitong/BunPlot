@@ -39,6 +39,7 @@ export async function updateChapter(
     title: string
     description: Record<string, unknown>
     pov_character_id: string | null
+    visible: boolean
   }>
 ) {
   const supabase = await createClient()

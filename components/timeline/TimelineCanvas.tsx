@@ -318,6 +318,7 @@ export function TimelineCanvas({
   }
 
   const visibleLayers = layers.filter((l) => l.visible)
+  const visibleChapters = chapters.filter((c) => c.visible)
   const selectedLayer = selectedEvent
     ? layers.find((l) => l.id === selectedEvent.layer_id) ?? null
     : null
@@ -396,6 +397,7 @@ export function TimelineCanvas({
                 <ChapterHeader
                   projectId={project.id}
                   chapters={chapters}
+                  visibleChapters={visibleChapters}
                   allCharacters={allCharacters}
                   events={events}
                   onAdded={refreshChapters}
@@ -415,6 +417,10 @@ export function TimelineCanvas({
                       Click &quot;Add Chapter&quot; above to create your first chapter
                     </p>
                   </div>
+                ) : visibleChapters.length === 0 ? (
+                  <div className="flex h-48 items-center justify-center text-sm text-muted-foreground">
+                    All chapters are hidden. Use the chapter visibility control above to show them.
+                  </div>
                 ) : (
                   <DndContext
                     sensors={sensors}
@@ -429,7 +435,7 @@ export function TimelineCanvas({
                         events={eventsForLayer(layer.id)}
                         statuses={statuses}
                         visibleEventIds={visibleEventIds}
-                        chapters={chapters}
+                        chapters={visibleChapters}
                         height={TRACK_HEIGHT}
                         selectedEventId={selectedEvent?.id ?? null}
                         onSelectEvent={(id) => {
