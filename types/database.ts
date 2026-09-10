@@ -69,7 +69,6 @@ export interface Chapter {
   position: number
   description: Record<string, unknown>
   pov_character_id: string | null
-  word_count: number | null
   created_at: string
 }
 
@@ -181,7 +180,6 @@ export interface Event {
   word_count: number | null
   custom_fields: Record<string, unknown>
   attachments: Attachment[]
-  tags: string[]
   created_at: string
   updated_at: string
 }

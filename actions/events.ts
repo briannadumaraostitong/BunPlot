@@ -60,7 +60,6 @@ export async function updateEvent(
     status_id: string
     tension_level: number
     word_count: number
-    tags: string[]
     start_date: string
     end_date: string
     layer_id: string

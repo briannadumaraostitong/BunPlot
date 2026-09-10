@@ -155,10 +155,18 @@ CREATE TABLE statuses (
 );
 
 -- EVENTS
+-- chapter_id was live, indexed (idx_events_chapter below) and used
+-- throughout the app, but missing from this CREATE TABLE — the one gap in
+-- an otherwise fully-tracked table. Reconstructed against
+-- information_schema/pg_catalog rather than inferred: UUID, nullable, no
+-- default. Declared as a plain column here (not `REFERENCES chapters(id)`
+-- inline) because chapters is created later in this file; the FK itself is
+-- added further down, once chapters exists — see the comment there.
 CREATE TABLE events (
   id              UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
   project_id      UUID NOT NULL REFERENCES projects(id) ON DELETE CASCADE,
   layer_id        UUID NOT NULL REFERENCES layers(id) ON DELETE CASCADE,
+  chapter_id      UUID,
   title           TEXT NOT NULL,
   description     TEXT,
   notes           TEXT,
@@ -173,7 +181,6 @@ CREATE TABLE events (
   word_count      INTEGER,
   custom_fields   JSONB NOT NULL DEFAULT '{}',
   attachments     JSONB NOT NULL DEFAULT '[]',
-  tags            TEXT[] NOT NULL DEFAULT '{}',
   created_at      TIMESTAMPTZ NOT NULL DEFAULT NOW(),
   updated_at      TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
@@ -270,12 +277,17 @@ CREATE TABLE chapters (
 -- produces the same final shape. description matches the Tiptap-document
 -- pattern used by outlines.content and places.description/notes;
 -- pov_character_id nulls out rather than cascading so deleting a character
--- doesn't take the chapter with it; word_count is manually entered, same as
--- events.word_count.
+-- doesn't take the chapter with it. word_count was added alongside these but
+-- never got a UI and was dropped again — no ADD COLUMN for it here.
 ALTER TABLE chapters
   ADD COLUMN description      JSONB NOT NULL DEFAULT '{}',
-  ADD COLUMN pov_character_id UUID REFERENCES characters(id) ON DELETE SET NULL,
-  ADD COLUMN word_count       INTEGER;
+  ADD COLUMN pov_character_id UUID REFERENCES characters(id) ON DELETE SET NULL;
+
+-- Deferred from CREATE TABLE events above, which runs before chapters exists
+-- in this file. ON DELETE SET NULL confirmed against pg_constraint: deleting
+-- a chapter detaches its events rather than deleting or blocking them.
+ALTER TABLE events ADD CONSTRAINT events_chapter_id_fkey
+  FOREIGN KEY (chapter_id) REFERENCES chapters(id) ON DELETE SET NULL;
 
 -- CHAPTER LINKS ("continues from" — chapter_id inherits/continues from
 -- continues_from_chapter_id; not restricted to adjacent chapters, and a
@@ -315,7 +327,6 @@ CREATE INDEX idx_events_layer       ON events(layer_id);
 CREATE INDEX idx_events_chapter     ON events(chapter_id);
 CREATE INDEX idx_events_position    ON events(layer_id, position);
 CREATE INDEX idx_events_dates       ON events(project_id, start_date, end_date);
-CREATE INDEX idx_events_tags        ON events USING GIN(tags);
 CREATE INDEX idx_events_custom      ON events USING GIN(custom_fields);
 CREATE INDEX idx_events_status_id   ON events(project_id, status_id);
 CREATE INDEX idx_statuses_project   ON statuses(project_id);
@@ -667,6 +678,23 @@ BEGIN
     SELECT m.new_id, v_new_project_id, c.name, c.role, c.description, c.color, c.avatar_url, c.notes, c.custom_fields
     FROM characters c JOIN character_map m ON m.old_id = c.id;
 
+    -- Chapters are always cloned (even in 'structure' mode) as a bare
+    -- title/position skeleton in step 4. description is real content, and
+    -- pov_character_id references characters, which only exist in 'full'
+    -- mode — copying either into the unconditional step-4 insert would leak
+    -- content into a structure-only template, or worse, leave structure-mode
+    -- duplicates with a dangling FK into the SOURCE project's characters.
+    -- Backfilled here instead, only for full-mode duplicates, now that
+    -- character_map exists. The LEFT JOIN preserves a NULL pov_character_id
+    -- rather than dropping the row or erroring.
+    UPDATE chapters
+    SET description = src.description,
+        pov_character_id = chm.new_id
+    FROM chapters src
+    JOIN chapter_map cm ON cm.old_id = src.id
+    LEFT JOIN character_map chm ON chm.old_id = src.pov_character_id
+    WHERE chapters.id = cm.new_id AND src.project_id = p_source_project_id;
+
     -- 7. PLACES
     CREATE TEMP TABLE place_map ON COMMIT DROP AS
       SELECT id AS old_id, gen_random_uuid() AS new_id
@@ -685,13 +713,13 @@ BEGIN
     INSERT INTO events (
       id, project_id, layer_id, chapter_id, title, description, notes,
       start_date, end_date, position, duration, color, icon, status_id,
-      tension_level, word_count, custom_fields, attachments, tags
+      tension_level, word_count, custom_fields, attachments
     )
     SELECT
       em.new_id, v_new_project_id, lm.new_id, cm.new_id,
       e.title, e.description, e.notes, e.start_date, e.end_date, e.position,
       e.duration, e.color, e.icon, sm.new_id, e.tension_level, e.word_count,
-      e.custom_fields, e.attachments, e.tags
+      e.custom_fields, e.attachments
     FROM events e
     JOIN event_map em ON em.old_id = e.id
     JOIN layer_map lm ON lm.old_id = e.layer_id
