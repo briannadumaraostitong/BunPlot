@@ -1,7 +1,8 @@
 'use client'
 
 import { useEffect, useMemo, useRef, useState } from 'react'
-import { Loader2 } from 'lucide-react'
+import { Skeleton } from '@/components/ui/skeleton'
+import { SidebarRowSkeleton } from '@/components/ui/sidebar-skeleton-row'
 import { CharacterSidebar } from './CharacterSidebar'
 import { FamilyTreeTabBar } from './FamilyTreeTabBar'
 import { RelationshipCanvas, type RelationshipCanvasHandle } from './RelationshipCanvas'
@@ -146,8 +147,37 @@ export function CharactersPanel({ projectId, initialSelectedCharacterId }: Chara
 
   if (loading) {
     return (
-      <div className="flex h-full items-center justify-center">
-        <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />
+      <div className="flex h-full overflow-hidden">
+        {/* CharacterSidebar */}
+        <div className="hidden md:flex w-52 flex-col border-r border-border shrink-0">
+          <div className="h-10 border-b border-border flex items-center px-2">
+            <Skeleton className="h-3 w-16" />
+          </div>
+          <div className="flex-1 py-1 space-y-0.5">
+            {Array.from({ length: 6 }).map((_, i) => (
+              <SidebarRowSkeleton key={i} dot="circle" />
+            ))}
+          </div>
+          <div className="p-2 border-t border-border">
+            <Skeleton className="h-7 w-full rounded-md" />
+          </div>
+        </div>
+
+        <div className="flex flex-col flex-1 min-w-0">
+          {/* FamilyTreeTabBar */}
+          <div className="flex h-8 shrink-0 items-center gap-1.5 border-b border-border px-2">
+            <Skeleton className="h-5 w-14 rounded-md" />
+          </div>
+
+          {/* Canvas — a few loosely-scattered node placeholders, not real
+              positions (character x/y is entirely data-dependent), just
+              enough to suggest content is coming. */}
+          <div className="relative flex-1 bg-secondary/10 overflow-hidden">
+            <Skeleton className="absolute left-[15%] top-[20%] h-16 w-32 rounded-lg" />
+            <Skeleton className="absolute left-[45%] top-[40%] h-16 w-32 rounded-lg" />
+            <Skeleton className="absolute left-[25%] top-[60%] h-16 w-32 rounded-lg" />
+          </div>
+        </div>
       </div>
     )
   }

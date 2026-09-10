@@ -1,7 +1,8 @@
 'use client'
 
 import { useEffect, useMemo, useState } from 'react'
-import { Loader2 } from 'lucide-react'
+import { Skeleton } from '@/components/ui/skeleton'
+import { SidebarRowSkeleton } from '@/components/ui/sidebar-skeleton-row'
 import { PlaceSidebar } from './PlaceSidebar'
 import { PlaceGrid } from './PlaceGrid'
 import { PlaceDetailPanel } from './PlaceDetailPanel'
@@ -147,8 +148,37 @@ export function PlacesPanel({
 
   if (loading) {
     return (
-      <div className="flex h-full items-center justify-center">
-        <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />
+      <div className="flex h-full overflow-hidden">
+        {/* PlaceSidebar */}
+        <div className="hidden md:flex w-52 flex-col border-r border-border shrink-0">
+          <div className="h-10 border-b border-border flex items-center px-2">
+            <Skeleton className="h-3 w-12" />
+          </div>
+          <div className="p-2 space-y-1.5 border-b border-border">
+            <Skeleton className="h-7 w-full rounded-md" />
+            <Skeleton className="h-7 w-full rounded-md" />
+          </div>
+          <div className="flex-1 py-1 space-y-0.5">
+            {Array.from({ length: 6 }).map((_, i) => (
+              <SidebarRowSkeleton key={i} dot="dot" />
+            ))}
+          </div>
+        </div>
+
+        {/* PlaceGrid */}
+        <div className="flex-1 overflow-hidden p-4">
+          <div className="grid grid-cols-[repeat(auto-fill,minmax(220px,1fr))] gap-4">
+            {Array.from({ length: 8 }).map((_, i) => (
+              <div key={i} className="overflow-hidden rounded-lg border border-border bg-card">
+                <Skeleton className="aspect-video w-full rounded-none" />
+                <div className="p-2 space-y-1">
+                  <Skeleton className="h-3 w-2/3" />
+                  <Skeleton className="h-2.5 w-1/3" />
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
       </div>
     )
   }

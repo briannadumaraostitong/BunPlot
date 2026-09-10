@@ -28,6 +28,7 @@ import {
   Loader2,
 } from 'lucide-react'
 import { Separator } from '@/components/ui/separator'
+import { Skeleton } from '@/components/ui/skeleton'
 import { createClient } from '@/lib/supabase/client'
 import {
   getOutlines,
@@ -128,8 +129,32 @@ export function OutlineEditor({ projectId }: OutlineEditorProps) {
 
   if (loading) {
     return (
-      <div className="flex h-full items-center justify-center">
-        <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />
+      <div className="flex flex-col h-full">
+        {/* OutlineTabBar */}
+        <div className="flex h-8 shrink-0 items-center gap-1.5 border-b border-border px-2">
+          <Skeleton className="h-5 w-16 rounded-md" />
+          <Skeleton className="h-5 w-16 rounded-md" />
+        </div>
+
+        {/* Formatting toolbar */}
+        <div className="flex h-10 shrink-0 items-center gap-1 border-b border-border px-3">
+          {Array.from({ length: 6 }).map((_, i) => (
+            <Skeleton key={i} className="h-6 w-6 rounded-md" />
+          ))}
+        </div>
+
+        {/* Document page — reuses the real page wrapper's own classes so
+            its width/position is already correct at first paint. */}
+        <div className="flex-1 min-h-0 overflow-hidden bg-secondary/10">
+          <div className="mx-auto max-w-3xl bg-card px-16 py-12 space-y-3">
+            <Skeleton className="h-5 w-2/3" />
+            <Skeleton className="h-3 w-full" />
+            <Skeleton className="h-3 w-full" />
+            <Skeleton className="h-3 w-4/5" />
+            <Skeleton className="h-3 w-full" />
+            <Skeleton className="h-3 w-3/5" />
+          </div>
+        </div>
       </div>
     )
   }

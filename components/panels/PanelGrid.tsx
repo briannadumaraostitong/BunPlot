@@ -4,6 +4,7 @@ import { useState } from 'react'
 import { DndContext, closestCenter, type DragEndEvent } from '@dnd-kit/core'
 import { SortableContext, rectSortingStrategy } from '@dnd-kit/sortable'
 import { Plus, Loader2 } from 'lucide-react'
+import { Skeleton } from '@/components/ui/skeleton'
 import { PanelCard } from './PanelCard'
 import { SketchModal } from './sketch/SketchModal'
 import { usePanels } from '@/hooks/usePanels'
@@ -51,8 +52,17 @@ export function PanelGrid({ projectId, chapterId }: PanelGridProps) {
 
   if (loading) {
     return (
-      <div className="flex h-full items-center justify-center">
-        <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />
+      <div className="h-full overflow-y-auto scrollbar-thin p-4">
+        <div className="grid grid-cols-[repeat(auto-fill,minmax(160px,1fr))] gap-4">
+          {Array.from({ length: 10 }).map((_, i) => (
+            <div key={i} className="overflow-hidden rounded-lg border border-border bg-card">
+              <Skeleton className="aspect-3/4 w-full rounded-none" />
+              <div className="p-2">
+                <Skeleton className="h-3 w-2/3" />
+              </div>
+            </div>
+          ))}
+        </div>
       </div>
     )
   }
