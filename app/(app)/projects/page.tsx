@@ -1,5 +1,6 @@
 import Link from 'next/link'
 import { createClient } from '@/lib/supabase/server'
+import { withProjectCoverUrls } from '@/actions/projects'
 import { ProjectCard } from '@/components/projects/ProjectCard'
 import { NewProjectDialog } from '@/components/projects/NewProjectDialog'
 import { cn } from '@/lib/utils'
@@ -46,7 +47,7 @@ export default async function ProjectsPage({ searchParams }: Props) {
     .eq('archived', showArchived)
     .order('updated_at', { ascending: false })
 
-  const projects = (data ?? []) as Project[]
+  const projects = await withProjectCoverUrls(supabase, (data ?? []) as Project[])
 
   // One bulk query per table (not per project) — counts are tallied in
   // memory rather than issued as N separate count() calls.

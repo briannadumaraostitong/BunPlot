@@ -13,11 +13,12 @@ import {
 } from '@/components/ui/dialog'
 import { ProjectCard, type ProjectStats } from '@/components/projects/ProjectCard'
 import { updateFolder, deleteFolder } from '@/actions/folders'
-import type { Project, ProjectFolder } from '@/types/database'
+import type { ProjectFolder } from '@/types/database'
+import type { ProjectWithCover } from '@/actions/projects'
 
 interface FolderSectionProps {
   folder: ProjectFolder
-  projects: Project[]
+  projects: ProjectWithCover[]
   allFolders: ProjectFolder[]
   statsByProject: Record<string, ProjectStats>
 }

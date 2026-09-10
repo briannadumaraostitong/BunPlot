@@ -3,7 +3,7 @@
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { formatDistanceToNow } from 'date-fns'
-import { MoreHorizontal, Archive, ArchiveRestore, Trash2, FolderInput, FolderMinus, Pencil, Copy, Check, X } from 'lucide-react'
+import { MoreHorizontal, Archive, ArchiveRestore, Trash2, FolderInput, FolderMinus, Pencil, Copy, Check, X, Camera, Loader2 } from 'lucide-react'
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -22,9 +22,11 @@ import {
 import { Button } from '@/components/ui/button'
 import { DuplicateProjectDialog } from './DuplicateProjectDialog'
 import { cn } from '@/lib/utils'
+import { createClient } from '@/lib/supabase/client'
 import { deleteProject, archiveProject, unarchiveProject, moveProjectToFolder, updateProject } from '@/actions/projects'
-import type { Project, ProjectFolder } from '@/types/database'
-import { useState } from 'react'
+import type { ProjectFolder } from '@/types/database'
+import type { ProjectWithCover } from '@/actions/projects'
+import { useRef, useState } from 'react'
 
 export interface ProjectStats {
   wordCount: number
@@ -34,7 +36,7 @@ export interface ProjectStats {
 }
 
 interface ProjectCardProps {
-  project: Project
+  project: ProjectWithCover
   folders?: ProjectFolder[]
   stats: ProjectStats
 }
@@ -46,6 +48,15 @@ export function ProjectCard({ project, folders = [], stats }: ProjectCardProps) 
   const [loading, setLoading] = useState(false)
   const [editingTitle, setEditingTitle] = useState(false)
   const [title, setTitle] = useState(project.title)
+  // Local, optimistic mirror of the two cover fields — same convention as
+  // `title` above rather than the usePanels/usePlaces hook pattern, since
+  // ProjectCard has no such hook backing it. updateProject's revalidatePath
+  // already refreshes the server-fetched props on next navigation; matching
+  // how handleRenameTitle doesn't force a router.refresh() either.
+  const [cover, setCover] = useState({
+    imagePath: project.cover_image_url,
+    url: project.cover_url,
+  })
 
   async function handleDelete() {
     setLoading(true)
@@ -96,8 +107,12 @@ export function ProjectCard({ project, folders = [], stats }: ProjectCardProps) 
         'hover:shadow-md transition-all duration-150',
         project.archived && 'opacity-60 hover:opacity-100'
       )}>
-        {/* Color strip */}
-        <div className="h-2 rounded-t-xl bg-primary" />
+        <ProjectCoverImage
+          projectId={project.id}
+          imagePath={cover.imagePath}
+          displayUrl={cover.url}
+          onUpdated={setCover}
+        />
 
         <div className="p-4 space-y-3">
           <div className="flex items-start justify-between gap-2">
@@ -269,6 +284,131 @@ function StatItem({ value, label }: { value: number; label: string }) {
     <div className="flex flex-col">
       <span className="text-sm font-semibold leading-none">{value.toLocaleString()}</span>
       <span className="mt-0.5 text-[10px] text-muted-foreground">{label}</span>
+    </div>
+  )
+}
+
+// Replaces the old decorative color strip. Reserves the same height whether
+// or not a cover is set (falls back to a plain bg-primary block) so cards
+// stay aligned across the grid regardless of which ones have images.
+// Named group (group/cover) because the outer card is itself an unnamed
+// .group for its own hover-reveal controls — nesting two plain .group
+// elements would make the outer hover also trigger this one's
+// group-hover: utilities. Same fix PanelCard.tsx already uses (group/image).
+function ProjectCoverImage({
+  projectId,
+  imagePath,
+  displayUrl,
+  onUpdated,
+}: {
+  projectId: string
+  imagePath: string | null
+  displayUrl: string | null
+  onUpdated: (next: { imagePath: string | null; url: string | null }) => void
+}) {
+  const fileInputRef = useRef<HTMLInputElement>(null)
+  const [uploading, setUploading] = useState(false)
+  const [error, setError] = useState<string | null>(null)
+
+  async function uploadFile(file: File) {
+    setError(null)
+    setUploading(true)
+    try {
+      const supabase = createClient()
+      const safeName = file.name.replace(/\s+/g, '-')
+      const path = `projects/${projectId}/${Date.now()}-${safeName}`
+
+      const { error: uploadErr } = await supabase.storage.from('attachments').upload(path, file)
+      if (uploadErr) throw uploadErr
+
+      const { data, error: signError } = await supabase.storage
+        .from('attachments')
+        .createSignedUrl(path, 60 * 60 * 24)
+      if (signError || !data) throw signError ?? new Error('Failed to create signed URL')
+
+      const previousPath = imagePath
+      onUpdated({ imagePath: path, url: data.signedUrl })
+      await updateProject(projectId, { cover_image_url: path })
+
+      if (previousPath) {
+        supabase.storage.from('attachments').remove([previousPath]).catch(() => {})
+      }
+    } catch (err) {
+      console.error('Project cover upload error:', err)
+      setError('Failed to upload image')
+    } finally {
+      setUploading(false)
+    }
+  }
+
+  async function handleRemove(e: React.MouseEvent) {
+    e.stopPropagation()
+    if (!imagePath) return
+    const path = imagePath
+    onUpdated({ imagePath: null, url: null })
+    await updateProject(projectId, { cover_image_url: null })
+    createClient().storage.from('attachments').remove([path]).catch(() => {})
+  }
+
+  return (
+    <div
+      className="group/cover relative h-20 w-full overflow-hidden rounded-t-xl cursor-pointer bg-primary"
+      onClick={() => !uploading && fileInputRef.current?.click()}
+      onDragOver={(e) => e.preventDefault()}
+      onDrop={(e) => {
+        e.preventDefault()
+        const file = e.dataTransfer.files?.[0]
+        if (file) uploadFile(file)
+      }}
+    >
+      {displayUrl && <img src={displayUrl} alt="" className="h-full w-full object-cover" />}
+
+      <div className="absolute inset-0 flex items-center justify-center bg-background/70 opacity-0 transition-opacity group-hover/cover:opacity-100">
+        {uploading ? (
+          <Loader2 className="h-4 w-4 animate-spin text-foreground" />
+        ) : (
+          <span className="text-xs font-medium text-foreground px-2 text-center">
+            {displayUrl ? 'Click or drag to replace' : 'Click or drag to add a cover'}
+          </span>
+        )}
+      </div>
+
+      {/* Mobile has no hover to discover the overlay above, so this corner
+          badge stays persistently visible below md instead. */}
+      <div
+        className="absolute left-1.5 top-1.5 flex h-6 w-6 items-center justify-center rounded-full bg-background/90 text-muted-foreground shadow-sm md:hidden"
+        title={displayUrl ? 'Replace cover image' : 'Add cover image'}
+      >
+        {uploading ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Camera className="h-3.5 w-3.5" />}
+      </div>
+
+      {displayUrl && !uploading && (
+        <button
+          onClick={handleRemove}
+          className="absolute right-1.5 top-1.5 flex h-6 w-6 items-center justify-center rounded-full bg-background/90 text-muted-foreground opacity-100 md:opacity-0 shadow-sm transition-opacity hover:text-destructive md:group-hover/cover:opacity-100 after:absolute after:-inset-2.5"
+          title="Remove cover image"
+        >
+          <X className="h-3.5 w-3.5" />
+        </button>
+      )}
+
+      <input
+        ref={fileInputRef}
+        type="file"
+        accept="image/jpeg,image/png,image/gif,image/webp"
+        className="hidden"
+        onChange={(e) => {
+          const file = e.target.files?.[0]
+          e.target.value = ''
+          if (file) uploadFile(file)
+        }}
+      />
+
+      {error && (
+        <p className="absolute bottom-1 left-1.5 right-1.5 text-[10px] text-destructive bg-card/90 rounded px-1">
+          {error}
+        </p>
+      )}
     </div>
   )
 }

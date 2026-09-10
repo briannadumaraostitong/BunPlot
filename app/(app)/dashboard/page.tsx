@@ -1,4 +1,5 @@
 import { createClient } from '@/lib/supabase/server'
+import { withProjectCoverUrls } from '@/actions/projects'
 import { ProjectCard } from '@/components/projects/ProjectCard'
 import { NewProjectDialog } from '@/components/projects/NewProjectDialog'
 import { NewFolderDialog } from '@/components/projects/NewFolderDialog'
@@ -46,7 +47,7 @@ export default async function DashboardPage() {
       .order('position'),
   ])
 
-  const projects = (projectsData ?? []) as Project[]
+  const projects = await withProjectCoverUrls(supabase, (projectsData ?? []) as Project[])
   const folders = (foldersData ?? []) as ProjectFolder[]
 
   const ungroupedProjects = projects.filter((p) => !p.folder_id)

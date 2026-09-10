@@ -4,6 +4,30 @@ import { createClient } from '@/lib/supabase/server'
 import { revalidatePath } from 'next/cache'
 import type { AppMode, Project } from '@/types/database'
 
+// Cover images live in the private 'attachments' bucket, same as Places and
+// Panels — see withCoverUrls in actions/places.ts. Recomputed on every list
+// fetch, so a short TTL is fine.
+const COVER_SIGNED_URL_TTL = 60 * 60 * 24 // 24h
+
+export interface ProjectWithCover extends Project {
+  cover_url: string | null
+}
+
+export async function withProjectCoverUrls(
+  supabase: Awaited<ReturnType<typeof createClient>>,
+  projects: Project[]
+): Promise<ProjectWithCover[]> {
+  return Promise.all(
+    projects.map(async (project) => {
+      if (!project.cover_image_url) return { ...project, cover_url: null }
+      const { data } = await supabase.storage
+        .from('attachments')
+        .createSignedUrl(project.cover_image_url, COVER_SIGNED_URL_TTL)
+      return { ...project, cover_url: data?.signedUrl ?? null }
+    })
+  )
+}
+
 interface CreateProjectInput {
   title: string
   description?: string
@@ -62,7 +86,7 @@ export async function createProject(input: CreateProjectInput) {
 
 export async function updateProject(
   id: string,
-  updates: { title?: string; description?: string; mode?: AppMode }
+  updates: { title?: string; description?: string; mode?: AppMode; cover_image_url?: string | null }
 ) {
   const supabase = await createClient()
   const { error } = await supabase
