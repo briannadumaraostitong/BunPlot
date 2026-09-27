@@ -29,6 +29,7 @@ import {
 } from 'lucide-react'
 import { Separator } from '@/components/ui/separator'
 import { Skeleton } from '@/components/ui/skeleton'
+import { SidebarRowSkeleton } from '@/components/ui/sidebar-skeleton-row'
 import { createClient } from '@/lib/supabase/client'
 import {
   getOutlines,
@@ -37,7 +38,7 @@ import {
   renameOutline,
   deleteOutline,
 } from '@/actions/outline'
-import { OutlineTabBar } from '@/components/outline/OutlineTabBar'
+import { OutlineSidebar } from '@/components/outline/OutlineSidebar'
 import { cn } from '@/lib/utils'
 import type { Outline } from '@/types/database'
 
@@ -129,30 +130,38 @@ export function OutlineEditor({ projectId }: OutlineEditorProps) {
 
   if (loading) {
     return (
-      <div className="flex flex-col h-full">
-        {/* OutlineTabBar */}
-        <div className="flex h-8 shrink-0 items-center gap-1.5 border-b border-border px-2">
-          <Skeleton className="h-5 w-16 rounded-md" />
-          <Skeleton className="h-5 w-16 rounded-md" />
+      <div className="flex h-full overflow-hidden">
+        {/* OutlineSidebar */}
+        <div className="hidden md:flex w-52 flex-col border-r border-border shrink-0">
+          <div className="h-10 border-b border-border flex items-center px-2">
+            <Skeleton className="h-3 w-10" />
+          </div>
+          <div className="flex-1 py-1 space-y-0.5">
+            {Array.from({ length: 4 }).map((_, i) => (
+              <SidebarRowSkeleton key={i} dot="none" />
+            ))}
+          </div>
         </div>
 
-        {/* Formatting toolbar */}
-        <div className="flex h-10 shrink-0 items-center gap-1 border-b border-border px-3">
-          {Array.from({ length: 6 }).map((_, i) => (
-            <Skeleton key={i} className="h-6 w-6 rounded-md" />
-          ))}
-        </div>
+        <div className="flex flex-col flex-1 min-w-0 overflow-hidden">
+          {/* Formatting toolbar */}
+          <div className="flex h-10 shrink-0 items-center gap-1 border-b border-border px-3">
+            {Array.from({ length: 6 }).map((_, i) => (
+              <Skeleton key={i} className="h-6 w-6 rounded-md" />
+            ))}
+          </div>
 
-        {/* Document page — reuses the real page wrapper's own classes so
-            its width/position is already correct at first paint. */}
-        <div className="flex-1 min-h-0 overflow-hidden bg-secondary/10">
-          <div className="mx-auto max-w-3xl bg-card px-16 py-12 space-y-3">
-            <Skeleton className="h-5 w-2/3" />
-            <Skeleton className="h-3 w-full" />
-            <Skeleton className="h-3 w-full" />
-            <Skeleton className="h-3 w-4/5" />
-            <Skeleton className="h-3 w-full" />
-            <Skeleton className="h-3 w-3/5" />
+          {/* Document page — reuses the real page wrapper's own classes so
+              its width/position is already correct at first paint. */}
+          <div className="flex-1 min-h-0 overflow-hidden bg-secondary/10">
+            <div className="mx-auto max-w-3xl bg-card px-16 py-12 space-y-3">
+              <Skeleton className="h-5 w-2/3" />
+              <Skeleton className="h-3 w-full" />
+              <Skeleton className="h-3 w-full" />
+              <Skeleton className="h-3 w-4/5" />
+              <Skeleton className="h-3 w-full" />
+              <Skeleton className="h-3 w-3/5" />
+            </div>
           </div>
         </div>
       </div>
@@ -162,8 +171,9 @@ export function OutlineEditor({ projectId }: OutlineEditorProps) {
   const activeOutline = outlines.find((o) => o.id === activeId) ?? null
 
   return (
-    <div className="flex h-full flex-col overflow-hidden">
-      <OutlineTabBar
+    <div className="flex h-full overflow-hidden">
+      <OutlineSidebar
+        projectId={projectId}
         outlines={outlines}
         activeId={activeId}
         onSelect={setActiveId}
@@ -171,7 +181,7 @@ export function OutlineEditor({ projectId }: OutlineEditorProps) {
         onRename={handleRename}
         onDelete={handleDelete}
       />
-      <div className="min-h-0 flex-1 overflow-hidden">
+      <div className="min-w-0 flex-1 overflow-hidden">
         {activeOutline && <OutlineDocumentEditor key={activeOutline.id} outline={activeOutline} />}
       </div>
     </div>
