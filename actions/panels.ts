@@ -142,3 +142,21 @@ export async function reorderPanels(projectId: string, orderedIds: string[]): Pr
   revalidatePath(`/projects/${projectId}`)
   return { success: true }
 }
+
+// Count only — for DeleteChapterDialog's "N storyboard panels will also be
+// deleted" note, where getPanelsForChapter's per-image URL signing would be
+// wasted work. Returns null (not 0) on error, so a failed query can't pass
+// for "this chapter has no panels".
+export async function getPanelCountForChapter(chapterId: string): Promise<number | null> {
+  const supabase = await createClient()
+  const { count, error } = await supabase
+    .from('panels')
+    .select('id', { count: 'exact', head: true })
+    .eq('chapter_id', chapterId)
+
+  if (error) {
+    console.error('Get panel count error:', error)
+    return null
+  }
+  return count ?? 0
+}

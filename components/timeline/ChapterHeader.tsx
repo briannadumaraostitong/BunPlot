@@ -7,6 +7,7 @@ import { cn } from '@/lib/utils'
 import { createChapter, updateChapter, deleteChapter } from '@/actions/chapters'
 import { ChapterLinkPicker } from './ChapterLinkPicker'
 import { ChapterDetailModal } from './ChapterDetailModal'
+import { DeleteChapterDialog } from './DeleteChapterDialog'
 import type { Chapter, Character, Event } from '@/types/database'
 
 const DEFAULT_CHAPTER_WIDTH = 220
@@ -278,6 +279,8 @@ function ChapterCell({
   const [title, setTitle] = useState(chapter.title)
   const [deleting, setDeleting] = useState(false)
   const [detailOpen, setDetailOpen] = useState(false)
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false)
+  const chapterEventCount = events.filter((e) => e.chapter_id === chapter.id).length
 
   async function handleRename() {
     if (!title.trim() || title === chapter.title) {
@@ -292,9 +295,19 @@ function ChapterCell({
 
   async function handleDelete(e: React.MouseEvent) {
     e.stopPropagation()
+    // A chapter with events asks what to do with them first; an empty one
+    // deletes immediately, as before.
+    if (chapterEventCount > 0) {
+      setDeleteDialogOpen(true)
+      return
+    }
     setDeleting(true)
-    await deleteChapter(chapter.id, projectId)
-    onRemoved(chapter.id)
+    const result = await deleteChapter(chapter.id, projectId)
+    if ('error' in result) {
+      console.error('Chapter delete error:', result.error)
+    } else {
+      onRemoved(chapter.id)
+    }
     setDeleting(false)
   }
 
@@ -391,6 +404,19 @@ function ChapterCell({
         onClose={() => setDetailOpen(false)}
         onUpdated={onUpdated}
       />
+
+      {/* Mounted only while open, so its choice/destination state starts
+          fresh each time rather than needing an effect to reset it. */}
+      {deleteDialogOpen && (
+        <DeleteChapterDialog
+          chapter={chapter}
+          allChapters={allChapters}
+          projectId={projectId}
+          eventCount={chapterEventCount}
+          onClose={() => setDeleteDialogOpen(false)}
+          onDeleted={() => onRemoved(chapter.id)}
+        />
+      )}
     </div>
   )
 }
