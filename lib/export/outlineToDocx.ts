@@ -145,7 +145,7 @@ async function blockToParagraphs(block: BlockNode, ctx: DocxContext): Promise<Pa
   }
 }
 
-async function blocksToParagraphs(blocks: BlockNode[]): Promise<Paragraph[]> {
+export async function blocksToParagraphs(blocks: BlockNode[]): Promise<Paragraph[]> {
   const out: Paragraph[] = []
   for (const block of blocks) {
     out.push(...(await blockToParagraphs(block, { indentLevel: 0 })))

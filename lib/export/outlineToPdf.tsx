@@ -3,7 +3,7 @@ import { fetchImageBytes } from './fetchImageBytes'
 import type { Align, BlockNode, InlineRun } from './outlineIR'
 import type { OutlineSection } from './outlineToDocx'
 
-const styles = StyleSheet.create({
+export const styles = StyleSheet.create({
   page: { paddingTop: 56, paddingBottom: 56, paddingHorizontal: 64, fontSize: 11 },
   title: { fontSize: 22, fontWeight: 700, marginBottom: 20 },
   heading1: { fontSize: 18, fontWeight: 700, marginTop: 16, marginBottom: 8 },
@@ -134,7 +134,7 @@ async function renderBlock(block: BlockNode, key: number): Promise<React.ReactNo
   }
 }
 
-async function renderBlocks(blocks: BlockNode[]): Promise<React.ReactNode[]> {
+export async function renderBlocks(blocks: BlockNode[]): Promise<React.ReactNode[]> {
   const nodes: React.ReactNode[] = []
   for (let i = 0; i < blocks.length; i++) {
     nodes.push(await renderBlock(blocks[i], i))

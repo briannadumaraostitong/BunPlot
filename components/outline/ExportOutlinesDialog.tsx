@@ -6,6 +6,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } f
 import { Button } from '@/components/ui/button'
 import { cn } from '@/lib/utils'
 import { exportOutlines } from '@/actions/export'
+import { downloadBase64 } from '@/lib/export/downloadBase64'
 import type { Outline } from '@/types/database'
 
 interface ExportOutlinesDialogProps {
@@ -13,20 +14,6 @@ interface ExportOutlinesDialogProps {
   outlines: Outline[]
   open: boolean
   onClose: () => void
-}
-
-function downloadBase64(base64: string, mimeType: string, filename: string) {
-  const byteChars = atob(base64)
-  const byteNumbers = new Array(byteChars.length)
-  for (let i = 0; i < byteChars.length; i++) byteNumbers[i] = byteChars.charCodeAt(i)
-  const blob = new Blob([new Uint8Array(byteNumbers)], { type: mimeType })
-
-  const url = URL.createObjectURL(blob)
-  const a = document.createElement('a')
-  a.href = url
-  a.download = filename
-  a.click()
-  URL.revokeObjectURL(url)
 }
 
 export function ExportOutlinesDialog({ projectId, outlines, open, onClose }: ExportOutlinesDialogProps) {

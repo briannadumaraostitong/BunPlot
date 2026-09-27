@@ -12,11 +12,13 @@ import {
   type DragEndEvent,
   type DragStartEvent,
 } from '@dnd-kit/core'
+import { Download } from 'lucide-react'
 import { LayerPanel } from '@/components/layers/LayerPanel'
 import { LayerRow, EventCardPreview } from '@/components/layers/LayerRow'
 import { ChapterHeader, DEFAULT_CHAPTER_WIDTH, DEFAULT_LABEL_WIDTH } from './ChapterHeader'
 import { TimelineToolbar } from './TimelineToolbar'
 import { TimelineFlowView } from './TimelineFlowView'
+import { ExportStoryBibleDialog } from './ExportStoryBibleDialog'
 import { EventModal } from '@/components/events/EventModal'
 import { cn } from '@/lib/utils'
 import { useLayers } from '@/hooks/useLayers'
@@ -98,6 +100,7 @@ export function TimelineCanvas({
   const [allPlaces, setAllPlaces] = useState<PlaceWithCover[]>([])
   const [allCharacters, setAllCharacters] = useState<Character[]>([])
   const [viewMode, setViewMode] = useState<'grid' | 'flow'>('grid')
+  const [exportOpen, setExportOpen] = useState(false)
   const [eventPlaceLinks, setEventPlaceLinks] = useState<EventPlaceLink[]>([])
   const [eventCharacterLinks, setEventCharacterLinks] = useState<EventCharacterLink[]>([])
   const [search, setSearch] = useState('')
@@ -362,7 +365,21 @@ export function TimelineCanvas({
               Flow
             </button>
           </div>
+
+          {/* Lives in this row rather than TimelineToolbar so it's reachable
+              from Flow view too (the toolbar is Grid-only), and so it doesn't
+              read as part of the filters — the export ignores them. */}
+          <button
+            onClick={() => setExportOpen(true)}
+            aria-label="Export story bible"
+            className="relative ml-auto flex h-7 shrink-0 items-center gap-1.5 rounded-lg border border-border px-2 text-xs text-muted-foreground transition-colors hover:bg-secondary hover:text-foreground after:absolute after:-inset-1 md:px-2.5"
+          >
+            <Download className="h-3 w-3" />
+            <span className="hidden md:inline">Export</span>
+          </button>
         </div>
+
+        <ExportStoryBibleDialog projectId={project.id} open={exportOpen} onClose={() => setExportOpen(false)} />
 
         {viewMode === 'flow' ? (
           <TimelineFlowView
