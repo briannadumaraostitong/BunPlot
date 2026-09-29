@@ -572,34 +572,55 @@ CREATE POLICY "panels_delete" ON panels FOR DELETE USING (owns_project(project_i
 -- GRANTS
 -- RLS policies control row-level access, but Postgres also requires the
 -- underlying table-level privilege to be granted — RLS doesn't substitute
--- for a GRANT. Tables created via the Supabase dashboard get this
--- automatically; these five were added by pasting raw SQL into the SQL
--- editor, which skipped it, causing "permission denied for table X" even
--- though the RLS policies above are correct.
-GRANT SELECT, INSERT, UPDATE, DELETE ON TABLE character_relationships TO anon, authenticated, service_role;
-GRANT SELECT, INSERT, UPDATE, DELETE ON TABLE family_trees TO anon, authenticated, service_role;
-GRANT SELECT, INSERT, UPDATE, DELETE ON TABLE family_tree_members TO anon, authenticated, service_role;
-GRANT SELECT, INSERT, UPDATE, DELETE ON TABLE places TO anon, authenticated, service_role;
-GRANT SELECT, INSERT, UPDATE, DELETE ON TABLE event_places TO anon, authenticated, service_role;
-GRANT SELECT, INSERT, UPDATE, DELETE ON TABLE chapters TO anon, authenticated, service_role;
-GRANT SELECT, INSERT, UPDATE, DELETE ON TABLE chapter_links TO anon, authenticated, service_role;
-GRANT SELECT, INSERT, UPDATE, DELETE ON TABLE panels TO anon, authenticated, service_role;
-GRANT SELECT, INSERT, UPDATE, DELETE ON TABLE statuses TO anon, authenticated, service_role;
+-- for a GRANT. Don't rely on automatic grants: from October 30, 2026
+-- Supabase no longer grants Data API access to new tables.
+-- Only authenticated gets data access: every policy above requires a
+-- logged-in user (auth.uid() / owns_project), so anon could never see a row
+-- anyway, and nothing in the app uses the service role key. Every new table
+-- must add its line here, then be checked with the grants audit query
+-- (pg_class.relacl via aclexplode) after running it in the SQL editor.
+GRANT SELECT, INSERT, UPDATE, DELETE ON TABLE profiles TO authenticated;
+GRANT SELECT, INSERT, UPDATE, DELETE ON TABLE project_folders TO authenticated;
+GRANT SELECT, INSERT, UPDATE, DELETE ON TABLE projects TO authenticated;
+GRANT SELECT, INSERT, UPDATE, DELETE ON TABLE layer_groups TO authenticated;
+GRANT SELECT, INSERT, UPDATE, DELETE ON TABLE layers TO authenticated;
+GRANT SELECT, INSERT, UPDATE, DELETE ON TABLE characters TO authenticated;
+GRANT SELECT, INSERT, UPDATE, DELETE ON TABLE places TO authenticated;
+GRANT SELECT, INSERT, UPDATE, DELETE ON TABLE statuses TO authenticated;
+GRANT SELECT, INSERT, UPDATE, DELETE ON TABLE events TO authenticated;
+GRANT SELECT, INSERT, UPDATE, DELETE ON TABLE outlines TO authenticated;
+GRANT SELECT, INSERT, UPDATE, DELETE ON TABLE event_characters TO authenticated;
+GRANT SELECT, INSERT, UPDATE, DELETE ON TABLE event_places TO authenticated;
+GRANT SELECT, INSERT, UPDATE, DELETE ON TABLE event_dependencies TO authenticated;
+GRANT SELECT, INSERT, UPDATE, DELETE ON TABLE character_relationships TO authenticated;
+GRANT SELECT, INSERT, UPDATE, DELETE ON TABLE family_trees TO authenticated;
+GRANT SELECT, INSERT, UPDATE, DELETE ON TABLE family_tree_members TO authenticated;
+GRANT SELECT, INSERT, UPDATE, DELETE ON TABLE chapters TO authenticated;
+GRANT SELECT, INSERT, UPDATE, DELETE ON TABLE chapter_links TO authenticated;
+GRANT SELECT, INSERT, UPDATE, DELETE ON TABLE panels TO authenticated;
 
 -- REALTIME PUBLICATION
--- panels is the first table whose realtime membership is tracked here in
--- schema.sql rather than added ad hoc via the dashboard/SQL editor (see
--- feedback_supabase_table_grants memory) — usePanels is its first
--- postgres_changes subscriber.
+-- Every table with a postgres_changes subscriber (useChapters, useEvents,
+-- useLayers, useStatuses, usePanels). chapters, events, layers and statuses
+-- were added ad hoc via the dashboard/SQL editor and are recorded here after
+-- the fact; panels was the first tracked here from the start.
+ALTER PUBLICATION supabase_realtime ADD TABLE chapters;
+ALTER PUBLICATION supabase_realtime ADD TABLE events;
+ALTER PUBLICATION supabase_realtime ADD TABLE layers;
+ALTER PUBLICATION supabase_realtime ADD TABLE statuses;
 ALTER PUBLICATION supabase_realtime ADD TABLE panels;
 
 -- Under the default replica identity a DELETE only writes the primary key to
 -- the WAL, so `old` carries no chapter_id and usePanels' filter
 -- (chapter_id=eq.…) can never match — remote deletes were silently never
 -- delivered. FULL logs the whole old row so the filter matches and the
--- payload is usable. chapters, events, layers and statuses were already set
--- to FULL out-of-band; panels was missed, and is recorded here so the setting
--- isn't invisible to the tracked schema again.
+-- payload is usable. chapters, events, layers and statuses were set to FULL
+-- via the SQL editor before this file tracked it (confirmed live:
+-- relreplident = 'f'); all five realtime tables are recorded here now.
+ALTER TABLE chapters REPLICA IDENTITY FULL;
+ALTER TABLE events REPLICA IDENTITY FULL;
+ALTER TABLE layers REPLICA IDENTITY FULL;
+ALTER TABLE statuses REPLICA IDENTITY FULL;
 ALTER TABLE panels REPLICA IDENTITY FULL;
 
 -- DUPLICATE PROJECT
