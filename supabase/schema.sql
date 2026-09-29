@@ -457,7 +457,7 @@ CREATE POLICY "Users can delete their own projects"
 
 -- HELPER FUNCTION
 CREATE OR REPLACE FUNCTION owns_project(p_id UUID)
-RETURNS BOOLEAN LANGUAGE sql SECURITY DEFINER AS $$
+RETURNS BOOLEAN LANGUAGE sql SECURITY DEFINER SET search_path = public AS $$
   SELECT EXISTS (
     SELECT 1 FROM projects WHERE id = p_id AND owner_id = auth.uid()
   );
