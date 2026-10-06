@@ -421,6 +421,7 @@ export function TimelineCanvas({
                   onRemoved={removeChapter}
                   onRenamed={renameChapter}
                   onUpdated={updateChapterLocal}
+                  onOpenEvent={handleSelectEvent}
                   labelWidth={labelWidth}
                   chapterWidth={chapterWidth}
                   onLabelWidthChange={setLabelWidth}

@@ -32,6 +32,7 @@ interface ChapterHeaderProps {
   onRemoved: (id: string) => void
   onRenamed: (id: string, title: string) => void
   onUpdated: (id: string, updates: Partial<Chapter>) => void
+  onOpenEvent: (event: Event) => void
   labelWidth: number
   chapterWidth: number
   onLabelWidthChange: (w: number) => void
@@ -48,6 +49,7 @@ export function ChapterHeader({
   onRemoved,
   onRenamed,
   onUpdated,
+  onOpenEvent,
   labelWidth,
   chapterWidth,
   onLabelWidthChange,
@@ -98,6 +100,7 @@ export function ChapterHeader({
             onRemoved={onRemoved}
             onRenamed={onRenamed}
             onUpdated={onUpdated}
+            onOpenEvent={onOpenEvent}
           />
         </ResizableCell>
       ))}
@@ -265,6 +268,7 @@ function ChapterCell({
   onRemoved,
   onRenamed,
   onUpdated,
+  onOpenEvent,
 }: {
   chapter: Chapter
   allChapters: Chapter[]
@@ -274,6 +278,7 @@ function ChapterCell({
   onRemoved: (id: string) => void
   onRenamed: (id: string, title: string) => void
   onUpdated: (id: string, updates: Partial<Chapter>) => void
+  onOpenEvent: (event: Event) => void
 }) {
   const [editing, setEditing] = useState(false)
   const [title, setTitle] = useState(chapter.title)
@@ -403,6 +408,7 @@ function ChapterCell({
         open={detailOpen}
         onClose={() => setDetailOpen(false)}
         onUpdated={onUpdated}
+        onOpenEvent={onOpenEvent}
       />
 
       {/* Mounted only while open, so its choice/destination state starts

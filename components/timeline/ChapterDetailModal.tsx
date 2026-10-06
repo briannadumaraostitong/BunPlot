@@ -34,6 +34,7 @@ interface ChapterDetailModalProps {
   open: boolean
   onClose: () => void
   onUpdated: (id: string, updates: Partial<Chapter>) => void
+  onOpenEvent: (event: Event) => void
 }
 
 function Field({ label, children }: { label: string; children: React.ReactNode }) {
@@ -55,6 +56,7 @@ export function ChapterDetailModal({
   open,
   onClose,
   onUpdated,
+  onOpenEvent,
 }: ChapterDetailModalProps) {
   const [panels, setPanels] = useState<PanelWithCover[]>([])
   const [panelsLoading, setPanelsLoading] = useState(false)
@@ -120,9 +122,19 @@ export function ChapterDetailModal({
               ) : (
                 <div className="space-y-1">
                   {chapterEvents.map((event) => (
-                    <div key={event.id} className="rounded-md px-2 py-1.5 bg-secondary/30">
+                    // Closed first: EventModal is a sibling Radix Dialog, not
+                    // nested, so both open at once would fight over focus and
+                    // EventModal would fully cover this one anyway.
+                    <button
+                      key={event.id}
+                      onClick={() => {
+                        onClose()
+                        onOpenEvent(event)
+                      }}
+                      className="flex w-full items-center gap-2 rounded-md px-2 py-1.5 hover:bg-secondary/50 transition-colors text-left"
+                    >
                       <span className="text-xs line-clamp-2">{event.title}</span>
-                    </div>
+                    </button>
                   ))}
                 </div>
               )}
