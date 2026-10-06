@@ -3,9 +3,11 @@
 import { useEffect, useState } from 'react'
 import { Loader2, Plus, ChevronRight } from 'lucide-react'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
+import { Button } from '@/components/ui/button'
 import { cn } from '@/lib/utils'
 import { playClickSound } from '@/lib/sound'
 import { createEvent } from '@/actions/events'
+import { createChapter } from '@/actions/chapters'
 import type { Layer, Event, Chapter } from '@/types/database'
 
 interface TimelineFlowViewProps {
@@ -29,6 +31,7 @@ export function TimelineFlowView({
 }: TimelineFlowViewProps) {
   const [selectedLayerId, setSelectedLayerId] = useState<string | null>(layers[0]?.id ?? null)
   const [creating, setCreating] = useState(false)
+  const [addingChapter, setAddingChapter] = useState(false)
 
   // Keeps selection valid if the current layer is deleted (or renamed away)
   // while Flow view is open — falls back to the new first layer.
@@ -93,7 +96,16 @@ export function TimelineFlowView({
     }
   }
 
-  const canAdd = selectedLayerId !== null && orderedChapters.length > 0
+  // No refresh afterwards: useChapters' realtime subscription inserts the new
+  // row, which swaps this empty state for the normal sequence on its own.
+  async function handleAddChapter() {
+    if (addingChapter) return
+    setAddingChapter(true)
+    await createChapter(projectId, `Chapter ${chapters.length + 1}`)
+    setAddingChapter(false)
+  }
+
+  const canAdd = selectedLayerId !== null
 
   return (
     <div className="flex flex-1 min-h-0 flex-col overflow-hidden">
@@ -126,6 +138,15 @@ export function TimelineFlowView({
         <div className="flex flex-1 items-center justify-center text-sm text-muted-foreground">
           No layers yet
         </div>
+      ) : orderedChapters.length === 0 ? (
+        <div className="flex flex-1 flex-col items-center justify-center space-y-3 text-center">
+          <p className="text-sm text-muted-foreground">No chapters yet</p>
+          <p className="text-xs text-muted-foreground">Events live inside chapters, so add one to get started.</p>
+          <Button variant="outline" size="sm" onClick={handleAddChapter} disabled={addingChapter}>
+            {addingChapter ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Plus className="h-3.5 w-3.5" />}
+            Add Chapter
+          </Button>
+        </div>
       ) : (
         <div className="flex-1 overflow-x-auto overflow-y-hidden scrollbar-thin">
           <div className="flex h-full items-center gap-0 px-6">
@@ -145,7 +166,6 @@ export function TimelineFlowView({
             <button
               onClick={handleAddEvent}
               disabled={!canAdd || creating}
-              title={canAdd ? 'Add event' : 'Add a chapter first'}
               className="flex h-17 w-36 shrink-0 flex-col items-center justify-center gap-1 rounded-lg border border-dashed border-border text-muted-foreground transition-colors hover:border-primary hover:text-foreground disabled:cursor-not-allowed disabled:opacity-40"
             >
               {creating ? <Loader2 className="h-4 w-4 animate-spin" /> : <Plus className="h-4 w-4" />}
