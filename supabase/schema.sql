@@ -361,7 +361,7 @@ CREATE INDEX idx_panels_chapter     ON panels(chapter_id, position);
 
 -- UPDATED_AT TRIGGER
 CREATE OR REPLACE FUNCTION update_updated_at_column()
-RETURNS TRIGGER LANGUAGE plpgsql AS $$
+RETURNS TRIGGER LANGUAGE plpgsql SET search_path = public AS $$
 BEGIN
   NEW.updated_at = NOW();
   RETURN NEW;
