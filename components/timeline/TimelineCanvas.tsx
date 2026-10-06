@@ -415,13 +415,11 @@ export function TimelineCanvas({
                   projectId={project.id}
                   chapters={chapters}
                   visibleChapters={visibleChapters}
-                  allCharacters={allCharacters}
                   events={events}
                   onAdded={refreshChapters}
                   onRemoved={removeChapter}
                   onRenamed={renameChapter}
                   onUpdated={updateChapterLocal}
-                  onOpenEvent={handleSelectEvent}
                   labelWidth={labelWidth}
                   chapterWidth={chapterWidth}
                   onLabelWidthChange={setLabelWidth}

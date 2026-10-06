@@ -1,14 +1,13 @@
 'use client'
 
 import { useState } from 'react'
-import { Plus, X, Loader2, FileText, Eye, EyeOff } from 'lucide-react'
+import { Plus, X, Loader2, Eye, EyeOff } from 'lucide-react'
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover'
 import { cn } from '@/lib/utils'
 import { createChapter, updateChapter, deleteChapter } from '@/actions/chapters'
 import { ChapterLinkPicker } from './ChapterLinkPicker'
-import { ChapterDetailModal } from './ChapterDetailModal'
 import { DeleteChapterDialog } from './DeleteChapterDialog'
-import type { Chapter, Character, Event } from '@/types/database'
+import type { Chapter, Event } from '@/types/database'
 
 const DEFAULT_CHAPTER_WIDTH = 220
 const MIN_CHAPTER_WIDTH = 120
@@ -26,13 +25,11 @@ interface ChapterHeaderProps {
   chapters: Chapter[]
   // What actually renders as a column. A subset of `chapters`.
   visibleChapters: Chapter[]
-  allCharacters: Character[]
   events: Event[]
   onAdded: () => void
   onRemoved: (id: string) => void
   onRenamed: (id: string, title: string) => void
   onUpdated: (id: string, updates: Partial<Chapter>) => void
-  onOpenEvent: (event: Event) => void
   labelWidth: number
   chapterWidth: number
   onLabelWidthChange: (w: number) => void
@@ -43,13 +40,11 @@ export function ChapterHeader({
   projectId,
   chapters,
   visibleChapters,
-  allCharacters,
   events,
   onAdded,
   onRemoved,
   onRenamed,
   onUpdated,
-  onOpenEvent,
   labelWidth,
   chapterWidth,
   onLabelWidthChange,
@@ -95,12 +90,10 @@ export function ChapterHeader({
             chapter={chapter}
             allChapters={chapters}
             projectId={projectId}
-            allCharacters={allCharacters}
             events={events}
             onRemoved={onRemoved}
             onRenamed={onRenamed}
             onUpdated={onUpdated}
-            onOpenEvent={onOpenEvent}
           />
         </ResizableCell>
       ))}
@@ -263,27 +256,22 @@ function ChapterCell({
   chapter,
   allChapters,
   projectId,
-  allCharacters,
   events,
   onRemoved,
   onRenamed,
   onUpdated,
-  onOpenEvent,
 }: {
   chapter: Chapter
   allChapters: Chapter[]
   projectId: string
-  allCharacters: Character[]
   events: Event[]
   onRemoved: (id: string) => void
   onRenamed: (id: string, title: string) => void
   onUpdated: (id: string, updates: Partial<Chapter>) => void
-  onOpenEvent: (event: Event) => void
 }) {
   const [editing, setEditing] = useState(false)
   const [title, setTitle] = useState(chapter.title)
   const [deleting, setDeleting] = useState(false)
-  const [detailOpen, setDetailOpen] = useState(false)
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false)
   const chapterEventCount = events.filter((e) => e.chapter_id === chapter.id).length
 
@@ -365,23 +353,6 @@ function ChapterCell({
         </button>
       )}
 
-      {/* An explicit button rather than a single-click on the title: the title
-          already owns double-click-to-rename, and a click handler there would
-          fire on the first click of that double-click, making rename
-          unreachable — the same bug that hit StatusPicker's rename. */}
-      {!editing && (
-        <button
-          onClick={(e) => {
-            e.stopPropagation()
-            setDetailOpen(true)
-          }}
-          title="Chapter details"
-          className="relative opacity-100 md:opacity-0 md:group-hover:opacity-100 text-muted-foreground hover:text-foreground transition-opacity shrink-0 after:absolute after:-inset-y-2.5 after:-inset-x-1.5"
-        >
-          <FileText className="h-3 w-3" />
-        </button>
-      )}
-
       {!editing && (
         <ChapterLinkPicker chapter={chapter} allChapters={allChapters} projectId={projectId} />
       )}
@@ -399,17 +370,6 @@ function ChapterCell({
           )}
         </button>
       )}
-
-      <ChapterDetailModal
-        chapter={chapter}
-        projectId={projectId}
-        allCharacters={allCharacters}
-        events={events}
-        open={detailOpen}
-        onClose={() => setDetailOpen(false)}
-        onUpdated={onUpdated}
-        onOpenEvent={onOpenEvent}
-      />
 
       {/* Mounted only while open, so its choice/destination state starts
           fresh each time rather than needing an effect to reset it. */}

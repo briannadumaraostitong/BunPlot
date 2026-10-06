@@ -43,8 +43,6 @@ export async function updateChapter(
   projectId: string,
   updates: Partial<{
     title: string
-    description: Record<string, unknown>
-    pov_character_id: string | null
     visible: boolean
   }>
 ) {
