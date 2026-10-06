@@ -43,8 +43,6 @@ export interface PlaceEntry {
 
 export interface ChapterEntry {
   title: string
-  pov: string | null
-  description: BlockNode[]
 }
 
 export interface EventEntry {
@@ -111,10 +109,8 @@ function relationshipSentence(rel: CharacterRelationship, nameById: Map<string, 
 
 // Headings a writer typed inside rich text would otherwise render at the same
 // level as the export's own headings, so they're pushed down to sit one level
-// below whatever heading contains them, capped at H6: chapter descriptions sit
-// directly under the entry (H2), so they shift by 2; place description/notes
+// below whatever heading contains them, capped at H6: place description/notes
 // sit under an H3 "Description"/"Notes" subheading, so they shift by 3.
-const CHAPTER_HEADING_SHIFT = 2
 const PLACE_HEADING_SHIFT = 3
 
 function shiftHeadings(blocks: BlockNode[], by: number): BlockNode[] {
@@ -190,8 +186,6 @@ export function buildStoryBible(input: StoryBibleInput): StoryBible {
   const chapters = input.sections.has('chapters')
     ? sortedChapters.map((ch) => ({
         title: ch.title,
-        pov: ch.pov_character_id ? (characterNameById.get(ch.pov_character_id) ?? null) : null,
-        description: richText(ch.description, CHAPTER_HEADING_SHIFT),
       }))
     : null
 

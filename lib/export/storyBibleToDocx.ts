@@ -5,7 +5,7 @@ import type { StoryBible } from './storyBible'
 
 // Heading scheme: project title = TITLE, section = H1 (new page), entry = H2,
 // subsection = H3. Rich-text headings were already shifted by buildStoryBible
-// to sit one level below their container (H3+ in chapters, H4+ in places).
+// to sit one level below their container (H4+ in places).
 
 function heading(text: string, level: (typeof HeadingLevel)[keyof typeof HeadingLevel], pageBreakBefore = false) {
   return new Paragraph({ heading: level, pageBreakBefore, children: [new TextRun({ text })] })
@@ -80,11 +80,7 @@ export async function renderStoryBibleToDocx(bible: StoryBible): Promise<Buffer>
     children.push(heading('Chapters', HeadingLevel.HEADING_1, true))
     if (bible.chapters.length === 0) children.push(empty('No chapters yet.'))
     for (const ch of bible.chapters) {
-      children.push(
-        heading(ch.title, HeadingLevel.HEADING_2),
-        ...meta('POV', ch.pov),
-        ...(await blocksToParagraphs(ch.description))
-      )
+      children.push(heading(ch.title, HeadingLevel.HEADING_2))
     }
   }
 

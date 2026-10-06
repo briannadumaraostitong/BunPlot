@@ -6,7 +6,7 @@ import type { StoryBible } from './storyBible'
 // Heading scheme mirrors storyBibleToDocx: each section is its own page with
 // the outline export's title style, entries use heading2, subsections
 // heading3. Rich-text headings were already shifted by buildStoryBible (level
-// 3+ in chapters, 4+ in places), but the outline renderer styles every level
+// 4+ in places), but the outline renderer styles every level
 // past 3 as heading3 — so in PDF, place headings match the "Description" /
 // "Notes" subheading size rather than sitting visibly below it.
 const styles = StyleSheet.create({
@@ -137,15 +137,11 @@ export async function renderStoryBibleToPdf(bible: StoryBible): Promise<Buffer> 
   }
 
   if (bible.chapters) {
-    const entries = await Promise.all(
-      bible.chapters.map(async (ch, i) => (
-        <View key={i} style={styles.entry}>
-          <Text style={outlineStyles.heading2}>{ch.title}</Text>
-          <Meta label="POV" value={ch.pov} />
-          {await renderBlocks(ch.description)}
-        </View>
-      ))
-    )
+    const entries = bible.chapters.map((ch, i) => (
+      <View key={i} style={styles.entry}>
+        <Text style={outlineStyles.heading2}>{ch.title}</Text>
+      </View>
+    ))
     pages.push(
       <Section key="chapters" title="Chapters" isEmpty={bible.chapters.length === 0} emptyText="No chapters yet.">
         {entries}
