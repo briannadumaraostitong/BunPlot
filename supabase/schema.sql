@@ -876,3 +876,20 @@ LANGUAGE sql SECURITY INVOKER SET search_path = public, extensions AS $$
   ORDER BY rank DESC
   LIMIT 50;
 $$;
+
+-- FUNCTION EXECUTE GRANTS
+-- Postgres grants EXECUTE to PUBLIC on every new function, and Supabase's
+-- default privileges may also add direct grants to anon and authenticated
+-- (in this project's live check they didn't, but revoke both to be safe).
+-- Every new function in public needs its grants set explicitly here.
+-- Trigger-only functions: EXECUTE is checked at CREATE TRIGGER, not when the
+-- trigger fires, so revoking it doesn't stop the triggers.
+REVOKE EXECUTE ON FUNCTION handle_new_user()       FROM PUBLIC, anon, authenticated;
+REVOKE EXECUTE ON FUNCTION seed_default_statuses() FROM PUBLIC, anon, authenticated;
+
+-- owns_project is called by every RLS policy; duplicate_project is called
+-- via .rpc() in actions/projects.ts. Both stay executable by authenticated.
+REVOKE EXECUTE ON FUNCTION owns_project(uuid)                  FROM PUBLIC, anon;
+REVOKE EXECUTE ON FUNCTION duplicate_project(uuid, text, text) FROM PUBLIC, anon;
+GRANT  EXECUTE ON FUNCTION owns_project(uuid)                  TO authenticated;
+GRANT  EXECUTE ON FUNCTION duplicate_project(uuid, text, text) TO authenticated;
