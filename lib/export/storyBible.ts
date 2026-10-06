@@ -18,7 +18,7 @@ import type {
   Status,
 } from '@/types/database'
 
-export const STORY_BIBLE_SECTIONS = ['characters', 'places', 'chapters', 'timeline'] as const
+export const STORY_BIBLE_SECTIONS = ['characters', 'places', 'timeline'] as const
 export type StoryBibleSection = (typeof STORY_BIBLE_SECTIONS)[number]
 
 export interface CharacterEntry {
@@ -39,10 +39,6 @@ export interface PlaceEntry {
   type: string
   description: BlockNode[]
   notes: BlockNode[]
-}
-
-export interface ChapterEntry {
-  title: string
 }
 
 export interface EventEntry {
@@ -67,7 +63,6 @@ export interface StoryBible {
   title: string
   characters: { entries: CharacterEntry[]; familyTrees: FamilyTreeEntry[] } | null
   places: PlaceEntry[] | null
-  chapters: ChapterEntry[] | null
   timeline: TimelineGroup[] | null
 }
 
@@ -183,12 +178,6 @@ export function buildStoryBible(input: StoryBibleInput): StoryBible {
       }))
     : null
 
-  const chapters = input.sections.has('chapters')
-    ? sortedChapters.map((ch) => ({
-        title: ch.title,
-      }))
-    : null
-
   let timeline: StoryBible['timeline'] = null
   if (input.sections.has('timeline')) {
     const layerNameById = new Map(input.layers.map((l) => [l.id, l.name]))
@@ -234,5 +223,5 @@ export function buildStoryBible(input: StoryBibleInput): StoryBible {
     if (unassigned.length > 0) timeline.push({ heading: 'Unassigned', events: unassigned.map(toEntry) })
   }
 
-  return { title: input.projectTitle, characters, places, chapters, timeline }
+  return { title: input.projectTitle, characters, places, timeline }
 }

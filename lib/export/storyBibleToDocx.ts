@@ -76,14 +76,6 @@ export async function renderStoryBibleToDocx(bible: StoryBible): Promise<Buffer>
     }
   }
 
-  if (bible.chapters) {
-    children.push(heading('Chapters', HeadingLevel.HEADING_1, true))
-    if (bible.chapters.length === 0) children.push(empty('No chapters yet.'))
-    for (const ch of bible.chapters) {
-      children.push(heading(ch.title, HeadingLevel.HEADING_2))
-    }
-  }
-
   if (bible.timeline) {
     children.push(heading('Timeline', HeadingLevel.HEADING_1, true))
     if (bible.timeline.length === 0) children.push(empty('No events yet.'))

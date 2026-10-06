@@ -136,19 +136,6 @@ export async function renderStoryBibleToPdf(bible: StoryBible): Promise<Buffer> 
     )
   }
 
-  if (bible.chapters) {
-    const entries = bible.chapters.map((ch, i) => (
-      <View key={i} style={styles.entry}>
-        <Text style={outlineStyles.heading2}>{ch.title}</Text>
-      </View>
-    ))
-    pages.push(
-      <Section key="chapters" title="Chapters" isEmpty={bible.chapters.length === 0} emptyText="No chapters yet.">
-        {entries}
-      </Section>
-    )
-  }
-
   if (bible.timeline) {
     pages.push(
       <Section key="timeline" title="Timeline" isEmpty={bible.timeline.length === 0} emptyText="No events yet.">

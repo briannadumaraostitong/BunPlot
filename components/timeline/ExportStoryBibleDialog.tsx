@@ -18,7 +18,6 @@ interface ExportStoryBibleDialogProps {
 const SECTION_LABELS: Record<StoryBibleSection, string> = {
   characters: 'Characters, relationships & family trees',
   places: 'Places',
-  chapters: 'Chapters',
   timeline: 'Timeline events',
 }
 

@@ -71,7 +71,7 @@ export async function exportOutlines(
 }
 
 // Same base64 delivery as exportOutlines: text-heavy, and the only images are
-// ones embedded in place/chapter descriptions. Always exports the whole
+// ones embedded in place descriptions/notes. Always exports the whole
 // project, regardless of any filters active on the Timeline tab.
 export async function exportStoryBible(
   projectId: string,
