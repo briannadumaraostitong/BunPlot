@@ -1,7 +1,7 @@
 import { Zip, ZipPassThrough } from 'fflate'
 import type { StoryboardChapter } from '@/actions/export'
+import { DOWNLOAD_CONCURRENCY, forEachWithConcurrency } from './concurrency'
 
-const CONCURRENCY = 4
 const MAX_NAME_LENGTH = 80
 const WINDOWS_FORBIDDEN = '\\/:*?"<>|'
 
@@ -42,10 +42,16 @@ export async function buildStoryboardZip(
 ): Promise<StoryboardZipResult> {
   const jobs = chapters.flatMap((ch, ci) => {
     const folder = `${pad(ci + 1, 2)} - ${sanitizeFileName(ch.title, `Chapter ${ci + 1}`)}`
-    return ch.panels.map((p) => ({
-      url: p.url,
-      name: `${folder}/${pad(p.number, 3)} - ${sanitizeFileName(p.caption ?? '', `Panel ${p.number}`)}.${extensionOf(p.path)}`,
-    }))
+    // Panels with no image have nothing to put in the ZIP (the PDF still
+    // shows them as captioned frames).
+    return ch.panels.flatMap((p) =>
+      p.path
+        ? [{
+            url: p.url,
+            name: `${folder}/${pad(p.number, 3)} - ${sanitizeFileName(p.caption ?? '', `Panel ${p.number}`)}.${extensionOf(p.path)}`,
+          }]
+        : []
+    )
   })
 
   const chunks: Uint8Array<ArrayBuffer>[] = []
@@ -62,36 +68,29 @@ export async function buildStoryboardZip(
   })
 
   const total = jobs.length
-  let next = 0
   let done = 0
   let skipped = 0
   onProgress({ done, total })
 
-  // A fixed pool of workers pulling from a shared index: at most CONCURRENCY
-  // downloads in flight, and a failed image is logged and skipped rather
-  // than failing the whole export.
-  async function worker() {
-    while (next < jobs.length) {
-      const job = jobs[next++]
-      try {
-        const res = await fetch(job.url)
-        if (!res.ok) throw new Error(`HTTP ${res.status}`)
-        const bytes = new Uint8Array(await res.arrayBuffer())
-        // Store-only (no compression): PNG/JPEG are already compressed, so
-        // deflating them again costs CPU for almost no size gain.
-        const file = new ZipPassThrough(job.name)
-        zip.add(file)
-        file.push(bytes, true)
-      } catch (err) {
-        console.error('Storyboard image download error:', job.name, err)
-        skipped++
-      }
-      done++
-      onProgress({ done, total })
+  // A failed image is logged and skipped rather than failing the whole export.
+  await forEachWithConcurrency(jobs, DOWNLOAD_CONCURRENCY, async (job) => {
+    try {
+      if (!job.url) throw new Error('No signed URL')
+      const res = await fetch(job.url)
+      if (!res.ok) throw new Error(`HTTP ${res.status}`)
+      const bytes = new Uint8Array(await res.arrayBuffer())
+      // Store-only (no compression): PNG/JPEG are already compressed, so
+      // deflating them again costs CPU for almost no size gain.
+      const file = new ZipPassThrough(job.name)
+      zip.add(file)
+      file.push(bytes, true)
+    } catch (err) {
+      console.error('Storyboard image download error:', job.name, err)
+      skipped++
     }
-  }
-
-  await Promise.all(Array.from({ length: Math.min(CONCURRENCY, total) }, worker))
+    done++
+    onProgress({ done, total })
+  })
   zip.end()
   await finished
 

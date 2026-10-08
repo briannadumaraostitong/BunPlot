@@ -165,8 +165,11 @@ export interface StoryboardPanel {
   id: string
   number: number
   caption: string | null
-  path: string
-  url: string
+  // Both null for a panel with no image — kept so the PDF can still show its
+  // caption in an empty frame; the ZIP skips it. url alone is null if signing
+  // failed, which both exports treat as a failed download.
+  path: string | null
+  url: string | null
 }
 
 export interface StoryboardChapter {
@@ -177,8 +180,8 @@ export interface StoryboardChapter {
 
 export type StoryboardResult = { projectTitle: string; chapters: StoryboardChapter[] } | { error: string }
 
-// Data only — the ZIP is built in the browser (lib/export/storyboardZip.ts),
-// which fetches each image straight from Storage. Routing the image bytes
+// Data only — both files are built in the browser (lib/export/storyboardZip.ts
+// and storyboardToPdf.tsx), which fetch each image straight from Storage. Routing the image bytes
 // back through this action would hit Vercel's 4.5 MB response cap on any
 // storyboard with more than a handful of panels.
 export async function getStoryboardPanels(projectId: string, chapterIds: string[]): Promise<StoryboardResult> {
@@ -226,16 +229,17 @@ export async function getStoryboardPanels(projectId: string, chapterIds: string[
       id: ch.id,
       title: ch.title,
       // Numbered across every panel in the chapter, imageless ones included,
-      // so "Panel n" and the file order match the Panels tab even when some
-      // panels are skipped for having no image.
+      // so "Panel n" and the file order match the Panels tab even when the
+      // ZIP skips panels that have no image.
       panels: panels
         .filter((p) => p.chapter_id === ch.id)
-        .flatMap((p, i) => {
-          const url = p.image_url ? urlByPath.get(p.image_url) : undefined
-          return p.image_url && url
-            ? [{ id: p.id, number: i + 1, caption: p.caption, path: p.image_url, url }]
-            : []
-        }),
+        .map((p, i) => ({
+          id: p.id,
+          number: i + 1,
+          caption: p.caption,
+          path: p.image_url,
+          url: p.image_url ? (urlByPath.get(p.image_url) ?? null) : null,
+        })),
     })),
   }
 }
