@@ -71,6 +71,9 @@ importers:
       docx:
         specifier: ^9.7.1
         version: 9.7.1
+      fflate:
+        specifier: ^0.8.3
+        version: 0.8.3
       lucide-react:
         specifier: ^1.14.0
         version: 1.23.0(react@19.2.4)

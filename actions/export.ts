@@ -16,6 +16,7 @@ import type {
   FamilyTreeMember,
   Layer,
   Outline,
+  Panel,
   Place,
   Status,
 } from '@/types/database'
@@ -153,5 +154,88 @@ export async function exportStoryBible(
   } catch (err) {
     console.error('Story bible export error:', err)
     return { error: 'Failed to generate export' }
+  }
+}
+
+// Long enough for a big export to download every image from the browser;
+// the URLs are only ever handed to that one export run.
+const STORYBOARD_SIGNED_URL_TTL = 60 * 60 // 1h
+
+export interface StoryboardPanel {
+  id: string
+  number: number
+  caption: string | null
+  path: string
+  url: string
+}
+
+export interface StoryboardChapter {
+  id: string
+  title: string
+  panels: StoryboardPanel[]
+}
+
+export type StoryboardResult = { projectTitle: string; chapters: StoryboardChapter[] } | { error: string }
+
+// Data only — the ZIP is built in the browser (lib/export/storyboardZip.ts),
+// which fetches each image straight from Storage. Routing the image bytes
+// back through this action would hit Vercel's 4.5 MB response cap on any
+// storyboard with more than a handful of panels.
+export async function getStoryboardPanels(projectId: string, chapterIds: string[]): Promise<StoryboardResult> {
+  if (chapterIds.length === 0) return { error: 'No chapters selected' }
+
+  const supabase = await createClient()
+  const [projectRes, chaptersRes, panelsRes] = await Promise.all([
+    supabase.from('projects').select('title').eq('id', projectId).single(),
+    supabase
+      .from('chapters')
+      .select('id, title, position')
+      .eq('project_id', projectId)
+      .in('id', chapterIds)
+      .order('position'),
+    supabase
+      .from('panels')
+      .select('id, chapter_id, position, image_url, caption')
+      .eq('project_id', projectId)
+      .in('chapter_id', chapterIds)
+      .order('position'),
+  ])
+
+  const failed = [projectRes, chaptersRes, panelsRes].find((res) => res.error)
+  if (failed?.error) return { error: failed.error.message }
+
+  const chapters = (chaptersRes.data ?? []) as Pick<Chapter, 'id' | 'title' | 'position'>[]
+  const panels = (panelsRes.data ?? []) as Pick<Panel, 'id' | 'chapter_id' | 'position' | 'image_url' | 'caption'>[]
+
+  // One batch call for every image, same as withPanelCoverUrls in actions/panels.ts.
+  const paths = panels.map((p) => p.image_url).filter((path): path is string => path !== null)
+  let urlByPath = new Map<string, string>()
+  if (paths.length > 0) {
+    const { data, error } = await supabase.storage
+      .from('attachments')
+      .createSignedUrls(paths, STORYBOARD_SIGNED_URL_TTL)
+    if (error) return { error: error.message }
+    urlByPath = new Map(
+      (data ?? []).flatMap((entry) => (entry.path && entry.signedUrl ? [[entry.path, entry.signedUrl] as const] : []))
+    )
+  }
+
+  return {
+    projectTitle: (projectRes.data as { title: string } | null)?.title ?? 'Untitled',
+    chapters: chapters.map((ch) => ({
+      id: ch.id,
+      title: ch.title,
+      // Numbered across every panel in the chapter, imageless ones included,
+      // so "Panel n" and the file order match the Panels tab even when some
+      // panels are skipped for having no image.
+      panels: panels
+        .filter((p) => p.chapter_id === ch.id)
+        .flatMap((p, i) => {
+          const url = p.image_url ? urlByPath.get(p.image_url) : undefined
+          return p.image_url && url
+            ? [{ id: p.id, number: i + 1, caption: p.caption, path: p.image_url, url }]
+            : []
+        }),
+    })),
   }
 }
