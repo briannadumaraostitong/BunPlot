@@ -8,7 +8,6 @@ import Strike from '@tiptap/extension-strike'
 import Blockquote from '@tiptap/extension-blockquote'
 import TextAlign from '@tiptap/extension-text-align'
 import Placeholder from '@tiptap/extension-placeholder'
-import { ResizableImage, ImageTrailingParagraph } from '@/components/outline/ResizableImage'
 import {
   Bold,
   Italic,
@@ -24,37 +23,73 @@ import {
   AlignCenter,
   AlignRight,
   AlignJustify,
-  ImageIcon,
-  Loader2,
 } from 'lucide-react'
 import { Separator } from '@/components/ui/separator'
-import { createClient } from '@/lib/supabase/client'
 import { getEditorJson } from '@/lib/editorJson'
 import { cn } from '@/lib/utils'
 
 interface PlaceRichTextEditorProps {
   content: Record<string, unknown>
   placeholder: string
-  uploadPathPrefix: string
   onSave: (json: Record<string, unknown>) => Promise<void>
+}
+
+// New places store the column default '{}', which isn't a valid document and
+// would trip enableContentCheck below. Only genuinely absent content (null,
+// undefined, or an object with no keys) counts as empty — anything else, even
+// an unexpected shape, still goes through the content check, so real text in a
+// bad shape pauses editing instead of being treated as blank and overwritten.
+const EMPTY_DOC: Record<string, unknown> = { type: 'doc', content: [{ type: 'paragraph' }] }
+
+function normalizeContent(content: Record<string, unknown> | null | undefined) {
+  const isEmpty = !content || Object.keys(content).length === 0
+  return { doc: isEmpty ? EMPTY_DOC : content, isEmpty }
 }
 
 export function PlaceRichTextEditor({
   content,
   placeholder,
-  uploadPathPrefix,
   onSave,
 }: PlaceRichTextEditorProps) {
   const [saveStatus, setSaveStatus] = useState<'saved' | 'saving'>('saved')
-  const initialSerialized = JSON.stringify(content ?? {})
+  // Only the first render's content matters (the editor reads it once), so
+  // normalize it once.
+  const [initial] = useState(() => normalizeContent(content))
+  const initialSerialized = JSON.stringify(initial.doc)
   const lastSavedJson = useRef(initialSerialized)
   const latestJson = useRef(initialSerialized)
-  const fileInputRef = useRef<HTMLInputElement>(null)
-  const [uploadingImage, setUploadingImage] = useState(false)
-  const [imageError, setImageError] = useState<string | null>(null)
+  // Set when the stored content doesn't fit this editor's schema. State drives
+  // the message; the ref is what the save paths check, since the unmount flush
+  // only ever sees its first render's closure.
+  const [loadFailed, setLoadFailed] = useState(false)
+  const loadFailedRef = useRef(false)
 
   const editor = useEditor({
     immediatelyRender: false,
+    // Without this, content that doesn't fit the schema (e.g. an image node,
+    // now that images aren't supported here) silently loads as an empty
+    // document — and the next blur would save that empty document over the
+    // real text. With it, Tiptap still loads an empty fallback but reports
+    // the problem here (during construction, before mount), so saving can be
+    // switched off before anything is written.
+    enableContentCheck: true,
+    onContentError: ({ error }) => {
+      console.error('Place rich text failed to load:', error)
+      loadFailedRef.current = true
+      setLoadFailed(true)
+    },
+    // For empty content, re-baseline from the editor's own JSON: getJSON()
+    // adds default attrs (textAlign: null) that EMPTY_DOC doesn't spell out,
+    // so comparing against EMPTY_DOC would make the first blur save a blank
+    // document for nothing. Runs right after setup, before any interaction.
+    onCreate: ({ editor }) => {
+      if (!initial.isEmpty) return
+      const serialized = JSON.stringify(editor.getJSON())
+      lastSavedJson.current = serialized
+      latestJson.current = serialized
+    },
+    // No image extension (unlike the Outline editor): place description/notes
+    // are text-only. Content containing an image node fails the check above.
     extensions: [
       StarterKit.configure({
         underline: false,
@@ -67,11 +102,9 @@ export function PlaceRichTextEditor({
       TextAlign.configure({
         types: ['heading', 'paragraph'],
       }),
-      ResizableImage,
-      ImageTrailingParagraph,
       Placeholder.configure({ placeholder }),
     ],
-    content: content ?? {},
+    content: initial.doc,
     editorProps: {
       attributes: {
         class: 'outline-none text-sm leading-relaxed min-h-full',
@@ -80,7 +113,7 @@ export function PlaceRichTextEditor({
   })
 
   const handleSave = useCallback(async () => {
-    if (!editor) return
+    if (!editor || loadFailedRef.current) return
     const json = getEditorJson(editor)
     const serialized = JSON.stringify(json)
     if (serialized === lastSavedJson.current) return
@@ -112,7 +145,7 @@ export function PlaceRichTextEditor({
 
   useEffect(() => {
     return () => {
-      if (latestJson.current !== lastSavedJson.current) {
+      if (!loadFailedRef.current && latestJson.current !== lastSavedJson.current) {
         // Parsed from the serialized snapshot, so already plain JSON (see
         // getEditorJson) — and safe to read after the editor is torn down.
         onSave(JSON.parse(latestJson.current))
@@ -123,53 +156,25 @@ export function PlaceRichTextEditor({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
-  async function handleImageUpload(e: React.ChangeEvent<HTMLInputElement>) {
-    const file = e.target.files?.[0]
-    e.target.value = ''
-    if (!file || !editor) return
-
-    setImageError(null)
-    setUploadingImage(true)
-
-    try {
-      const supabase = createClient()
-      const safeName = file.name.replace(/\s+/g, '-')
-      const path = `${uploadPathPrefix}/${Date.now()}-${safeName}`
-
-      const { error: uploadErr } = await supabase.storage.from('attachments').upload(path, file)
-      if (uploadErr) throw uploadErr
-
-      // 'attachments' is a private bucket, so a public URL would 403 — use a
-      // long-lived signed URL instead (10 years) since the image is embedded
-      // directly in saved content, same as Outline's body images.
-      const { data, error: signError } = await supabase.storage
-        .from('attachments')
-        .createSignedUrl(path, 60 * 60 * 24 * 365 * 10)
-      if (signError || !data) throw signError ?? new Error('Failed to create signed URL')
-
-      editor.chain().focus().setImage({ src: data.signedUrl }).run()
-    } catch (error) {
-      console.error('Image upload error:', error)
-      setImageError('Failed to upload image')
-    } finally {
-      setUploadingImage(false)
-    }
-  }
-
   function setAlign(align: 'left' | 'center' | 'right' | 'justify') {
-    if (!editor) return
-    if (editor.isActive('image')) {
-      editor.chain().focus().setImageAlign(align).run()
-    } else {
-      editor.chain().focus().setTextAlign(align).run()
-    }
+    editor?.chain().focus().setTextAlign(align).run()
   }
 
   function isAlignActive(align: 'left' | 'center' | 'right' | 'justify') {
-    if (!editor) return false
-    return editor.isActive('image')
-      ? editor.isActive('image', { imageAlign: align })
-      : editor.isActive({ textAlign: align })
+    return editor?.isActive({ textAlign: align }) ?? false
+  }
+
+  // Checked before `editor`: the empty fallback document Tiptap loaded in
+  // place of the real content is never shown or mounted, so it can't be
+  // edited, focused or blurred into a save.
+  if (loadFailed) {
+    return (
+      <div className="flex h-full items-center justify-center rounded-lg border border-border px-4 text-center">
+        <p className="text-xs text-muted-foreground">
+          This text couldn&apos;t be loaded, so editing is paused to protect it.
+        </p>
+      </div>
+    )
   }
 
   if (!editor) return null
@@ -273,31 +278,9 @@ export function PlaceRichTextEditor({
           <ToolbarBtn onClick={() => setAlign('justify')} active={isAlignActive('justify')} title="Justify">
             <AlignJustify className="h-3.5 w-3.5" />
           </ToolbarBtn>
-
-          <Separator orientation="vertical" className="h-4 mx-1" />
-
-          <ToolbarBtn
-            onClick={() => fileInputRef.current?.click()}
-            title="Insert image"
-            disabled={uploadingImage}
-          >
-            {uploadingImage ? (
-              <Loader2 className="h-3.5 w-3.5 animate-spin" />
-            ) : (
-              <ImageIcon className="h-3.5 w-3.5" />
-            )}
-          </ToolbarBtn>
-          <input
-            ref={fileInputRef}
-            type="file"
-            accept="image/jpeg,image/png,image/gif,image/webp"
-            className="hidden"
-            onChange={handleImageUpload}
-          />
         </div>
 
         <div className="flex shrink-0 items-center gap-2 text-[10px]">
-          {imageError && <span className="text-destructive">{imageError}</span>}
           {saveStatus === 'saving' ? (
             <span className="text-muted-foreground">Saving...</span>
           ) : (
@@ -317,31 +300,24 @@ function ToolbarBtn({
   onClick,
   title,
   active,
-  disabled,
   children,
 }: {
   onClick: () => void
   title: string
   active?: boolean
-  disabled?: boolean
   children: React.ReactNode
 }) {
   return (
     <button
       type="button"
       title={title}
-      disabled={disabled}
       onMouseDown={(e) => {
         e.preventDefault()
-        if (!disabled) onClick()
+        onClick()
       }}
       className={cn(
         'relative h-6 w-6 flex items-center justify-center rounded-md transition-colors after:absolute after:-inset-1',
-        disabled
-          ? 'text-muted-foreground opacity-50 cursor-not-allowed'
-          : active
-            ? 'bg-secondary text-foreground'
-            : 'text-muted-foreground hover:bg-secondary hover:text-foreground'
+        active ? 'bg-secondary text-foreground' : 'text-muted-foreground hover:bg-secondary hover:text-foreground'
       )}
     >
       {children}

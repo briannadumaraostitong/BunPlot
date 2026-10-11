@@ -184,7 +184,6 @@ function PlaceDetailContent({
                 key="description"
                 content={place.description ?? {}}
                 placeholder="What does this place look and feel like?"
-                uploadPathPrefix={`places/${place.project_id}/${place.id}/description`}
                 onSave={handleDescriptionSave}
               />
             ) : (
@@ -192,7 +191,6 @@ function PlaceDetailContent({
                 key="notes"
                 content={place.notes ?? {}}
                 placeholder="Private notes, worldbuilding details, ideas..."
-                uploadPathPrefix={`places/${place.project_id}/${place.id}/notes`}
                 onSave={handleNotesSave}
               />
             )}
