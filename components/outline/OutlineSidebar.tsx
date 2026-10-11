@@ -1,7 +1,7 @@
 'use client'
 
 import { useEffect, useRef, useState } from 'react'
-import { ChevronLeft, ChevronRight, Download, FileText, Plus, X } from 'lucide-react'
+import { ChevronDown, ChevronLeft, ChevronRight, Download, FileText, Plus, X } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { Button } from '@/components/ui/button'
 import {
@@ -17,17 +17,16 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu'
-import { ExportOutlinesDialog } from './ExportOutlinesDialog'
 import type { Outline } from '@/types/database'
 
 interface OutlineSidebarProps {
-  projectId: string
   outlines: Outline[]
   activeId: string | null
   onSelect: (id: string) => void
   onAdd: () => void
   onRename: (id: string, name: string) => void
   onDelete: (id: string) => void
+  onExport: () => void
 }
 
 function hasTextContent(node: unknown): boolean {
@@ -39,16 +38,15 @@ function hasTextContent(node: unknown): boolean {
 }
 
 export function OutlineSidebar({
-  projectId,
   outlines,
   activeId,
   onSelect,
   onAdd,
   onRename,
   onDelete,
+  onExport,
 }: OutlineSidebarProps) {
   const [collapsed, setCollapsed] = useState(false)
-  const [exportOpen, setExportOpen] = useState(false)
   const [pendingDeleteId, setPendingDeleteId] = useState<string | null>(null)
   const pendingDeleteOutline = outlines.find((o) => o.id === pendingDeleteId) ?? null
 
@@ -81,8 +79,9 @@ export function OutlineSidebar({
         {!collapsed && (
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
-              <button className="text-xs font-semibold text-muted-foreground uppercase tracking-wider transition-colors hover:text-foreground">
+              <button className="flex items-center gap-1 text-xs font-semibold text-muted-foreground uppercase tracking-wider transition-colors hover:text-foreground">
                 File
+                <ChevronDown className="h-3 w-3" />
               </button>
             </DropdownMenuTrigger>
             <DropdownMenuContent align="start">
@@ -90,7 +89,7 @@ export function OutlineSidebar({
                 <Plus className="h-3.5 w-3.5 mr-2" />
                 New document
               </DropdownMenuItem>
-              <DropdownMenuItem onClick={() => setExportOpen(true)}>
+              <DropdownMenuItem onClick={onExport}>
                 <Download className="h-3.5 w-3.5 mr-2" />
                 Export...
               </DropdownMenuItem>
@@ -129,13 +128,6 @@ export function OutlineSidebar({
           )}
         </div>
       )}
-
-      <ExportOutlinesDialog
-        projectId={projectId}
-        outlines={outlines}
-        open={exportOpen}
-        onClose={() => setExportOpen(false)}
-      />
 
       <Dialog
         open={pendingDeleteOutline !== null}

@@ -29,6 +29,7 @@ import {
   Loader2,
   PanelLeft,
   PanelRight,
+  Download,
 } from 'lucide-react'
 import { Separator } from '@/components/ui/separator'
 import { Skeleton } from '@/components/ui/skeleton'
@@ -43,6 +44,7 @@ import {
   deleteOutline,
 } from '@/actions/outline'
 import { OutlineSidebar } from '@/components/outline/OutlineSidebar'
+import { ExportOutlinesDialog } from '@/components/outline/ExportOutlinesDialog'
 import { cn } from '@/lib/utils'
 import type { Outline } from '@/types/database'
 
@@ -90,6 +92,10 @@ export function OutlineEditor({ projectId }: OutlineEditorProps) {
   const [loading, setLoading] = useState(true)
   const [outlines, setOutlines] = useState<Outline[]>([])
   const [activeId, setActiveId] = useState<string | null>(null)
+  // Lives here rather than in OutlineSidebar so both the sidebar's File menu
+  // and the top bar's Export button open the same dialog — and the button
+  // keeps working while the sidebar is collapsed.
+  const [exportOpen, setExportOpen] = useState(false)
 
   useEffect(() => {
     let cancelled = false
@@ -185,22 +191,35 @@ export function OutlineEditor({ projectId }: OutlineEditorProps) {
   return (
     <div className="flex h-full overflow-hidden">
       <OutlineSidebar
-        projectId={projectId}
         outlines={outlines}
         activeId={activeId}
         onSelect={setActiveId}
         onAdd={handleAdd}
         onRename={handleRename}
         onDelete={handleDelete}
+        onExport={() => setExportOpen(true)}
       />
       <div className="min-w-0 flex-1 overflow-hidden">
-        {activeOutline && <OutlineDocumentEditor key={activeOutline.id} outline={activeOutline} />}
+        {activeOutline && (
+          <OutlineDocumentEditor
+            key={activeOutline.id}
+            outline={activeOutline}
+            onExport={() => setExportOpen(true)}
+          />
+        )}
       </div>
+
+      <ExportOutlinesDialog
+        projectId={projectId}
+        outlines={outlines}
+        open={exportOpen}
+        onClose={() => setExportOpen(false)}
+      />
     </div>
   )
 }
 
-function OutlineDocumentEditor({ outline }: { outline: Outline }) {
+function OutlineDocumentEditor({ outline, onExport }: { outline: Outline; onExport: () => void }) {
   const [saveStatus, setSaveStatus] = useState<SaveStatus>('saved')
   const [wordCount, setWordCount] = useState(0)
   const initialSerialized = JSON.stringify(outline.content ?? '')
@@ -483,6 +502,17 @@ function OutlineDocumentEditor({ outline }: { outline: Outline }) {
           ) : (
             <span className="text-emerald-600 dark:text-emerald-500">Saved ✓</span>
           )}
+          {/* Same button as the Timeline and Panels tabs' Export, so every tab
+              puts its export in the same place. Also in the sidebar's File
+              menu, but this one stays visible when the sidebar is collapsed. */}
+          <button
+            onClick={onExport}
+            aria-label="Export manuscript"
+            className="relative ml-auto flex h-7 shrink-0 items-center gap-1.5 rounded-lg border border-border px-2 text-xs text-muted-foreground transition-colors hover:bg-secondary hover:text-foreground after:absolute after:-inset-1 md:px-2.5"
+          >
+            <Download className="h-3 w-3" />
+            <span className="hidden md:inline">Export</span>
+          </button>
         </div>
       </div>
 
