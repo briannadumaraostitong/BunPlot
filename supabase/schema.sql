@@ -893,3 +893,52 @@ REVOKE EXECUTE ON FUNCTION owns_project(uuid)                  FROM PUBLIC, anon
 REVOKE EXECUTE ON FUNCTION duplicate_project(uuid, text, text) FROM PUBLIC, anon;
 GRANT  EXECUTE ON FUNCTION owns_project(uuid)                  TO authenticated;
 GRANT  EXECUTE ON FUNCTION duplicate_project(uuid, text, text) TO authenticated;
+
+-- STORAGE POLICIES
+-- The private 'attachments' bucket itself is created and configured in the
+-- Supabase dashboard; only its policies on storage.objects are recorded here.
+-- Every path is <folder>/<project_id>/... (projects/, places/, outlines/,
+-- panels/, chapters/), so access is scoped to projects the caller owns. The
+-- project id is compared as text, so a malformed path just doesn't match
+-- (storage.foldername returns NULL for a missing segment) rather than making
+-- a ::uuid cast throw.
+-- Deliberately no UPDATE policy: nothing in the app overwrites (upsert),
+-- moves or copies objects, so those stay denied.
+-- Files can only be read or deleted while their project row still exists, so
+-- any future project-delete cleanup must remove the files *before* deleting
+-- the project. Afterwards they're unreachable through the app.
+-- Signed URLs bypass these policies entirely: Storage checks the URL's own
+-- token, so existing signed URLs keep working until they expire. Creating a
+-- new one (createSignedUrl) does go through the SELECT policy.
+CREATE POLICY "Project owners can read attachments"
+  ON storage.objects FOR SELECT TO authenticated
+  USING (
+    bucket_id = 'attachments'
+    AND EXISTS (
+      SELECT 1 FROM public.projects p
+      WHERE p.id::text = (storage.foldername(objects.name))[2]
+        AND p.owner_id = (SELECT auth.uid())
+    )
+  );
+
+CREATE POLICY "Project owners can upload attachments"
+  ON storage.objects FOR INSERT TO authenticated
+  WITH CHECK (
+    bucket_id = 'attachments'
+    AND EXISTS (
+      SELECT 1 FROM public.projects p
+      WHERE p.id::text = (storage.foldername(objects.name))[2]
+        AND p.owner_id = (SELECT auth.uid())
+    )
+  );
+
+CREATE POLICY "Project owners can delete attachments"
+  ON storage.objects FOR DELETE TO authenticated
+  USING (
+    bucket_id = 'attachments'
+    AND EXISTS (
+      SELECT 1 FROM public.projects p
+      WHERE p.id::text = (storage.foldername(objects.name))[2]
+        AND p.owner_id = (SELECT auth.uid())
+    )
+  );
