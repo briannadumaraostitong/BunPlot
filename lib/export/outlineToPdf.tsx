@@ -32,6 +32,12 @@ const PDF_IMAGE_FORMAT: Partial<Record<'png' | 'jpeg' | 'gif' | 'webp', 'png' | 
 }
 
 const MAX_IMAGE_WIDTH_PT = 400
+// Text width of the A4 page above (595.28pt minus 64pt padding each side).
+// Left/right ("wrap") images can't wrap in react-pdf, so they sit on their own
+// line at their own width, clamped to this. The editor's width is CSS px, so
+// convert to pt.
+const TEXT_WIDTH_PT = 595.28 - 2 * 64
+const PT_PER_PX = 0.75
 
 function Runs({ runs }: { runs: InlineRun[] }) {
   return (
@@ -63,7 +69,10 @@ async function renderImageBlock(src: string, width: number | null, align: Align 
     console.warn(`Skipping export image (unsupported format "${fetched.info.format}" for PDF):`, src)
     return null
   }
-  const renderWidth = Math.min(MAX_IMAGE_WIDTH_PT, width ?? MAX_IMAGE_WIDTH_PT)
+  const wrapped = align === 'left' || align === 'right'
+  const renderWidth = wrapped
+    ? Math.min(TEXT_WIDTH_PT, (width ?? fetched.info.width) * PT_PER_PX)
+    : Math.min(MAX_IMAGE_WIDTH_PT, width ?? MAX_IMAGE_WIDTH_PT)
   const renderHeight = renderWidth * (fetched.info.height / fetched.info.width)
   return (
     // This is @react-pdf/renderer's Image (a PDF layout primitive), not an

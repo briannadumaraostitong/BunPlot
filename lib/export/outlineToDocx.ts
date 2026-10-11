@@ -1,4 +1,17 @@
-import { Document, Packer, Paragraph, TextRun, HeadingLevel, AlignmentType, ImageRun } from 'docx'
+import {
+  Document,
+  Packer,
+  Paragraph,
+  TextRun,
+  HeadingLevel,
+  AlignmentType,
+  ImageRun,
+  HorizontalPositionAlign,
+  HorizontalPositionRelativeFrom,
+  VerticalPositionRelativeFrom,
+  TextWrappingType,
+  TextWrappingSide,
+} from 'docx'
 import { fetchImageBytes } from './fetchImageBytes'
 import type { Align, BlockNode, InlineRun } from './outlineIR'
 
@@ -34,6 +47,65 @@ const DOCX_IMAGE_TYPE: Partial<Record<'png' | 'jpeg' | 'gif' | 'webp', 'jpg' | '
 
 const MAX_IMAGE_WIDTH_PX = 500
 
+// Text width of docx's default page (A4, 1" margins): 11906 − 2×1440 twips,
+// in the 96-dpi px ImageRun sizes use. Wrapped images are clamped to it
+// instead of MAX_IMAGE_WIDTH_PX, so they keep the width set in the editor.
+const TEXT_WIDTH_PX = Math.floor(((11906 - 2 * 1440) / 1440) * 96)
+const EMU_PER_PX = 9525
+// Gap between a wrapped image and the text beside/below it — the editor's
+// mr-6/ml-6 (24px) and mb-4 (16px).
+const WRAP_GAP_SIDE = 24 * EMU_PER_PX
+const WRAP_GAP_BOTTOM = 16 * EMU_PER_PX
+
+type ImageBlock = Extract<BlockNode, { type: 'image' }>
+
+// Left/right = wrap, matching the editor (ResizableImage).
+function isWrappedImage(block: BlockNode): block is ImageBlock {
+  return block.type === 'image' && (block.align === 'left' || block.align === 'right')
+}
+
+// Fetches an image and checks DOCX can embed it; logs and returns null if not.
+async function fetchDocxImage(src: string) {
+  const fetched = await fetchImageBytes(src)
+  if (!fetched || !fetched.info.format || !fetched.info.width || !fetched.info.height) {
+    console.warn('Skipping export image (unreadable):', src)
+    return null
+  }
+  const type = DOCX_IMAGE_TYPE[fetched.info.format]
+  if (!type) {
+    console.warn(`Skipping export image (unsupported format "${fetched.info.format}" for DOCX):`, src)
+    return null
+  }
+  return { type, data: fetched.bytes, width: fetched.info.width, height: fetched.info.height }
+}
+
+// A floating image with square wrapping on the side away from it, anchored
+// to the paragraph it's placed in. Its own width (or natural width if never
+// resized), clamped to the text width.
+async function wrappedImageRun(block: ImageBlock): Promise<ImageRun | null> {
+  const image = await fetchDocxImage(block.src)
+  if (!image) return null
+  const width = Math.min(TEXT_WIDTH_PX, block.width ?? image.width)
+  const height = Math.round(width * (image.height / image.width))
+  const left = block.align === 'left'
+  return new ImageRun({
+    type: image.type,
+    data: image.data,
+    transformation: { width, height },
+    floating: {
+      horizontalPosition: {
+        relative: HorizontalPositionRelativeFrom.COLUMN,
+        align: left ? HorizontalPositionAlign.LEFT : HorizontalPositionAlign.RIGHT,
+      },
+      verticalPosition: { relative: VerticalPositionRelativeFrom.PARAGRAPH, offset: 0 },
+      wrap: { type: TextWrappingType.SQUARE, side: left ? TextWrappingSide.RIGHT : TextWrappingSide.LEFT },
+      margins: left
+        ? { right: WRAP_GAP_SIDE, bottom: WRAP_GAP_BOTTOM }
+        : { left: WRAP_GAP_SIDE, bottom: WRAP_GAP_BOTTOM },
+    },
+  })
+}
+
 function textRuns(runs: InlineRun[]): TextRun[] {
   return runs.map(
     (r) =>
@@ -51,6 +123,8 @@ interface DocxContext {
   indentLevel: number
   listType?: 'bullet' | 'ordered'
   orderedIndex?: number
+  // A floating image anchored into this paragraph (see blocksToParagraphs).
+  leadingImage?: ImageRun
 }
 
 async function blockToParagraphs(block: BlockNode, ctx: DocxContext): Promise<Paragraph[]> {
@@ -76,7 +150,7 @@ async function blockToParagraphs(block: BlockNode, ctx: DocxContext): Promise<Pa
           children:
             ctx.listType === 'ordered'
               ? [new TextRun({ text: `${ctx.orderedIndex}. ` }), ...textRuns(block.runs)]
-              : textRuns(block.runs),
+              : [...(ctx.leadingImage ? [ctx.leadingImage] : []), ...textRuns(block.runs)],
         }),
       ]
 
@@ -117,25 +191,17 @@ async function blockToParagraphs(block: BlockNode, ctx: DocxContext): Promise<Pa
     }
 
     case 'image': {
-      const fetched = await fetchImageBytes(block.src)
-      if (!fetched || !fetched.info.format || !fetched.info.width || !fetched.info.height) {
-        console.warn('Skipping export image (unreadable):', block.src)
-        return []
-      }
-      const docxType = DOCX_IMAGE_TYPE[fetched.info.format]
-      if (!docxType) {
-        console.warn(`Skipping export image (unsupported format "${fetched.info.format}" for DOCX):`, block.src)
-        return []
-      }
+      const image = await fetchDocxImage(block.src)
+      if (!image) return []
       const width = Math.min(MAX_IMAGE_WIDTH_PX, block.width ?? MAX_IMAGE_WIDTH_PX)
-      const height = Math.round(width * (fetched.info.height / fetched.info.width))
+      const height = Math.round(width * (image.height / image.width))
       return [
         new Paragraph({
           alignment: block.align ? ALIGN_MAP[block.align] : AlignmentType.CENTER,
           children: [
             new ImageRun({
-              type: docxType,
-              data: fetched.bytes,
+              type: image.type,
+              data: image.data,
               transformation: { width, height },
             }),
           ],
@@ -145,9 +211,26 @@ async function blockToParagraphs(block: BlockNode, ctx: DocxContext): Promise<Pa
   }
 }
 
+// Top level only — images nested in lists or quotes go through
+// blockToParagraphs and stay in line, matching the editor. A wrapped image is
+// anchored into the next paragraph when there is one (so no blank anchor line
+// sits above the wrapped text), otherwise into its own empty paragraph.
 export async function blocksToParagraphs(blocks: BlockNode[]): Promise<Paragraph[]> {
   const out: Paragraph[] = []
-  for (const block of blocks) {
+  for (let i = 0; i < blocks.length; i++) {
+    const block = blocks[i]
+    if (isWrappedImage(block)) {
+      const run = await wrappedImageRun(block)
+      if (!run) continue
+      const next = blocks[i + 1]
+      if (next?.type === 'paragraph') {
+        out.push(...(await blockToParagraphs(next, { indentLevel: 0, leadingImage: run })))
+        i++
+      } else {
+        out.push(new Paragraph({ children: [run] }))
+      }
+      continue
+    }
     out.push(...(await blockToParagraphs(block, { indentLevel: 0 })))
   }
   return out
