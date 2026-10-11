@@ -31,6 +31,7 @@ import { Separator } from '@/components/ui/separator'
 import { Skeleton } from '@/components/ui/skeleton'
 import { SidebarRowSkeleton } from '@/components/ui/sidebar-skeleton-row'
 import { createClient } from '@/lib/supabase/client'
+import { getEditorJson } from '@/lib/editorJson'
 import {
   getOutlines,
   createOutline,
@@ -228,7 +229,7 @@ function OutlineDocumentEditor({ outline }: { outline: Outline }) {
 
   const handleSave = useCallback(async () => {
     if (!editor) return
-    const json = editor.getJSON()
+    const json = getEditorJson(editor)
     const serialized = JSON.stringify(json)
     if (serialized === lastSavedJson.current) return
 
@@ -267,6 +268,8 @@ function OutlineDocumentEditor({ outline }: { outline: Outline }) {
   useEffect(() => {
     return () => {
       if (latestJson.current !== lastSavedJson.current) {
+        // Parsed from the serialized snapshot, so already plain JSON (see
+        // getEditorJson) — and safe to read after the editor is torn down.
         saveOutline(outline.id, JSON.parse(latestJson.current))
       }
     }

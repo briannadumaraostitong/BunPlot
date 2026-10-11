@@ -29,6 +29,7 @@ import {
 } from 'lucide-react'
 import { Separator } from '@/components/ui/separator'
 import { createClient } from '@/lib/supabase/client'
+import { getEditorJson } from '@/lib/editorJson'
 import { cn } from '@/lib/utils'
 
 interface PlaceRichTextEditorProps {
@@ -80,7 +81,7 @@ export function PlaceRichTextEditor({
 
   const handleSave = useCallback(async () => {
     if (!editor) return
-    const json = editor.getJSON()
+    const json = getEditorJson(editor)
     const serialized = JSON.stringify(json)
     if (serialized === lastSavedJson.current) return
 
@@ -112,6 +113,8 @@ export function PlaceRichTextEditor({
   useEffect(() => {
     return () => {
       if (latestJson.current !== lastSavedJson.current) {
+        // Parsed from the serialized snapshot, so already plain JSON (see
+        // getEditorJson) — and safe to read after the editor is torn down.
         onSave(JSON.parse(latestJson.current))
       }
     }
