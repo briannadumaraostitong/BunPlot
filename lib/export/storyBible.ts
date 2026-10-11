@@ -124,8 +124,34 @@ function shiftHeadings(blocks: BlockNode[], by: number): BlockNode[] {
   })
 }
 
+// True if any block would render something a reader can see: non-whitespace
+// text (a hardBreak's '\n' doesn't count), or an image.
+function hasVisibleContent(blocks: BlockNode[]): boolean {
+  return blocks.some((block) => {
+    switch (block.type) {
+      case 'heading':
+      case 'paragraph':
+        return block.runs.some((run) => run.text.trim() !== '')
+      case 'blockquote':
+        return hasVisibleContent(block.children)
+      case 'bulletList':
+      case 'orderedList':
+        return block.items.some(hasVisibleContent)
+      case 'image':
+        return true
+    }
+  })
+}
+
+// A blank document (e.g. a single empty paragraph left after clearing a field)
+// still walks to an empty paragraph block, which would make the renderers
+// print an empty "Description"/"Notes" heading. Content with no visible text
+// counts as absent; anything with visible text passes through untouched,
+// blank lines included.
 function richText(doc: Record<string, unknown> | null | undefined, headingShift: number): BlockNode[] {
-  return doc ? shiftHeadings(tiptapToBlocks(doc), headingShift) : []
+  if (!doc) return []
+  const blocks = tiptapToBlocks(doc)
+  return hasVisibleContent(blocks) ? shiftHeadings(blocks, headingShift) : []
 }
 
 const byName = (a: { name: string }, b: { name: string }) => a.name.localeCompare(b.name)
