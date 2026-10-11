@@ -12,6 +12,7 @@ import { useChapters } from '@/hooks/useChapters'
 import { useLayers } from '@/hooks/useLayers'
 import { useStatuses } from '@/hooks/useStatuses'
 import { getPlaces, getEventPlaceLinks } from '@/actions/places'
+import { waitForPendingPlaceSaves } from './pendingPlaceSaves'
 import { getCharacters } from '@/actions/characters'
 import type { Layer, Event, Chapter, PlaceType, Character, Status } from '@/types/database'
 import type { PlaceWithCover, EventPlaceLink } from '@/actions/places'
@@ -58,6 +59,10 @@ export function PlacesPanel({
   useEffect(() => {
     let cancelled = false
     ;(async () => {
+      // Flush any place save still in flight from the previous mount of this
+      // tab before trusting a fresh fetch — otherwise this can race an unmount
+      // save and load stale (pre-save) content.
+      await waitForPendingPlaceSaves()
       const [placesData, linksData] = await Promise.all([
         getPlaces(projectId),
         getEventPlaceLinks(projectId),

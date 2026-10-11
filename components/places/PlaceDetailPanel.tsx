@@ -14,6 +14,7 @@ import {
 } from '@/components/ui/select'
 import { createClient } from '@/lib/supabase/client'
 import { updatePlace } from '@/actions/places'
+import { savePlaceFields } from './pendingPlaceSaves'
 import { PLACE_TYPES } from '@/lib/places.config'
 import { PlaceRichTextEditor } from './PlaceRichTextEditor'
 import type { Chapter, Event, PlaceType } from '@/types/database'
@@ -92,17 +93,17 @@ function PlaceDetailContent({
 
   async function saveField(updates: Partial<{ name: string; type: PlaceType; color: string }>) {
     onUpdated(place.id, updates)
-    await updatePlace(place.id, place.project_id, updates)
+    await savePlaceFields(place.id, place.project_id, updates)
   }
 
   async function handleDescriptionSave(json: Record<string, unknown>) {
     onUpdated(place.id, { description: json })
-    await updatePlace(place.id, place.project_id, { description: json })
+    await savePlaceFields(place.id, place.project_id, { description: json })
   }
 
   async function handleNotesSave(json: Record<string, unknown>) {
     onUpdated(place.id, { notes: json })
-    await updatePlace(place.id, place.project_id, { notes: json })
+    await savePlaceFields(place.id, place.project_id, { notes: json })
   }
 
   return (
