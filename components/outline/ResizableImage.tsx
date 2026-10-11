@@ -69,10 +69,12 @@ export const ResizableImage = TiptapImage.extend({
   },
 })
 
-// Ensures a trailing empty paragraph exists after a trailing image so there's
-// always somewhere for the cursor to land when clicking below it. Re-checked
-// on every doc-changing transaction so it self-heals if images get moved or
-// pasted to the end.
+// Ensures every top-level image is followed by a paragraph — so there's
+// always somewhere to type beside a wrapped image (headings clear floats, so
+// a heading straight after one would start below it) and somewhere for the
+// cursor to land below a trailing image. Re-checked on every doc-changing
+// transaction so it self-heals if images are moved, pasted or the paragraph
+// is deleted.
 export const ImageTrailingParagraph = Extension.create({
   name: 'imageTrailingParagraph',
 
@@ -85,10 +87,20 @@ export const ImageTrailingParagraph = Extension.create({
 
           const { doc, schema } = newState
           const paragraphType = schema.nodes.paragraph
-          const lastNode = doc.lastChild
-          if (!paragraphType || !lastNode || lastNode.type.name !== 'image') return null
+          if (!paragraphType) return null
 
-          return newState.tr.insert(doc.content.size, paragraphType.create())
+          const insertAt: number[] = []
+          doc.forEach((node, offset, index) => {
+            if (node.type.name !== 'image') return
+            const next = index + 1 < doc.childCount ? doc.child(index + 1) : null
+            if (next?.type !== paragraphType) insertAt.push(offset + node.nodeSize)
+          })
+          if (insertAt.length === 0) return null
+
+          // Back to front, so earlier insert positions stay valid.
+          const tr = newState.tr
+          for (const pos of insertAt.reverse()) tr.insert(pos, paragraphType.create())
+          return tr
         },
       }),
     ]
@@ -103,18 +115,31 @@ export const ImageTrailingParagraph = Extension.create({
 // wrapper back to `display: contents`. Driving float/margin from the wrapper
 // (whose containing block is the surrounding paragraph, not itself) sidesteps
 // that trap entirely, independent of selection state.
-const WRAPPER_ALIGN_STYLE: Record<'left' | 'right' | 'center', React.CSSProperties> = {
-  left: { float: 'left', maxWidth: '50%', margin: '0.25rem 1.5rem 1rem 0' },
-  right: { float: 'right', maxWidth: '50%', margin: '0.25rem 0 1rem 1.5rem' },
-  center: { display: 'block', width: 'fit-content', marginInline: 'auto' },
+//
+// Left/right mean "wrap": the wrapper floats so the following paragraphs flow
+// beside it. No width cap — the space beside the image comes from its own
+// width. Classes rather than inline styles so the float can switch off below
+// sm, where wrapped text next to an image is unreadable: there the image sits
+// on its own line, aligned to the same side. Images that aren't top-level (in
+// a list item or quote) never float, for the same own-line result.
+const WRAPPER_ALIGN_CLASS = {
+  left: 'block w-fit mt-1 mb-4 sm:float-left sm:mr-6',
+  right: 'block w-fit ml-auto mt-1 mb-4 sm:float-right sm:ml-6',
+  center: 'block w-fit mx-auto',
+} as const
+
+const OWN_LINE_ALIGN_CLASS = {
+  left: 'block w-fit',
+  right: 'block w-fit ml-auto',
+  center: 'block w-fit mx-auto',
+} as const
+
+function getWrapperAlignClass(align: ImageAlign, isTopLevel: boolean): string | undefined {
+  if (align !== 'left' && align !== 'right' && align !== 'center') return undefined
+  return (isTopLevel ? WRAPPER_ALIGN_CLASS : OWN_LINE_ALIGN_CLASS)[align]
 }
 
-function getWrapperAlignStyle(align: ImageAlign): React.CSSProperties | undefined {
-  if (align === 'left' || align === 'right' || align === 'center') return WRAPPER_ALIGN_STYLE[align]
-  return undefined
-}
-
-function ResizableImageView({ node, selected, updateAttributes }: ReactNodeViewProps<HTMLDivElement>) {
+function ResizableImageView({ node, selected, updateAttributes, editor, getPos }: ReactNodeViewProps<HTMLDivElement>) {
   const wrapperRef = useRef<HTMLDivElement>(null)
   const [resizing, setResizing] = useState(false)
 
@@ -126,6 +151,9 @@ function ResizableImageView({ node, selected, updateAttributes }: ReactNodeViewP
     imageAlign: ImageAlign
   }
 
+  const pos = getPos()
+  const isTopLevel = typeof pos === 'number' && editor.state.doc.resolve(pos).depth === 0
+
   const startResize = useCallback(
     (corner: Corner) => (e: React.PointerEvent) => {
       e.preventDefault()
@@ -135,13 +163,18 @@ function ResizableImageView({ node, selected, updateAttributes }: ReactNodeViewP
 
       const startX = e.clientX
       const startWidth = img.getBoundingClientRect().width
+      // The <img> is capped at max-width: 100% of its container, so a width
+      // past that would move the handle with no visible change — clamp to it.
+      const maxWidth = Math.floor(
+        wrapperRef.current?.parentElement?.getBoundingClientRect().width ?? editor.view.dom.clientWidth
+      )
       const growsRight = corner === 'ne' || corner === 'se'
       setResizing(true)
 
       function onMove(ev: PointerEvent) {
         const delta = ev.clientX - startX
         const next = Math.round(startWidth + (growsRight ? delta : -delta))
-        updateAttributes({ width: Math.max(MIN_WIDTH, next) })
+        updateAttributes({ width: Math.min(maxWidth, Math.max(MIN_WIDTH, next)) })
       }
       function onUp() {
         setResizing(false)
@@ -151,7 +184,7 @@ function ResizableImageView({ node, selected, updateAttributes }: ReactNodeViewP
       window.addEventListener('pointermove', onMove)
       window.addEventListener('pointerup', onUp)
     },
-    [updateAttributes]
+    [updateAttributes, editor]
   )
 
   const showOverlay = selected || resizing
@@ -161,8 +194,11 @@ function ResizableImageView({ node, selected, updateAttributes }: ReactNodeViewP
       ref={wrapperRef}
       as="div"
       data-drag-handle
-      className={cn('relative', !imageAlign && (showOverlay ? 'inline-block' : 'contents'))}
-      style={getWrapperAlignStyle(imageAlign)}
+      className={cn(
+        'relative',
+        !imageAlign && (showOverlay ? 'inline-block' : 'contents'),
+        getWrapperAlignClass(imageAlign, isTopLevel)
+      )}
     >
       <img
         src={src ?? ''}

@@ -1,14 +1,15 @@
 'use client'
 
 import { useCallback, useEffect, useRef, useState } from 'react'
-import { useEditor, EditorContent } from '@tiptap/react'
+import { useEditor, useEditorState, EditorContent } from '@tiptap/react'
+import { BubbleMenu } from '@tiptap/react/menus'
 import StarterKit from '@tiptap/starter-kit'
 import Underline from '@tiptap/extension-underline'
 import Strike from '@tiptap/extension-strike'
 import Blockquote from '@tiptap/extension-blockquote'
 import TextAlign from '@tiptap/extension-text-align'
 import Placeholder from '@tiptap/extension-placeholder'
-import { ResizableImage, ImageTrailingParagraph } from '@/components/outline/ResizableImage'
+import { ResizableImage, ImageTrailingParagraph, type ImageAlign } from '@/components/outline/ResizableImage'
 import {
   Bold,
   Italic,
@@ -26,6 +27,8 @@ import {
   AlignJustify,
   ImageIcon,
   Loader2,
+  PanelLeft,
+  PanelRight,
 } from 'lucide-react'
 import { Separator } from '@/components/ui/separator'
 import { Skeleton } from '@/components/ui/skeleton'
@@ -44,6 +47,14 @@ import { cn } from '@/lib/utils'
 import type { Outline } from '@/types/database'
 
 const AUTOSAVE_INTERVAL_MS = 30000
+
+// The three layouts offered in the image's bubble menu. "In line" is center —
+// the image on its own line; wrap left/right float it so text flows beside it.
+const IMAGE_LAYOUTS = [
+  { align: 'center', label: 'In line', icon: AlignCenter },
+  { align: 'left', label: 'Wrap left', icon: PanelLeft },
+  { align: 'right', label: 'Wrap right', icon: PanelRight },
+] as const
 
 type SaveStatus = 'saved' | 'saving'
 
@@ -227,6 +238,14 @@ function OutlineDocumentEditor({ outline }: { outline: Outline }) {
     },
   })
 
+  // useEditor doesn't re-render on selection-only changes, so the bubble
+  // menu's highlight reads the selected image's alignment through this.
+  const selectedImageAlign = useEditorState({
+    editor,
+    selector: ({ editor }) =>
+      editor?.isActive('image') ? ((editor.getAttributes('image').imageAlign as ImageAlign) ?? null) : null,
+  })
+
   const handleSave = useCallback(async () => {
     if (!editor) return
     const json = getEditorJson(editor)
@@ -299,7 +318,13 @@ function OutlineDocumentEditor({ outline }: { outline: Outline }) {
         .createSignedUrl(path, 60 * 60 * 24 * 365 * 10)
       if (signError || !data) throw signError ?? new Error('Failed to create signed URL')
 
-      editor.chain().focus().setImage({ src: data.signedUrl }).run()
+      // New images start wrapped left, so the natural flow is insert, shrink,
+      // type beside it. Existing images keep whatever alignment they have.
+      editor
+        .chain()
+        .focus()
+        .insertContent({ type: 'image', attrs: { src: data.signedUrl, imageAlign: 'left' } })
+        .run()
     } catch (error) {
       console.error('Image upload error:', error)
       setImageError('Failed to upload image')
@@ -463,6 +488,38 @@ function OutlineDocumentEditor({ outline }: { outline: Outline }) {
 
       <div className="flex-1 min-h-0 overflow-y-auto scrollbar-thin bg-secondary/10">
         <div className="mx-auto max-w-3xl bg-card px-16 py-12 min-h-full">
+          <BubbleMenu
+            editor={editor}
+            shouldShow={({ editor }) => editor.isActive('image')}
+            options={{ placement: 'top', offset: 8 }}
+          >
+            <div className="flex items-center gap-0.5 rounded-lg border border-border bg-card p-1 shadow-md">
+              {IMAGE_LAYOUTS.map(({ align, label, icon: Icon }) => {
+                // Anything that isn't a wrap (center, justify, unset) reads as "In line".
+                const active =
+                  align === 'center'
+                    ? selectedImageAlign !== 'left' && selectedImageAlign !== 'right'
+                    : selectedImageAlign === align
+                return (
+                  <button
+                    key={align}
+                    type="button"
+                    onMouseDown={(e) => {
+                      e.preventDefault()
+                      editor.chain().focus().setImageAlign(align).run()
+                    }}
+                    className={cn(
+                      'flex h-7 items-center gap-1.5 rounded-md px-2 text-xs transition-colors',
+                      active ? 'bg-secondary text-foreground' : 'text-muted-foreground hover:bg-secondary hover:text-foreground'
+                    )}
+                  >
+                    <Icon className="h-3.5 w-3.5" />
+                    {label}
+                  </button>
+                )
+              })}
+            </div>
+          </BubbleMenu>
           <EditorContent editor={editor} />
         </div>
       </div>
