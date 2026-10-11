@@ -10,6 +10,63 @@ export type DeleteChapterEventsAction =
   | { type: 'move'; targetChapterId: string }
   | { type: 'delete' }
 
+// Storage remove() takes at most ~1000 paths per call; list() pages at the same size.
+const STORAGE_BATCH_SIZE = 1000
+
+// Every file under `prefix`, recursing into subfolders (list() only returns
+// direct children; folders come back with a null id).
+async function listFilesRecursive(
+  supabase: Awaited<ReturnType<typeof createClient>>,
+  prefix: string
+): Promise<string[]> {
+  const paths: string[] = []
+  for (let offset = 0; ; offset += STORAGE_BATCH_SIZE) {
+    const { data, error } = await supabase.storage
+      .from('attachments')
+      .list(prefix, { limit: STORAGE_BATCH_SIZE, offset })
+    if (error) throw error
+    const entries = data ?? []
+    for (const entry of entries) {
+      const path = `${prefix}/${entry.name}`
+      if (entry.id === null) paths.push(...(await listFilesRecursive(supabase, path)))
+      else paths.push(path)
+    }
+    if (entries.length < STORAGE_BATCH_SIZE) break
+  }
+  return paths
+}
+
+// Removes a deleted chapter's files: its panels' images and sketches (one
+// subfolder per panel) and any images from the old chapter-description editor.
+// Same contract as deletePanel: runs after the rows are gone, and Storage
+// errors are logged, never returned, so a cleanup hiccup can't fail a delete
+// that already happened. Works under the attachments policies because they
+// check the project in the path, which still exists. Panel files are never
+// shared (duplicate_project doesn't copy panels). chapters/ files can be
+// referenced by a full-mode duplicate's copied description, but nothing
+// displays chapter descriptions any more.
+async function removeChapterFiles(
+  supabase: Awaited<ReturnType<typeof createClient>>,
+  projectId: string,
+  chapterId: string
+) {
+  for (const prefix of [`panels/${projectId}/${chapterId}`, `chapters/${projectId}/${chapterId}`]) {
+    let paths: string[]
+    try {
+      paths = await listFilesRecursive(supabase, prefix)
+    } catch (err) {
+      console.error('Chapter file listing error:', prefix, err)
+      continue
+    }
+    for (let i = 0; i < paths.length; i += STORAGE_BATCH_SIZE) {
+      const { error } = await supabase.storage
+        .from('attachments')
+        .remove(paths.slice(i, i + STORAGE_BATCH_SIZE))
+      if (error) console.error('Chapter file cleanup error:', prefix, error)
+    }
+  }
+}
+
 export async function createChapter(projectId: string, title: string) {
   const supabase = await createClient()
 
@@ -129,16 +186,27 @@ export async function deleteChapter(
     }
   }
 
-  // panels.chapter_id cascades on delete, but that only removes the DB rows —
-  // their Storage objects under attachments/panels/{projectId}/{id}/ are orphaned.
-  // No cleanup call here yet; add a storage.list()+remove() pass over that prefix
-  // when panels ship.
-  const { error } = await supabase
+  // panels.chapter_id cascades, removing the panel rows; their files are
+  // cleaned up below. project_id comes from the row actually deleted, so the
+  // cleanup can't be pointed at the wrong folder, and nothing is touched if
+  // RLS deleted nothing.
+  const { data: deletedRows, error } = await supabase
     .from('chapters')
     .delete()
     .eq('id', id)
+    .select('project_id')
 
   if (error) return { error: error.message }
+
+  const deleted = (deletedRows ?? [])[0] as { project_id: string } | undefined
+  if (deleted) {
+    try {
+      await removeChapterFiles(supabase, deleted.project_id, id)
+    } catch (err) {
+      console.error('Chapter file cleanup error:', err)
+    }
+  }
+
   revalidatePath(`/projects/${projectId}`)
   return { success: true }
 }
