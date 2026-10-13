@@ -45,11 +45,9 @@ const DOCX_IMAGE_TYPE: Partial<Record<'png' | 'jpeg' | 'gif' | 'webp', 'jpg' | '
   gif: 'gif',
 }
 
-const MAX_IMAGE_WIDTH_PX = 500
-
 // Text width of docx's default page (A4, 1" margins): 11906 − 2×1440 twips,
-// in the 96-dpi px ImageRun sizes use. Wrapped images are clamped to it
-// instead of MAX_IMAGE_WIDTH_PX, so they keep the width set in the editor.
+// in the 96-dpi px ImageRun sizes use. Every image (wrapped or in line) keeps
+// the width set in the editor, clamped to it.
 const TEXT_WIDTH_PX = Math.floor(((11906 - 2 * 1440) / 1440) * 96)
 const EMU_PER_PX = 9525
 // Gap between a wrapped image and the text beside/below it — the editor's
@@ -193,7 +191,7 @@ async function blockToParagraphs(block: BlockNode, ctx: DocxContext): Promise<Pa
     case 'image': {
       const image = await fetchDocxImage(block.src)
       if (!image) return []
-      const width = Math.min(MAX_IMAGE_WIDTH_PX, block.width ?? MAX_IMAGE_WIDTH_PX)
+      const width = Math.min(TEXT_WIDTH_PX, block.width ?? image.width)
       const height = Math.round(width * (image.height / image.width))
       return [
         new Paragraph({
