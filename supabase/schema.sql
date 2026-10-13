@@ -678,13 +678,14 @@ BEGIN
   SELECT m.new_id, v_new_project_id, s.name, s.color, s.is_default, s.position
   FROM statuses s JOIN status_map m ON m.old_id = s.id;
 
-  -- 4. CHAPTERS
+  -- 4. CHAPTERS (visible is structural, like position, so it's copied in
+  -- both modes — a chapter hidden in the source stays hidden in the copy)
   CREATE TEMP TABLE chapter_map ON COMMIT DROP AS
     SELECT id AS old_id, gen_random_uuid() AS new_id
     FROM chapters WHERE project_id = p_source_project_id;
 
-  INSERT INTO chapters (id, project_id, title, position)
-  SELECT m.new_id, v_new_project_id, c.title, c.position
+  INSERT INTO chapters (id, project_id, title, position, visible)
+  SELECT m.new_id, v_new_project_id, c.title, c.position, c.visible
   FROM chapters c JOIN chapter_map m ON m.old_id = c.id;
 
   -- 5. CHAPTER LINKS
@@ -802,6 +803,16 @@ BEGIN
     SELECT v_new_project_id, o.name, o.position, o.content
     FROM outlines o
     WHERE o.project_id = p_source_project_id;
+
+    -- 14. PANELS — into each panel's copied chapter, keeping position and
+    -- caption; new ids from the column default. image_url is copied as-is:
+    -- SQL can't copy Storage objects, so duplicateProject copies each file to
+    -- panels/{new project}/{new chapter}/{new panel}/… and repoints it.
+    INSERT INTO panels (project_id, chapter_id, position, caption, image_url)
+    SELECT v_new_project_id, cm.new_id, pa.position, pa.caption, pa.image_url
+    FROM panels pa
+    JOIN chapter_map cm ON cm.old_id = pa.chapter_id
+    WHERE pa.project_id = p_source_project_id;
   END IF;
 
   RETURN v_new_project_id;
