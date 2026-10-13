@@ -2,7 +2,7 @@
 
 import { createClient } from '@/lib/supabase/server'
 import { revalidatePath } from 'next/cache'
-import { attachmentPathFromSignedUrl } from '@/lib/storage/attachments'
+import { attachmentPathFromSignedUrl, listFilesRecursive, removeInBatches } from '@/lib/storage/attachments'
 import type { AppMode, Project } from '@/types/database'
 
 // Cover images live in the private 'attachments' bucket, same as Places and
@@ -379,8 +379,83 @@ export async function unarchiveProject(id: string) {
   return { success: true }
 }
 
+// Every top-level attachments folder that holds a project's files, each laid
+// out as {folder}/{projectId}/….
+const PROJECT_FILE_FOLDERS = ['projects', 'places', 'outlines', 'panels', 'chapters'] as const
+
+// Attachment paths the caller's *other* projects still use: covers, place
+// covers and outline images. Old duplicates and failed copies can still
+// point into another project's folders, so deleting a project mustn't remove
+// those. Old chapter descriptions are ignored — nothing displays them. RLS
+// scopes every query to the caller's own projects. Null if any lookup fails,
+// so the caller can keep everything rather than guess.
+async function pathsUsedByOtherProjects(
+  supabase: Awaited<ReturnType<typeof createClient>>,
+  projectId: string
+): Promise<Set<string> | null> {
+  const [coversRes, placesRes, outlinesRes] = await Promise.all([
+    supabase.from('projects').select('cover_image_url').neq('id', projectId).not('cover_image_url', 'is', null),
+    supabase.from('places').select('image_url').neq('project_id', projectId).not('image_url', 'is', null),
+    supabase.from('outlines').select('content').neq('project_id', projectId),
+  ])
+  const failed = [coversRes, placesRes, outlinesRes].find((res) => res.error)
+  if (failed?.error) {
+    console.error('Project file reference check error:', failed.error)
+    return null
+  }
+
+  const used = new Set<string>()
+  for (const row of (coversRes.data ?? []) as { cover_image_url: string }[]) used.add(row.cover_image_url)
+  for (const row of (placesRes.data ?? []) as { image_url: string }[]) used.add(row.image_url)
+  for (const row of (outlinesRes.data ?? []) as { content: TiptapNode }[]) {
+    const srcs = new Set<string>()
+    collectImageSrcs(row.content, srcs)
+    for (const src of srcs) {
+      const path = attachmentPathFromSignedUrl(src)
+      if (path) used.add(path)
+    }
+  }
+  return used
+}
+
+// Removes a project's files from every folder, except any another project
+// still uses. Must run while the project row still exists: the attachments
+// policies only allow listing and deleting a project's files then. Storage
+// errors are logged, never returned.
+async function removeProjectFiles(supabase: Awaited<ReturnType<typeof createClient>>, projectId: string) {
+  const paths: string[] = []
+  for (const folder of PROJECT_FILE_FOLDERS) {
+    const prefix = `${folder}/${projectId}`
+    try {
+      paths.push(...(await listFilesRecursive(supabase, prefix)))
+    } catch (err) {
+      console.error('Project file listing error:', prefix, err)
+    }
+  }
+  if (paths.length === 0) return
+
+  const used = await pathsUsedByOtherProjects(supabase, projectId)
+  if (!used) return
+  await removeInBatches(supabase, paths.filter((path) => !used.has(path)), 'Project')
+}
+
 export async function deleteProject(id: string) {
   const supabase = await createClient()
+
+  // Files before the row — after it's gone, the Storage policies no longer
+  // allow listing or deleting them. Only touched once the project is
+  // confirmed to exist and be the caller's (RLS on projects returns only
+  // their own). If the row delete below then fails, the project stays but
+  // without its own images; retrying the delete still works.
+  const { data: owned } = await supabase.from('projects').select('id').eq('id', id).maybeSingle()
+  if (owned) {
+    try {
+      await removeProjectFiles(supabase, id)
+    } catch (err) {
+      console.error('Project file cleanup error:', err)
+    }
+  }
+
   const { error } = await supabase
     .from('projects')
     .delete()
