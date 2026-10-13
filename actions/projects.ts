@@ -3,6 +3,7 @@
 import { createClient } from '@/lib/supabase/server'
 import { revalidatePath } from 'next/cache'
 import { attachmentPathFromSignedUrl, listFilesRecursive, removeInBatches } from '@/lib/storage/attachments'
+import { forEachWithConcurrency } from '@/lib/export/concurrency'
 import type { AppMode, Project } from '@/types/database'
 
 // Cover images live in the private 'attachments' bucket, same as Places and
@@ -114,19 +115,24 @@ export async function moveProjectToFolder(id: string, folderId: string | null) {
   return { success: true }
 }
 
-// duplicate_project (SQL) copies cover_image_url and, in full mode,
-// places.image_url as-is, so straight after the RPC the copy points at the
-// original's files — and replacing or removing a cover in either project
-// deletes the one file both use. SQL can't copy Storage objects, so this
-// gives the copy its own: copies each cover file under the new project's
-// prefix and repoints the row. A failed copy sets that cover to NULL rather
-// than leaving it shared; the duplicate itself still succeeds.
+// Duplicate file handling. duplicate_project (SQL) copies file references
+// as-is — cover_image_url, and in full mode places.image_url, panels.image_url
+// and image srcs inside outline content — so straight after the RPC the copy
+// points at the original's files. SQL can't copy Storage objects, so the
+// steps below give the copy its own: each file is copied under the new
+// project's folders and the reference repointed. A failed cover or panel
+// copy sets that reference to NULL; a failed outline-image copy keeps the
+// shared src (see unshareDuplicatedOutlineImages). Either way the duplicate
+// itself still succeeds.
 //
-// Rich-text images (outline content, old place/chapter descriptions) are
-// still shared: their signed URLs are copied verbatim inside the content.
-// That must be handled before any project-delete cleanup removes a
-// project's files, or deleting one project will break the other's images.
-async function copyCoverFile(
+// Sharing can therefore still exist — from failed outline-image copies and
+// from duplicates made before this copying existed — so deleteProject checks
+// the user's other projects for references before removing any file. Old
+// chapter descriptions stay shared on purpose: nothing displays them.
+
+// Copies one attachments file under destPrefix, keeping its file name.
+// Returns the new path, or null (logged) if the copy failed.
+async function copyAttachmentFile(
   supabase: Awaited<ReturnType<typeof createClient>>,
   fromPath: string,
   destPrefix: string
@@ -134,7 +140,7 @@ async function copyCoverFile(
   const toPath = `${destPrefix}/${fromPath.slice(fromPath.lastIndexOf('/') + 1)}`
   const { error } = await supabase.storage.from('attachments').copy(fromPath, toPath)
   if (error) {
-    console.error('Duplicate cover copy error:', fromPath, error)
+    console.error('Duplicate file copy error:', fromPath, error)
     return null
   }
   return toPath
@@ -154,7 +160,7 @@ async function unshareDuplicatedCovers(
   const sharedCover = (projectRow as { cover_image_url: string | null } | null)?.cover_image_url ?? null
   if (projectErr || sharedCover) {
     if (projectErr) console.error('Duplicate cover lookup error:', projectErr)
-    const newPath = sharedCover ? await copyCoverFile(supabase, sharedCover, `projects/${newProjectId}`) : null
+    const newPath = sharedCover ? await copyAttachmentFile(supabase, sharedCover, `projects/${newProjectId}`) : null
     const { error } = await supabase
       .from('projects')
       .update({ cover_image_url: newPath } as never)
@@ -185,7 +191,7 @@ async function unshareDuplicatedCovers(
 
   await Promise.all(
     ((placeRows ?? []) as { id: string; image_url: string }[]).map(async (place) => {
-      const newPath = await copyCoverFile(supabase, place.image_url, `places/${newProjectId}/${place.id}`)
+      const newPath = await copyAttachmentFile(supabase, place.image_url, `places/${newProjectId}/${place.id}`)
       const { error } = await supabase
         .from('places')
         .update({ image_url: newPath } as never)
@@ -346,6 +352,11 @@ export async function duplicateProject(
     } catch (err) {
       console.error('Duplicate outline image unsharing error:', err)
     }
+    try {
+      await unshareDuplicatedPanelImages(supabase, newProjectId)
+    } catch (err) {
+      console.error('Duplicate panel image unsharing error:', err)
+    }
   }
 
   revalidatePath('/dashboard')
@@ -377,6 +388,52 @@ export async function unarchiveProject(id: string) {
   revalidatePath('/dashboard')
   revalidatePath('/projects')
   return { success: true }
+}
+
+// More panels than covers per project, so copies run a few at a time rather
+// than all at once.
+const PANEL_COPY_CONCURRENCY = 8
+
+// duplicate_project copies panels (full mode) with image_url as-is, so each
+// copied panel — uploaded image or sketch — points at the original's file.
+// Same approach as unshareDuplicatedCovers: copy to the copy's own
+// panels/{project}/{chapter}/{panel}/ path and repoint; a failed copy sets
+// image_url to NULL (the panel keeps its caption) rather than leaving it
+// shared, which is what lets chapter/project delete cleanup treat panel
+// files as never shared.
+async function unshareDuplicatedPanelImages(
+  supabase: Awaited<ReturnType<typeof createClient>>,
+  newProjectId: string
+) {
+  const { data, error } = await supabase
+    .from('panels')
+    .select('id, chapter_id, image_url')
+    .eq('project_id', newProjectId)
+    .not('image_url', 'is', null)
+  if (error) {
+    // Can't tell which are shared, so unshare them all.
+    console.error('Duplicate panel lookup error:', error)
+    const { error: resetErr } = await supabase
+      .from('panels')
+      .update({ image_url: null } as never)
+      .eq('project_id', newProjectId)
+    if (resetErr) console.error('Duplicate panel image reset error:', resetErr)
+    return
+  }
+
+  const panels = (data ?? []) as { id: string; chapter_id: string; image_url: string }[]
+  await forEachWithConcurrency(panels, PANEL_COPY_CONCURRENCY, async (panel) => {
+    const newPath = await copyAttachmentFile(
+      supabase,
+      panel.image_url,
+      `panels/${newProjectId}/${panel.chapter_id}/${panel.id}`
+    )
+    const { error: updateErr } = await supabase
+      .from('panels')
+      .update({ image_url: newPath } as never)
+      .eq('id', panel.id)
+    if (updateErr) console.error('Duplicate panel image update error:', panel.id, updateErr)
+  })
 }
 
 // Every top-level attachments folder that holds a project's files, each laid

@@ -17,7 +17,8 @@ export type DeleteChapterEventsAction =
 // errors are logged, never returned, so a cleanup hiccup can't fail a delete
 // that already happened. Works under the attachments policies because they
 // check the project in the path, which still exists. Panel files are never
-// shared (duplicate_project doesn't copy panels). chapters/ files can be
+// shared: duplicates get their own copies (duplicateProject), and a failed
+// copy clears the copy's image_url instead of sharing. chapters/ files can be
 // referenced by a full-mode duplicate's copied description, but nothing
 // displays chapter descriptions any more.
 async function removeChapterFiles(
