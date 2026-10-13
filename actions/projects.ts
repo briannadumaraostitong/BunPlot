@@ -2,6 +2,7 @@
 
 import { createClient } from '@/lib/supabase/server'
 import { revalidatePath } from 'next/cache'
+import { attachmentPathFromSignedUrl } from '@/lib/storage/attachments'
 import type { AppMode, Project } from '@/types/database'
 
 // Cover images live in the private 'attachments' bucket, same as Places and
@@ -194,6 +195,124 @@ async function unshareDuplicatedCovers(
   )
 }
 
+// Same expiry OutlineEditor gives embedded image URLs (10 years), since
+// these are baked into saved content rather than re-signed on load.
+const OUTLINE_IMAGE_URL_TTL = 60 * 60 * 24 * 365 * 10
+
+type TiptapNode = { type?: string; attrs?: Record<string, unknown>; content?: TiptapNode[] }
+
+function collectImageSrcs(node: TiptapNode, out: Set<string>) {
+  if (node.type === 'image' && typeof node.attrs?.src === 'string') out.add(node.attrs.src)
+  node.content?.forEach((child) => collectImageSrcs(child, out))
+}
+
+// Rewrites matching image srcs in place (other attrs untouched); returns
+// whether anything changed.
+function rewriteImageSrcs(node: TiptapNode, srcMap: Map<string, string>): boolean {
+  let changed = false
+  if (node.type === 'image' && node.attrs && typeof node.attrs.src === 'string') {
+    const next = srcMap.get(node.attrs.src)
+    if (next) {
+      node.attrs.src = next
+      changed = true
+    }
+  }
+  for (const child of node.content ?? []) {
+    if (rewriteImageSrcs(child, srcMap)) changed = true
+  }
+  return changed
+}
+
+// duplicate_project copies outlines.content verbatim, so a copy's images
+// keep signed URLs into another project's files (normally the original's
+// outlines/{originalProjectId}/…). Copies each such file once into
+// outlines/{newProjectId}/, re-signs it, and rewrites every src pointing at
+// it, so the copy owns its images.
+//
+// A failed copy (or re-sign) keeps the shared src and logs: the image keeps
+// working while the original's file exists, which beats dropping it now. So
+// sharing can still remain — from those failures and from duplicates made
+// before this ran — and any project-delete cleanup must check for remaining
+// references before removing outlines/ files.
+//
+// Old chapter descriptions are left shared on purpose: nothing displays them
+// any more.
+async function unshareDuplicatedOutlineImages(
+  supabase: Awaited<ReturnType<typeof createClient>>,
+  newProjectId: string
+) {
+  const { data, error } = await supabase.from('outlines').select('id, content').eq('project_id', newProjectId)
+  if (error) {
+    console.error('Duplicate outline lookup error:', error)
+    return
+  }
+  const outlines = (data ?? []) as { id: string; content: TiptapNode }[]
+
+  // Every image src that points at a file under some other project.
+  const sourceBySrc = new Map<string, string>()
+  for (const outline of outlines) {
+    const srcs = new Set<string>()
+    collectImageSrcs(outline.content, srcs)
+    for (const src of srcs) {
+      const path = attachmentPathFromSignedUrl(src)
+      if (path && path.split('/')[1] !== newProjectId) sourceBySrc.set(src, path)
+    }
+  }
+  if (sourceBySrc.size === 0) return
+
+  // One destination per distinct source file; a numeric prefix only if two
+  // different sources would land on the same file name.
+  const destBySource = new Map<string, string>()
+  const usedNames = new Set<string>()
+  for (const source of new Set(sourceBySrc.values())) {
+    const base = source.slice(source.lastIndexOf('/') + 1)
+    let name = base
+    for (let n = 2; usedNames.has(name); n++) name = `${n}-${base}`
+    usedNames.add(name)
+    destBySource.set(source, `outlines/${newProjectId}/${name}`)
+  }
+
+  const copied = new Map<string, string>() // source → dest, successes only
+  await Promise.all(
+    [...destBySource].map(async ([source, dest]) => {
+      const { error: copyErr } = await supabase.storage.from('attachments').copy(source, dest)
+      if (copyErr) console.error('Duplicate outline image copy error:', source, copyErr)
+      else copied.set(source, dest)
+    })
+  )
+  if (copied.size === 0) return
+
+  const { data: signed, error: signErr } = await supabase.storage
+    .from('attachments')
+    .createSignedUrls([...copied.values()], OUTLINE_IMAGE_URL_TTL)
+  if (signErr) {
+    console.error('Duplicate outline image signing error:', signErr)
+    return
+  }
+  const urlByDest = new Map(
+    (signed ?? []).flatMap((entry) => (entry.path && entry.signedUrl ? [[entry.path, entry.signedUrl] as const] : []))
+  )
+
+  const srcMap = new Map<string, string>()
+  for (const [src, source] of sourceBySrc) {
+    const dest = copied.get(source)
+    const url = dest ? urlByDest.get(dest) : undefined
+    if (url) srcMap.set(src, url)
+  }
+  if (srcMap.size === 0) return
+
+  await Promise.all(
+    outlines.map(async (outline) => {
+      if (!rewriteImageSrcs(outline.content, srcMap)) return
+      const { error: updateErr } = await supabase
+        .from('outlines')
+        .update({ content: outline.content } as never)
+        .eq('id', outline.id)
+      if (updateErr) console.error('Duplicate outline image update error:', outline.id, updateErr)
+    })
+  )
+}
+
 export async function duplicateProject(
   id: string,
   title: string,
@@ -219,6 +338,14 @@ export async function duplicateProject(
   } catch (err) {
     // Never fail the duplicate over covers — it already exists by now.
     console.error('Duplicate cover unsharing error:', err)
+  }
+  // Outlines are only copied in full mode.
+  if (mode === 'full') {
+    try {
+      await unshareDuplicatedOutlineImages(supabase, newProjectId)
+    } catch (err) {
+      console.error('Duplicate outline image unsharing error:', err)
+    }
   }
 
   revalidatePath('/dashboard')

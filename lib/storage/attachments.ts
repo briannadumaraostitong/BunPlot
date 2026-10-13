@@ -37,3 +37,24 @@ export async function removeInBatches(supabase: ServerSupabase, paths: string[],
     if (error) console.error(`${label} file cleanup error:`, error)
   }
 }
+
+const SIGNED_URL_MARKER = '/storage/v1/object/sign/attachments/'
+
+// The attachments object path inside a signed URL from createSignedUrl
+// (…/storage/v1/object/sign/attachments/{path}?token=…), as embedded in
+// rich-text image nodes. Null for anything else (external images, bad URLs).
+export function attachmentPathFromSignedUrl(src: string): string | null {
+  let url: URL
+  try {
+    url = new URL(src)
+  } catch {
+    return null
+  }
+  const i = url.pathname.indexOf(SIGNED_URL_MARKER)
+  if (i === -1) return null
+  try {
+    return decodeURIComponent(url.pathname.slice(i + SIGNED_URL_MARKER.length)) || null
+  } catch {
+    return null
+  }
+}
