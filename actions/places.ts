@@ -3,6 +3,7 @@
 import { createClient } from '@/lib/supabase/server'
 import { revalidatePath } from 'next/cache'
 import { LAYER_COLORS } from '@/lib/theme.config'
+import { listFilesRecursive, removeInBatches } from '@/lib/storage/attachments'
 import type { Place, PlaceType } from '@/types/database'
 
 // Cover images live in the private 'attachments' bucket (same bucket Outline
@@ -88,10 +89,62 @@ export async function updatePlace(
   return { success: true }
 }
 
+// Removes a deleted place's folder: its cover plus any images left from when
+// description/notes allowed them. Same contract as deleteChapter's cleanup —
+// after the row is gone, Storage errors logged, never returned. Files another
+// place still points at are kept: projects duplicated before covers were
+// copied (see duplicateProject) share the original's cover file, so deleting
+// the original place mustn't break the copy's cover.
+async function removePlaceFiles(
+  supabase: Awaited<ReturnType<typeof createClient>>,
+  projectId: string,
+  placeId: string
+) {
+  const prefix = `places/${projectId}/${placeId}`
+  let paths: string[]
+  try {
+    paths = await listFilesRecursive(supabase, prefix)
+  } catch (err) {
+    console.error('Place file listing error:', prefix, err)
+    return
+  }
+  if (paths.length === 0) return
+
+  const { data: stillUsed, error } = await supabase
+    .from('places')
+    .select('image_url')
+    .in('image_url', paths)
+  if (error) {
+    // Can't tell what's still in use, so keep everything rather than risk
+    // deleting another place's cover.
+    console.error('Place file reference check error:', error)
+    return
+  }
+  const keep = new Set(((stillUsed ?? []) as { image_url: string }[]).map((r) => r.image_url))
+  await removeInBatches(supabase, paths.filter((p) => !keep.has(p)), 'Place')
+}
+
 export async function deletePlace(id: string, projectId: string) {
   const supabase = await createClient()
-  const { error } = await supabase.from('places').delete().eq('id', id)
+  // project_id from the row actually deleted, as in deleteChapter: the
+  // cleanup can't be pointed at the wrong folder, and nothing is touched if
+  // RLS deleted nothing.
+  const { data: deletedRows, error } = await supabase
+    .from('places')
+    .delete()
+    .eq('id', id)
+    .select('project_id')
   if (error) return { error: error.message }
+
+  const deleted = (deletedRows ?? [])[0] as { project_id: string } | undefined
+  if (deleted) {
+    try {
+      await removePlaceFiles(supabase, deleted.project_id, id)
+    } catch (err) {
+      console.error('Place file cleanup error:', err)
+    }
+  }
+
   revalidatePath(`/projects/${projectId}`)
   return { success: true }
 }
