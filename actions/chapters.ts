@@ -2,6 +2,7 @@
 
 import { createClient } from '@/lib/supabase/server'
 import { revalidatePath } from 'next/cache'
+import { listFilesRecursive, removeInBatches } from '@/lib/storage/attachments'
 import type { Chapter, ChapterLink } from '@/types/database'
 
 // What to do with a chapter's events when deleting it. Required whenever the
@@ -9,32 +10,6 @@ import type { Chapter, ChapterLink } from '@/types/database'
 export type DeleteChapterEventsAction =
   | { type: 'move'; targetChapterId: string }
   | { type: 'delete' }
-
-// Storage remove() takes at most ~1000 paths per call; list() pages at the same size.
-const STORAGE_BATCH_SIZE = 1000
-
-// Every file under `prefix`, recursing into subfolders (list() only returns
-// direct children; folders come back with a null id).
-async function listFilesRecursive(
-  supabase: Awaited<ReturnType<typeof createClient>>,
-  prefix: string
-): Promise<string[]> {
-  const paths: string[] = []
-  for (let offset = 0; ; offset += STORAGE_BATCH_SIZE) {
-    const { data, error } = await supabase.storage
-      .from('attachments')
-      .list(prefix, { limit: STORAGE_BATCH_SIZE, offset })
-    if (error) throw error
-    const entries = data ?? []
-    for (const entry of entries) {
-      const path = `${prefix}/${entry.name}`
-      if (entry.id === null) paths.push(...(await listFilesRecursive(supabase, path)))
-      else paths.push(path)
-    }
-    if (entries.length < STORAGE_BATCH_SIZE) break
-  }
-  return paths
-}
 
 // Removes a deleted chapter's files: its panels' images and sketches (one
 // subfolder per panel) and any images from the old chapter-description editor.
@@ -58,12 +33,7 @@ async function removeChapterFiles(
       console.error('Chapter file listing error:', prefix, err)
       continue
     }
-    for (let i = 0; i < paths.length; i += STORAGE_BATCH_SIZE) {
-      const { error } = await supabase.storage
-        .from('attachments')
-        .remove(paths.slice(i, i + STORAGE_BATCH_SIZE))
-      if (error) console.error('Chapter file cleanup error:', prefix, error)
-    }
+    await removeInBatches(supabase, paths, 'Chapter')
   }
 }
 
