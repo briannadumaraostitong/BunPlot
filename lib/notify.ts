@@ -16,6 +16,21 @@ export function notifyError(message: string, detail?: unknown, options?: NotifyO
   toast.error(message, { id: options?.id })
 }
 
+// Removes a deduped error toast once the thing it reported has recovered
+// (e.g. the next autosave succeeded).
+export function dismissError(id: string) {
+  toast.dismiss(id)
+}
+
+// Server actions reject, rather than returning { error }, when the request
+// itself fails (offline, server unreachable). Folds that into the same shape
+// so reportResult covers both: await settle(updateOutline(...)).
+export function settle<T>(promise: Promise<T>): Promise<T | { error: string }> {
+  return promise.catch((err: unknown) => ({
+    error: err instanceof Error ? err.message : String(err),
+  }))
+}
+
 // For server-action results shaped { error: string } | T. Toasts on error and
 // returns false; otherwise returns true and narrows result to its success
 // shape, so call sites stay one line:

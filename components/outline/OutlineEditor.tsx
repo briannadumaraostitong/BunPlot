@@ -36,6 +36,7 @@ import { Skeleton } from '@/components/ui/skeleton'
 import { SidebarRowSkeleton } from '@/components/ui/sidebar-skeleton-row'
 import { createClient } from '@/lib/supabase/client'
 import { getEditorJson } from '@/lib/editorJson'
+import { dismissError, reportResult, settle } from '@/lib/notify'
 import {
   getOutlines,
   createOutline,
@@ -58,7 +59,11 @@ const IMAGE_LAYOUTS = [
   { align: 'right', label: 'Wrap right', icon: PanelRight },
 ] as const
 
-type SaveStatus = 'saved' | 'saving'
+type SaveStatus = 'saved' | 'saving' | 'error'
+
+// One toast for every outline save failure, so a failing autosave interval
+// updates the same toast instead of stacking them.
+const SAVE_TOAST_ID = 'outline-save'
 
 function countWords(text: string) {
   const trimmed = text.trim()
@@ -75,7 +80,7 @@ function countWords(text: string) {
 const pendingOutlineSaves = new Map<string, Promise<unknown>>()
 
 function saveOutline(id: string, content: Record<string, unknown>) {
-  const promise = updateOutline(id, content).finally(() => {
+  const promise = settle(updateOutline(id, content)).finally(() => {
     if (pendingOutlineSaves.get(id) === promise) {
       pendingOutlineSaves.delete(id)
     }
@@ -118,24 +123,31 @@ export function OutlineEditor({ projectId }: OutlineEditorProps) {
   }, [projectId])
 
   async function handleAdd() {
-    const created = await createOutline(projectId, 'Untitled')
-    if ('error' in created) return
+    const created = await settle(createOutline(projectId, 'Untitled'))
+    if (!reportResult(created, "Couldn't create the outline.")) return
     setOutlines((prev) => [...prev, created])
     setActiveId(created.id)
   }
 
-  function handleRename(id: string, name: string) {
+  async function handleRename(id: string, name: string) {
+    const previous = outlines.find((o) => o.id === id)?.name
     setOutlines((prev) => prev.map((o) => (o.id === id ? { ...o, name } : o)))
-    renameOutline(id, name)
+    const result = await settle(renameOutline(id, name))
+    // Put the old name back so the sidebar shows what's saved, unless it was
+    // renamed again in the meantime.
+    if (!reportResult(result, "Couldn't rename the outline.") && previous !== undefined) {
+      setOutlines((prev) => prev.map((o) => (o.id === id && o.name === name ? { ...o, name: previous } : o)))
+    }
   }
 
   async function handleDelete(id: string) {
-    await deleteOutline(id, projectId)
+    const result = await settle(deleteOutline(id, projectId))
+    if (!reportResult(result, "Couldn't delete the outline.")) return
     const remaining = outlines.filter((o) => o.id !== id)
 
     if (remaining.length === 0) {
-      const created = await createOutline(projectId, 'Outline')
-      if (!('error' in created)) {
+      const created = await settle(createOutline(projectId, 'Outline'))
+      if (reportResult(created, "Couldn't create a new outline.")) {
         setOutlines([created])
         setActiveId(created.id)
         return
@@ -269,12 +281,25 @@ function OutlineDocumentEditor({ outline, onExport }: { outline: Outline; onExpo
     if (!editor) return
     const json = getEditorJson(editor)
     const serialized = JSON.stringify(json)
-    if (serialized === lastSavedJson.current) return
+    if (serialized === lastSavedJson.current) {
+      // Edited back to what's already saved after a failed save: nothing is
+      // unsaved any more.
+      setSaveStatus((s) => (s === 'error' ? 'saved' : s))
+      dismissError(SAVE_TOAST_ID)
+      return
+    }
 
     setSaveStatus('saving')
-    await saveOutline(outline.id, json)
+    const result = await saveOutline(outline.id, json)
+    // lastSavedJson stays as it was on failure, so the next interval or blur
+    // tries again.
+    if (!reportResult(result, "Couldn't save the outline. It will retry automatically.", { id: SAVE_TOAST_ID })) {
+      setSaveStatus('error')
+      return
+    }
     lastSavedJson.current = serialized
     setSaveStatus('saved')
+    dismissError(SAVE_TOAST_ID)
   }, [editor, outline.id])
 
   useEffect(() => {
@@ -308,7 +333,11 @@ function OutlineDocumentEditor({ outline, onExport }: { outline: Outline; onExpo
       if (latestJson.current !== lastSavedJson.current) {
         // Parsed from the serialized snapshot, so already plain JSON (see
         // getEditorJson) — and safe to read after the editor is torn down.
-        saveOutline(outline.id, JSON.parse(latestJson.current))
+        // The editor is gone, so there's no retry — the toast (from the root
+        // Toaster) is the only sign the last edits didn't make it.
+        saveOutline(outline.id, JSON.parse(latestJson.current)).then((result) =>
+          reportResult(result, "Couldn't save the outline.", { id: SAVE_TOAST_ID })
+        )
       }
     }
   }, [outline.id])
@@ -499,6 +528,8 @@ function OutlineDocumentEditor({ outline, onExport }: { outline: Outline; onExpo
           </span>
           {saveStatus === 'saving' ? (
             <span className="text-muted-foreground">Saving...</span>
+          ) : saveStatus === 'error' ? (
+            <span className="text-destructive">Not saved</span>
           ) : (
             <span className="text-emerald-600 dark:text-emerald-500">Saved ✓</span>
           )}
