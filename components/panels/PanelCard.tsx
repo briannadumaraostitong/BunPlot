@@ -64,14 +64,20 @@ export function PanelCard({
       const { error: uploadErr } = await supabase.storage.from('attachments').upload(path, file)
       if (uploadErr) throw uploadErr
 
+      // Nothing references the new file until the row points at it, so if
+      // the signed URL or the write fails, don't leave it behind.
       const { data, error: signError } = await supabase.storage
         .from('attachments')
         .createSignedUrl(path, PANEL_SIGNED_URL_TTL)
-      if (signError || !data) throw signError ?? new Error('Failed to create signed URL')
+      if (signError || !data) {
+        supabase.storage.from('attachments').remove([path]).catch(() => {})
+        throw signError ?? new Error('Failed to create signed URL')
+      }
 
       const previousPath = panel.image_url
       const result = await onImageUploaded(path, data.signedUrl)
       if ('error' in result) {
+        supabase.storage.from('attachments').remove([path]).catch(() => {})
         setError(result.error)
         return
       }

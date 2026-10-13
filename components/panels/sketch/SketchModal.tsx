@@ -10,7 +10,7 @@ import { SketchCanvas, type SketchCanvasHandle } from './SketchCanvas'
 import { BRUSH_MIN, BRUSH_MAX, ZOOM_WHEEL_FACTOR, clampZoom, type SketchTool } from './types'
 
 const DEFAULT_FONT_SIZE = 24
-import type { PanelWithCover } from '@/actions/panels'
+import type { PanelWithCover, ActionResult } from '@/actions/panels'
 
 const SKETCH_SIGNED_URL_TTL = 60 * 60 * 24 // 24h, matches actions/panels.ts's cover-url TTL
 
@@ -27,7 +27,7 @@ interface SketchModalProps {
   chapterId: string
   open: boolean
   onClose: () => void
-  onSaved: (panelId: string, imageUrl: string, coverUrl: string) => void
+  onSaved: (panelId: string, imageUrl: string, coverUrl: string) => Promise<ActionResult>
 }
 
 interface ZoomAnchor {
@@ -248,6 +248,10 @@ export function SketchModal({ panel, projectId, chapterId, open, onClose, onSave
     if (!panel || saving) return
     setSaving(true)
     setError(null)
+    // Set once the new file is uploaded and cleared once the row points at
+    // it; if anything fails in between, nothing references the file, so the
+    // catch removes it.
+    let uploadedPath: string | null = null
     try {
       const blob = await canvasRef.current?.exportBlob()
       if (!blob) throw new Error('Nothing to export')
@@ -257,6 +261,7 @@ export function SketchModal({ panel, projectId, chapterId, open, onClose, onSave
 
       const { error: uploadErr } = await supabase.storage.from('attachments').upload(path, blob)
       if (uploadErr) throw uploadErr
+      uploadedPath = path
 
       const { data, error: signError } = await supabase.storage
         .from('attachments')
@@ -264,8 +269,12 @@ export function SketchModal({ panel, projectId, chapterId, open, onClose, onSave
       if (signError || !data) throw signError ?? new Error('Failed to create signed URL')
 
       const previousPath = panel.image_url
-      onSaved(panel.id, path, data.signedUrl)
+      const result = await onSaved(panel.id, path, data.signedUrl)
+      if ('error' in result) throw new Error(result.error)
+      uploadedPath = null
 
+      // Only once the new path is persisted (as in PanelCard): otherwise a
+      // failed write would leave the row pointing at a file we'd just deleted.
       if (previousPath) {
         supabase.storage.from('attachments').remove([previousPath]).catch(() => {})
       }
@@ -274,6 +283,9 @@ export function SketchModal({ panel, projectId, chapterId, open, onClose, onSave
     } catch (err) {
       console.error('Sketch save error:', err)
       setError('Failed to save sketch')
+      if (uploadedPath) {
+        createClient().storage.from('attachments').remove([uploadedPath]).catch(() => {})
+      }
     } finally {
       setSaving(false)
     }

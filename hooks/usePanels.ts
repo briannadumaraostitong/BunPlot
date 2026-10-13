@@ -133,10 +133,24 @@ export function usePanels(projectId: string, chapterId: string, initial: PanelWi
   // for Places, so it's applied optimistically here alongside the real
   // image_url persist.
   async function setPanelImage(id: string, imageUrl: string, coverUrl: string): Promise<ActionResult> {
+    const previous = panels.find((p) => p.id === id)
     setPanels((prev) =>
       prev.map((p) => (p.id === id ? { ...p, image_url: imageUrl, cover_url: coverUrl } : p))
     )
-    return updatePanel(id, projectId, { image_url: imageUrl })
+    const result = await updatePanel(id, projectId, { image_url: imageUrl })
+    // Undo the optimistic image if the write failed, so the card keeps showing
+    // what the row actually points at. Skipped if a later change already
+    // replaced it.
+    if ('error' in result && previous) {
+      setPanels((prev) =>
+        prev.map((p) =>
+          p.id === id && p.image_url === imageUrl
+            ? { ...p, image_url: previous.image_url, cover_url: previous.cover_url }
+            : p
+        )
+      )
+    }
+    return result
   }
 
   function reorder(from: number, to: number) {
