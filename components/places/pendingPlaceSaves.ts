@@ -1,4 +1,5 @@
 import { updatePlace } from '@/actions/places'
+import { settle } from '@/lib/notify'
 import type { PlaceType } from '@/types/database'
 
 // Same approach as pendingOutlineSaves in OutlineEditor.tsx, in its own module
@@ -26,7 +27,8 @@ export type TrackedPlaceUpdates = Partial<{
 
 export function savePlaceFields(placeId: string, projectId: string, updates: TrackedPlaceUpdates) {
   const key = `${placeId}:${Object.keys(updates).sort().join(',')}`
-  const promise = updatePlace(placeId, projectId, updates).finally(() => {
+  // Settled, so callers get { error } for a failed request too, not a rejection.
+  const promise = settle(updatePlace(placeId, projectId, updates)).finally(() => {
     if (pendingPlaceSaves.get(key) === promise) {
       pendingPlaceSaves.delete(key)
     }

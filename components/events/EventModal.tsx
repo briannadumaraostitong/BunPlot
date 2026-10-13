@@ -55,6 +55,7 @@ import { EventPlacesField } from "@/components/events/EventPlacesField";
 import { StatusPicker } from "@/components/events/StatusPicker";
 import type { Event, Layer, Chapter, Place, Character, Status } from "@/types/database";
 import { cn } from "@/lib/utils";
+import { reportResult, settle } from "@/lib/notify";
 
 interface EventModalProps {
   event: Event | null;
@@ -342,7 +343,7 @@ function EventForm({
 
   async function handleSave() {
     setLoading(true);
-    await updateEvent(event.id, event.project_id, {
+    const result = await settle(updateEvent(event.id, event.project_id, {
       title,
       description,
       notes,
@@ -350,24 +351,28 @@ function EventForm({
       layer_id: layerId,
       chapter_id: chapterId || null,
       color,
-    });
+    }));
     setLoading(false);
+    // Stay open on failure so the edits aren't lost.
+    if (!reportResult(result, "Couldn't save the event.")) return;
     onUpdated();
     onClose();
   }
 
   async function handleDelete() {
     setDeleting(true);
-    await deleteEvent(event.id, event.project_id);
+    const result = await settle(deleteEvent(event.id, event.project_id));
     setDeleting(false);
+    if (!reportResult(result, "Couldn't delete the event.")) return;
     onUpdated();
     onClose();
   }
 
   async function handleDuplicate() {
     setDuplicating(true);
-    await duplicateEvent(event.id, event.project_id);
+    const result = await settle(duplicateEvent(event.id, event.project_id));
     setDuplicating(false);
+    if (!reportResult(result, "Couldn't duplicate the event.")) return;
     onUpdated();
     onClose();
   }

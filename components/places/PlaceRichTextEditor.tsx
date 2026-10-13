@@ -31,7 +31,9 @@ import { cn } from '@/lib/utils'
 interface PlaceRichTextEditorProps {
   content: Record<string, unknown>
   placeholder: string
-  onSave: (json: Record<string, unknown>) => Promise<void>
+  // Resolves false if the save failed; the editor then shows "Not saved" and
+  // retries on the next blur. The caller reports the failure.
+  onSave: (json: Record<string, unknown>) => Promise<boolean>
 }
 
 // New places store the column default '{}', which isn't a valid document and
@@ -51,7 +53,7 @@ export function PlaceRichTextEditor({
   placeholder,
   onSave,
 }: PlaceRichTextEditorProps) {
-  const [saveStatus, setSaveStatus] = useState<'saved' | 'saving'>('saved')
+  const [saveStatus, setSaveStatus] = useState<'saved' | 'saving' | 'error'>('saved')
   // Only the first render's content matters (the editor reads it once), so
   // normalize it once.
   const [initial] = useState(() => normalizeContent(content))
@@ -116,10 +118,18 @@ export function PlaceRichTextEditor({
     if (!editor || loadFailedRef.current) return
     const json = getEditorJson(editor)
     const serialized = JSON.stringify(json)
-    if (serialized === lastSavedJson.current) return
+    if (serialized === lastSavedJson.current) {
+      // Edited back to what's already saved after a failed save.
+      setSaveStatus((s) => (s === 'error' ? 'saved' : s))
+      return
+    }
 
     setSaveStatus('saving')
-    await onSave(json)
+    // lastSavedJson stays as it was on failure, so the next blur retries.
+    if (!(await onSave(json))) {
+      setSaveStatus('error')
+      return
+    }
     lastSavedJson.current = serialized
     setSaveStatus('saved')
   }, [editor, onSave])
@@ -283,6 +293,8 @@ export function PlaceRichTextEditor({
         <div className="flex shrink-0 items-center gap-2 text-[10px]">
           {saveStatus === 'saving' ? (
             <span className="text-muted-foreground">Saving...</span>
+          ) : saveStatus === 'error' ? (
+            <span className="text-destructive">Not saved</span>
           ) : (
             <span className="text-emerald-600 dark:text-emerald-500">Saved ✓</span>
           )}

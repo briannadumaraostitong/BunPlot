@@ -15,6 +15,7 @@ import {
 import { createClient } from '@/lib/supabase/client'
 import { updatePlace } from '@/actions/places'
 import { savePlaceFields } from './pendingPlaceSaves'
+import { dismissError, reportResult } from '@/lib/notify'
 import { PLACE_TYPES } from '@/lib/places.config'
 import { PlaceRichTextEditor } from './PlaceRichTextEditor'
 import type { Chapter, Event, PlaceType } from '@/types/database'
@@ -93,17 +94,29 @@ function PlaceDetailContent({
 
   async function saveField(updates: Partial<{ name: string; type: PlaceType; color: string }>) {
     onUpdated(place.id, updates)
-    await savePlaceFields(place.id, place.project_id, updates)
+    const result = await savePlaceFields(place.id, place.project_id, updates)
+    reportResult(result, "Couldn't save the place.")
   }
 
+  // Returns whether it saved, so the editor can show an honest status and
+  // retry on the next blur. One toast id per place and field, so repeat
+  // failures don't stack.
   async function handleDescriptionSave(json: Record<string, unknown>) {
     onUpdated(place.id, { description: json })
-    await savePlaceFields(place.id, place.project_id, { description: json })
+    return reportSave(
+      await savePlaceFields(place.id, place.project_id, { description: json }),
+      "Couldn't save the description.",
+      `place-save:${place.id}:description`
+    )
   }
 
   async function handleNotesSave(json: Record<string, unknown>) {
     onUpdated(place.id, { notes: json })
-    await savePlaceFields(place.id, place.project_id, { notes: json })
+    return reportSave(
+      await savePlaceFields(place.id, place.project_id, { notes: json }),
+      "Couldn't save the notes.",
+      `place-save:${place.id}:notes`
+    )
   }
 
   return (
@@ -223,6 +236,12 @@ function PlaceDetailContent({
       </div>
     </>
   )
+}
+
+function reportSave<T>(result: T, message: string, toastId: string) {
+  if (!reportResult(result, message, { id: toastId })) return false
+  dismissError(toastId)
+  return true
 }
 
 function CoverImageField({
