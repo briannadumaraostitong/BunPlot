@@ -1,3 +1,8 @@
 allowBuilds:
   sharp: true
   unrs-resolver: true
+
+# Every ESLint 9.x release is marked deprecated, but eslint-config-next's
+# plugins don't support ESLint 10 yet. Remove this once ESLint 10 is possible.
+allowedDeprecatedVersions:
+  eslint: "9"
