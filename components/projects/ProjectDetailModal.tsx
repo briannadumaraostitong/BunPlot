@@ -31,6 +31,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } f
 import { Button } from '@/components/ui/button'
 import { Textarea } from '@/components/ui/textarea'
 import { createClient } from '@/lib/supabase/client'
+import { reportResult, settle } from '@/lib/notify'
 import {
   deleteProject,
   archiveProject,
@@ -79,7 +80,13 @@ export function ProjectDetailModal({ project, folders, stats, open, onClose, onU
 
   async function handleDelete() {
     setLoading(true)
-    await deleteProject(project.id)
+    const result = await settle(deleteProject(project.id))
+    // Leave the confirm dialog and the modal open on failure, so it can be
+    // retried or cancelled.
+    if (!reportResult(result, "Couldn't delete the project.")) {
+      setLoading(false)
+      return
+    }
     setConfirmDelete(false)
     setLoading(false)
     onClose()

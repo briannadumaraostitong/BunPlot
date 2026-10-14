@@ -7,6 +7,7 @@ import { Button } from '@/components/ui/button'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { deleteChapter } from '@/actions/chapters'
 import { getPanelCountForChapter } from '@/actions/panels'
+import { settle } from '@/lib/notify'
 import type { Chapter } from '@/types/database'
 
 interface DeleteChapterDialogProps {
@@ -64,11 +65,13 @@ export function DeleteChapterDialog({
     if (mode === 'move' && !targetId) return
     setDeleting(true)
     setError(null)
-    const result = await deleteChapter(
+    // Settled, so a failed request lands in the inline error below instead of
+    // rejecting and leaving the button stuck on "Deleting...".
+    const result = await settle(deleteChapter(
       chapter.id,
       projectId,
       mode === 'move' ? { type: 'move', targetChapterId: targetId! } : { type: 'delete' }
-    )
+    ))
     setDeleting(false)
     if ('error' in result) {
       setError(result.error)

@@ -13,6 +13,7 @@ import {
 } from '@/components/ui/dialog'
 import { ProjectCard, type ProjectStats } from '@/components/projects/ProjectCard'
 import { updateFolder, deleteFolder } from '@/actions/folders'
+import { reportResult, settle } from '@/lib/notify'
 import type { ProjectFolder } from '@/types/database'
 import type { ProjectWithCover } from '@/actions/projects'
 
@@ -59,7 +60,12 @@ export function FolderSection({ folder, projects, allFolders, statsByProject }: 
 
   async function handleDelete() {
     setDeleting(true)
-    await deleteFolder(folder.id)
+    const result = await settle(deleteFolder(folder.id))
+    // Leave the confirm dialog open on failure, so it can be retried or cancelled.
+    if (!reportResult(result, "Couldn't delete the folder.")) {
+      setDeleting(false)
+      return
+    }
     setConfirmDelete(false)
     setDeleting(false)
     router.refresh()

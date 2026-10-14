@@ -10,6 +10,7 @@ import {
   removeFamilyTreeMember,
   deleteRelationship,
 } from '@/actions/characters'
+import { reportResult, settle } from '@/lib/notify'
 import type { Character, CharacterRelationship, FamilyTreeMember } from '@/types/database'
 
 const CANVAS_WIDTH = 2400
@@ -132,8 +133,10 @@ export const RelationshipCanvas = forwardRef<RelationshipCanvasHandle, Relations
     }
 
     async function handleDeleteRelationship(id: string) {
-      onRelationshipDeleted(id)
-      await deleteRelationship(id, projectId)
+      // Removed from the canvas only once the delete succeeds, so a failure
+      // leaves it where it was.
+      const result = await settle(deleteRelationship(id, projectId))
+      if (reportResult(result, "Couldn't delete the relationship.")) onRelationshipDeleted(id)
     }
 
     function handleCanvasClick(e: React.MouseEvent) {

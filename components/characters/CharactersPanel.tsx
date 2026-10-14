@@ -16,6 +16,7 @@ import {
   renameFamilyTree,
   deleteFamilyTree,
 } from '@/actions/characters'
+import { reportResult, settle } from '@/lib/notify'
 import type { Character, CharacterRelationship, FamilyTree } from '@/types/database'
 
 interface CharactersPanelProps {
@@ -139,7 +140,8 @@ export function CharactersPanel({ projectId, initialSelectedCharacterId }: Chara
   }
 
   async function handleDeleteTree(id: string) {
-    await deleteFamilyTree(id, projectId)
+    const result = await settle(deleteFamilyTree(id, projectId))
+    if (!reportResult(result, "Couldn't delete the family tree.")) return
     const remaining = trees.filter((t) => t.id !== id)
     setTrees(remaining)
     setActiveTreeId((current) => (current === id ? (remaining[0]?.id ?? null) : current))

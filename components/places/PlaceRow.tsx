@@ -5,6 +5,7 @@ import { Trash2, Loader2 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { deletePlace, updatePlace } from '@/actions/places'
 import { PLACE_TYPE_LABELS } from '@/lib/places.config'
+import { reportResult, settle } from '@/lib/notify'
 import type { PlaceWithCover } from '@/actions/places'
 
 interface PlaceRowProps {
@@ -28,8 +29,8 @@ export function PlaceRow({ place, selected, onSelect, onColorChanged, onDeleted 
     e.stopPropagation()
     if (deleting) return
     setDeleting(true)
-    await deletePlace(place.id, place.project_id)
-    onDeleted()
+    const result = await settle(deletePlace(place.id, place.project_id))
+    if (reportResult(result, "Couldn't delete the place.")) onDeleted()
     setDeleting(false)
   }
 

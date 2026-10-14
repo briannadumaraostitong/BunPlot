@@ -8,6 +8,7 @@ import { Eye, EyeOff, GripVertical, Trash2, Check, X, Plus } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { deleteLayer, updateLayer } from '@/actions/layers'
 import { playClickSound } from '@/lib/sound'
+import { reportResult, settle } from '@/lib/notify'
 import type { Layer, Event, Chapter, Status } from '@/types/database'
 
 const FALLBACK_STATUS_COLOR = '#71717a'
@@ -88,8 +89,8 @@ export function LayerRow({
     e.stopPropagation()
     if (layer.type === 'main') return
     setDeleting(true)
-    await deleteLayer(layer.id, projectId)
-    onDeleted?.()
+    const result = await settle(deleteLayer(layer.id, projectId))
+    if (reportResult(result, "Couldn't delete the layer.")) onDeleted?.()
     setDeleting(false)
   }
 

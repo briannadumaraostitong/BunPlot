@@ -22,13 +22,16 @@ export function dismissError(id: string) {
   toast.dismiss(id)
 }
 
+const REQUEST_FAILED_MESSAGE = "Couldn't reach the server. Check your connection and try again."
+
 // Server actions reject, rather than returning { error }, when the request
 // itself fails (offline, server unreachable). Folds that into the same shape
 // so reportResult covers both: await settle(updateOutline(...)).
 export function settle<T>(promise: Promise<T>): Promise<T | { error: string }> {
-  return promise.catch((err: unknown) => ({
-    error: err instanceof Error ? err.message : String(err),
-  }))
+  return promise.catch((err: unknown) => {
+    console.error('Request failed:', err)
+    return { error: REQUEST_FAILED_MESSAGE }
+  })
 }
 
 // For server-action results shaped { error: string } | T. Toasts on error and

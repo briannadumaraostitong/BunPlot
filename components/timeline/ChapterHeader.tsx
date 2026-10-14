@@ -7,6 +7,7 @@ import { cn } from '@/lib/utils'
 import { createChapter, updateChapter, deleteChapter } from '@/actions/chapters'
 import { ChapterLinkPicker } from './ChapterLinkPicker'
 import { DeleteChapterDialog } from './DeleteChapterDialog'
+import { reportResult, settle } from '@/lib/notify'
 import type { Chapter, Event } from '@/types/database'
 
 const DEFAULT_CHAPTER_WIDTH = 220
@@ -295,12 +296,8 @@ function ChapterCell({
       return
     }
     setDeleting(true)
-    const result = await deleteChapter(chapter.id, projectId)
-    if ('error' in result) {
-      console.error('Chapter delete error:', result.error)
-    } else {
-      onRemoved(chapter.id)
-    }
+    const result = await settle(deleteChapter(chapter.id, projectId))
+    if (reportResult(result, "Couldn't delete the chapter.")) onRemoved(chapter.id)
     setDeleting(false)
   }
 
