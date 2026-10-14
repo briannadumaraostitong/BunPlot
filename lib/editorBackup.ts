@@ -128,20 +128,20 @@ export function clearBackup(kind: BackupKind, id: string) {
   }
 }
 
-// After a successful save: clear the backup if this session wrote it, or if
-// it holds exactly what was just saved. A backup from another tab with
-// different content is kept, so that tab's unsaved edits aren't lost.
-export function clearBackupAfterSave(
-  kind: BackupKind,
-  id: string,
-  sessionId: string,
-  savedContent: unknown
-) {
+// After a successful save: clear the backup only if it holds exactly what was
+// just saved. Anything else is kept: newer typing this session backed up while
+// the save was in flight, or another tab's unsaved edits.
+export function clearBackupAfterSave(kind: BackupKind, id: string, savedContent: unknown) {
   const backup = readBackup(kind, id)
   if (!backup) return
-  if (backup.sessionId === sessionId || sameContent(backup.content, savedContent)) {
-    clearBackup(kind, id)
-  }
+  if (sameContent(backup.content, savedContent)) clearBackup(kind, id)
+}
+
+// Clears the backup only if this session wrote it: for when this session's
+// edits were undone back to the saved version. Another tab's backup is kept.
+export function clearOwnBackup(kind: BackupKind, id: string, sessionId: string) {
+  const backup = readBackup(kind, id)
+  if (backup?.sessionId === sessionId) clearBackup(kind, id)
 }
 
 // Removes backups older than 30 days (any kind or project), and backups of

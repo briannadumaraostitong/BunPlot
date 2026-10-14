@@ -41,6 +41,7 @@ import {
   backupBeforeSave,
   clearBackup,
   clearBackupAfterSave,
+  clearOwnBackup,
   newSessionId,
   pruneBackups,
   readBackup,
@@ -75,6 +76,8 @@ type SaveStatus = 'saved' | 'saving' | 'error'
 // One toast for every outline save failure, so a failing autosave interval
 // updates the same toast instead of stacking them.
 const SAVE_TOAST_ID = 'outline-save'
+// How long after typing stops the local backup is written.
+const BACKUP_DEBOUNCE_MS = 1000
 
 function countWords(text: string) {
   const trimmed = text.trim()
@@ -102,7 +105,7 @@ function saveOutline(id: string, content: Record<string, unknown>, backup: Outli
   backupBeforeSave({ kind: 'outline', id, content, ...backup })
   const promise = settle(updateOutline(id, content))
     .then((result) => {
-      if (!('error' in result)) clearBackupAfterSave('outline', id, backup.sessionId, content)
+      if (!('error' in result)) clearBackupAfterSave('outline', id, content)
       return result
     })
     .finally(() => {
@@ -378,20 +381,49 @@ function OutlineDocumentEditor({ outline, onExport }: { outline: Outline; onExpo
 
   useEffect(() => {
     if (!editor) return
+    let backupTimer: ReturnType<typeof setTimeout> | null = null
     function handleUpdate() {
       latestJson.current = JSON.stringify(editor!.getJSON())
       setWordCount(countWords(editor!.getText()))
     }
+    // Shortly after typing stops, back up what's on screen, so a reload or a
+    // closed tab (which skip the unmount save) can't lose it. Same rules as
+    // the backup written before a save: another session's unresolved backup
+    // isn't overwritten. Edited back to the saved version means nothing is
+    // unsaved, so this session's backup is cleared instead.
+    function scheduleBackup() {
+      if (backupTimer) clearTimeout(backupTimer)
+      backupTimer = setTimeout(() => {
+        backupTimer = null
+        const content = JSON.parse(latestJson.current)
+        if (sameContent(content, JSON.parse(lastSavedJson.current))) {
+          clearOwnBackup('outline', outline.id, sessionId)
+          return
+        }
+        backupBeforeSave({
+          kind: 'outline',
+          id: outline.id,
+          projectId: outline.project_id,
+          content,
+          sessionId,
+          baseUpdatedAt: baseUpdatedAt.current,
+        })
+      }, BACKUP_DEBOUNCE_MS)
+    }
     function handleEdit() {
       editedSinceOpen.current = true
       handleUpdate()
+      scheduleBackup()
     }
     handleUpdate() // set the initial count on mount, not just on the first edit
     editor.on('update', handleEdit)
     return () => {
       editor.off('update', handleEdit)
+      // The unmount save backs up whatever is unsaved, so a pending timer
+      // isn't needed any more.
+      if (backupTimer) clearTimeout(backupTimer)
     }
-  }, [editor])
+  }, [editor, outline.id, outline.project_id, sessionId])
 
   function handleRestore() {
     if (!editor || !pendingBackup) return
@@ -416,7 +448,12 @@ function OutlineDocumentEditor({ outline, onExport }: { outline: Outline; onExpo
 
   useEffect(() => {
     return () => {
-      if (latestJson.current !== lastSavedJson.current) {
+      if (
+        latestJson.current !== lastSavedJson.current &&
+        // Same document with keys reordered by jsonb isn't an unsaved edit,
+        // so opening and leaving an outline doesn't re-save it.
+        !sameContent(JSON.parse(latestJson.current), JSON.parse(lastSavedJson.current))
+      ) {
         // Parsed from the serialized snapshot, so already plain JSON (see
         // getEditorJson) — and safe to read after the editor is torn down.
         // The editor is gone, so there's no retry — the toast (from the root
@@ -430,6 +467,38 @@ function OutlineDocumentEditor({ outline, onExport }: { outline: Outline; onExpo
         )
       }
     }
+  }, [outline.id, outline.project_id, sessionId])
+
+  // Ask before closing or reloading the browser tab while there are unsaved
+  // edits or an outline save is still running. Browsers show their own
+  // generic message; the text can't be customized. In-app tab switches don't
+  // fire this; the local backup covers those.
+  useEffect(() => {
+    function handleBeforeUnload(e: BeforeUnloadEvent) {
+      const unsaved =
+        latestJson.current !== lastSavedJson.current &&
+        // Same document with keys in a different order (jsonb reorders them)
+        // isn't an unsaved edit.
+        !sameContent(JSON.parse(latestJson.current), JSON.parse(lastSavedJson.current))
+      if (!unsaved && pendingOutlineSaves.size === 0) return
+      // Back up right now (localStorage writes are synchronous), covering a
+      // reload within the debounce window after the last keystroke.
+      if (unsaved) {
+        backupBeforeSave({
+          kind: 'outline',
+          id: outline.id,
+          projectId: outline.project_id,
+          content: JSON.parse(latestJson.current),
+          sessionId,
+          baseUpdatedAt: baseUpdatedAt.current,
+        })
+      }
+      e.preventDefault()
+      // Older browsers only show the prompt when returnValue is set.
+      e.returnValue = ''
+    }
+    window.addEventListener('beforeunload', handleBeforeUnload)
+    return () => window.removeEventListener('beforeunload', handleBeforeUnload)
   }, [outline.id, outline.project_id, sessionId])
 
   async function handleImageUpload(e: React.ChangeEvent<HTMLInputElement>) {
