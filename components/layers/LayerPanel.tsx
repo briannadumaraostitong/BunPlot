@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useState } from 'react'
 import {
   DndContext,
   closestCenter,
@@ -16,6 +16,7 @@ import { LayerRow } from './LayerRow'
 import { createLayer, reorderLayers } from '@/actions/layers'
 import { reportResult, settle } from '@/lib/notify'
 import { cn } from '@/lib/utils'
+import { useIsBelowMd } from '@/hooks/useIsBelowMd'
 import type { Layer, Project } from '@/types/database'
 
 interface LayerPanelProps {
@@ -39,17 +40,12 @@ export function LayerPanel({
   onLayerRenamed,
   onLayerColorChanged,
 }: LayerPanelProps) {
-  const [collapsed, setCollapsed] = useState(false)
+  // null until the chevron is used: until then the sidebar follows the
+  // breakpoint (collapsed below md); after that it keeps the user's choice.
+  const isBelowMd = useIsBelowMd()
+  const [userCollapsed, setUserCollapsed] = useState<boolean | null>(null)
+  const collapsed = userCollapsed ?? isBelowMd
   const [adding, setAdding] = useState(false)
-
-  // Defaults to collapsed below md — checked once on mount, not a live
-  // resize listener, so it doesn't fight the user's own chevron toggle
-  // after the initial render (matches the Tailwind md breakpoint, 768px).
-  useEffect(() => {
-    if (window.matchMedia('(max-width: 767px)').matches) {
-      setCollapsed(true)
-    }
-  }, [])
 
   async function handleAddLayer() {
     if (adding) return
@@ -93,7 +89,7 @@ export function LayerPanel({
           variant="ghost"
           size="icon"
           className="relative h-6 w-6 ml-auto after:absolute after:-inset-2.5"
-          onClick={() => setCollapsed((c) => !c)}
+          onClick={() => setUserCollapsed(!collapsed)}
         >
           {collapsed ? (
             <ChevronRight className="h-3.5 w-3.5" />

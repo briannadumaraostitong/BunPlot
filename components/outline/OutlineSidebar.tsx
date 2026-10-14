@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useRef, useState } from 'react'
+import { useRef, useState } from 'react'
 import { ChevronDown, ChevronLeft, ChevronRight, Download, FileText, Plus, X } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { Button } from '@/components/ui/button'
@@ -17,6 +17,7 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu'
+import { useIsBelowMd } from '@/hooks/useIsBelowMd'
 import type { Outline } from '@/types/database'
 
 interface OutlineSidebarProps {
@@ -46,19 +47,13 @@ export function OutlineSidebar({
   onDelete,
   onExport,
 }: OutlineSidebarProps) {
-  const [collapsed, setCollapsed] = useState(false)
+  // null until the chevron is used: until then the sidebar follows the
+  // breakpoint (collapsed below md); after that it keeps the user's choice.
+  const isBelowMd = useIsBelowMd()
+  const [userCollapsed, setUserCollapsed] = useState<boolean | null>(null)
+  const collapsed = userCollapsed ?? isBelowMd
   const [pendingDeleteId, setPendingDeleteId] = useState<string | null>(null)
   const pendingDeleteOutline = outlines.find((o) => o.id === pendingDeleteId) ?? null
-
-  // Defaults to collapsed below md — checked once on mount, not a live
-  // resize listener, so it doesn't fight the user's own chevron toggle after
-  // the initial render (matches the Tailwind md breakpoint, 768px) — same
-  // convention as LayerPanel/PlaceSidebar/CharacterSidebar/ChapterSidebar.
-  useEffect(() => {
-    if (window.matchMedia('(max-width: 767px)').matches) {
-      setCollapsed(true)
-    }
-  }, [])
 
   function requestDelete(outline: Outline) {
     if (hasTextContent(outline.content)) {
@@ -100,7 +95,7 @@ export function OutlineSidebar({
           variant="ghost"
           size="icon"
           className="relative h-6 w-6 ml-auto after:absolute after:-inset-2.5"
-          onClick={() => setCollapsed((c) => !c)}
+          onClick={() => setUserCollapsed(!collapsed)}
         >
           {collapsed ? (
             <ChevronRight className="h-3.5 w-3.5" />
