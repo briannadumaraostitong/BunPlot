@@ -4,6 +4,14 @@ import React, { createContext, useContext, useEffect, useState, useCallback, use
 import type { ThemeSetting } from '@/lib/themes'
 import { applyTheme, getTheme, resolveThemeId, DEFAULT_THEME_SETTING } from '@/lib/themes'
 import { createClient } from '@/lib/supabase/client'
+import { isAuthSessionMissingError } from '@supabase/supabase-js'
+import { notifyError } from '@/lib/notify'
+
+// Toast only, one id however often the theme is toggled. The theme is
+// already applied and kept in localStorage; a failed save only means other
+// devices won't pick it up.
+const THEME_SAVE_TOAST_ID = 'theme-save'
+const THEME_SAVE_MESSAGE = "Couldn't save your theme. It still applies on this device."
 
 interface ThemeContextValue {
   theme: ThemeSetting
@@ -69,13 +77,21 @@ export function ThemeProvider({
   const setTheme = useCallback(async (newTheme: ThemeSetting) => {
     setThemeState(newTheme)
     localStorage.setItem('plottr-theme', newTheme)
-    const { data: { user } } = await supabase.auth.getUser()
-    if (user) {
-      await supabase
-        .from('profiles')
-        .update({ theme: newTheme } as never)
-        .eq('id', user.id)
+    // supabase-js returns { error } rather than throwing, so no settle here.
+    const { data: { user }, error: userError } = await supabase.auth.getUser()
+    if (!user) {
+      // Signed out (e.g. the login page) has nothing to save to; anything
+      // else, such as a network failure, means the save didn't happen.
+      if (userError && !isAuthSessionMissingError(userError)) {
+        notifyError(THEME_SAVE_MESSAGE, userError, { id: THEME_SAVE_TOAST_ID })
+      }
+      return
     }
+    const { error } = await supabase
+      .from('profiles')
+      .update({ theme: newTheme } as never)
+      .eq('id', user.id)
+    if (error) notifyError(THEME_SAVE_MESSAGE, error, { id: THEME_SAVE_TOAST_ID })
   }, [supabase])
 
   return (

@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react'
 import { Switch } from '@/components/ui/switch'
 import { Slider } from '@/components/ui/slider'
 import { updateProfile } from '@/actions/profile'
+import { reportResult, settle } from '@/lib/notify'
 import { setSoundPreference } from '@/lib/sound'
 import type { Profile } from '@/types/database'
 
@@ -26,7 +27,14 @@ export function SoundSettings({ profile }: SoundSettingsProps) {
   function handleEnabledChange(next: boolean) {
     setEnabled(next)
     setSoundPreference(next, volume)
-    updateProfile({ sound_enabled: next })
+    // Toast only: the setting already applies on this device (localStorage);
+    // a failed save only means other devices won't pick it up. Fixed id so
+    // repeated toggles show one toast.
+    settle(updateProfile({ sound_enabled: next })).then((result) =>
+      reportResult(result, "Couldn't save the click sound setting. It still applies on this device.", {
+        id: 'sound-enabled',
+      })
+    )
   }
 
   // Fires on every tick while dragging — keeps the slider position and the
@@ -39,7 +47,11 @@ export function SoundSettings({ profile }: SoundSettingsProps) {
   // Fires once the drag (or keyboard adjustment) settles — this is the only
   // point the volume is persisted to the profiles row.
   function handleVolumeCommit(next: number) {
-    updateProfile({ sound_volume: next })
+    settle(updateProfile({ sound_volume: next })).then((result) =>
+      reportResult(result, "Couldn't save the volume. It still applies on this device.", {
+        id: 'sound-volume',
+      })
+    )
   }
 
   return (
