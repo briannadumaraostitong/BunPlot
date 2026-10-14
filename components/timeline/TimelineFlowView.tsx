@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useState } from 'react'
 import { Loader2, Plus, ChevronRight } from 'lucide-react'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Button } from '@/components/ui/button'
@@ -31,19 +31,16 @@ export function TimelineFlowView({
   onSelectEvent,
   onEventCreated,
 }: TimelineFlowViewProps) {
-  const [selectedLayerId, setSelectedLayerId] = useState<string | null>(layers[0]?.id ?? null)
+  // Only what the user picked. The layer actually shown is worked out below,
+  // so the selection stays valid without an effect.
+  const [pickedLayerId, setPickedLayerId] = useState<string | null>(null)
   const [creating, setCreating] = useState(false)
   const [addingChapter, setAddingChapter] = useState(false)
 
-  // Keeps selection valid if the current layer is deleted (or renamed away)
-  // while Flow view is open — falls back to the new first layer.
-  useEffect(() => {
-    if (selectedLayerId && !layers.some((l) => l.id === selectedLayerId)) {
-      setSelectedLayerId(layers[0]?.id ?? null)
-    } else if (!selectedLayerId && layers.length > 0) {
-      setSelectedLayerId(layers[0].id)
-    }
-  }, [layers, selectedLayerId])
+  // The picked layer while it still exists; otherwise (never picked, or
+  // deleted while Flow view is open) the first layer, or null if there are none.
+  const selectedLayerId =
+    pickedLayerId && layers.some((l) => l.id === pickedLayerId) ? pickedLayerId : (layers[0]?.id ?? null)
 
   const selectedLayer = layers.find((l) => l.id === selectedLayerId) ?? null
 
@@ -115,7 +112,7 @@ export function TimelineFlowView({
         <span className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">
           Layer
         </span>
-        <Select value={selectedLayerId ?? undefined} onValueChange={setSelectedLayerId}>
+        <Select value={selectedLayerId ?? undefined} onValueChange={setPickedLayerId}>
           <SelectTrigger className="h-7 w-36 bg-background text-xs sm:w-48">
             <SelectValue placeholder="Select a layer" />
           </SelectTrigger>
