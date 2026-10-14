@@ -9,11 +9,22 @@ const DEBOUNCE_MS = 300
 
 export type SearchStatus = 'idle' | 'loading' | 'empty' | 'results' | 'error'
 
+// The last finished search, tagged with the query and project it was for.
+// Idle and loading aren't stored: they're worked out during render from
+// whether the current query matches this.
+interface SettledSearch {
+  key: string
+  results: SearchResult[]
+  error: string | null
+  status: 'empty' | 'results' | 'error'
+}
+
 export function useSearch(query: string, projectId: string | null) {
-  const [results, setResults] = useState<SearchResult[]>([])
-  const [isLoading, setIsLoading] = useState(false)
-  const [error, setError] = useState<string | null>(null)
-  const [status, setStatus] = useState<SearchStatus>('idle')
+  const [settled, setSettled] = useState<SettledSearch | null>(null)
+
+  const trimmed = query.trim()
+  const active = trimmed.length >= MIN_QUERY_LENGTH
+  const key = JSON.stringify([projectId, trimmed])
 
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null)
   // Guards against an earlier, slower request's response arriving after a
@@ -24,18 +35,10 @@ export function useSearch(query: string, projectId: string | null) {
   useEffect(() => {
     if (debounceRef.current) clearTimeout(debounceRef.current)
 
-    const trimmed = query.trim()
-    if (trimmed.length < MIN_QUERY_LENGTH) {
+    if (!active) {
       requestIdRef.current++ // invalidates any request still in flight
-      setResults([])
-      setIsLoading(false)
-      setError(null)
-      setStatus('idle')
       return
     }
-
-    setIsLoading(true)
-    setStatus('loading')
 
     debounceRef.current = setTimeout(async () => {
       const thisRequestId = ++requestIdRef.current
@@ -48,24 +51,25 @@ export function useSearch(query: string, projectId: string | null) {
       if (thisRequestId !== requestIdRef.current) return // superseded, ignore
 
       if (rpcError) {
-        setError(rpcError.message)
-        setResults([])
-        setIsLoading(false)
-        setStatus('error')
+        setSettled({ key, results: [], error: rpcError.message, status: 'error' })
         return
       }
 
       const rows = (data ?? []) as SearchResult[]
-      setResults(rows)
-      setIsLoading(false)
-      setError(null)
-      setStatus(rows.length === 0 ? 'empty' : 'results')
+      setSettled({ key, results: rows, error: null, status: rows.length === 0 ? 'empty' : 'results' })
     }, DEBOUNCE_MS)
 
     return () => {
       if (debounceRef.current) clearTimeout(debounceRef.current)
     }
-  }, [query, projectId])
+  }, [active, key, trimmed, projectId])
 
-  return { results, isLoading, error, status }
+  if (!active) return { results: [], isLoading: false, error: null, status: 'idle' as SearchStatus }
+  // A different query than the last finished one: still waiting for it.
+  // The previous results are kept, as before; the page only shows them
+  // once the status is 'results'.
+  if (settled?.key !== key) {
+    return { results: settled?.results ?? [], isLoading: true, error: null, status: 'loading' as SearchStatus }
+  }
+  return { results: settled.results, isLoading: false, error: settled.error, status: settled.status as SearchStatus }
 }
