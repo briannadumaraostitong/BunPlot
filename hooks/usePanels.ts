@@ -11,6 +11,7 @@ import {
   type PanelWithCover,
   type ActionResult,
 } from '@/actions/panels'
+import { settle } from '@/lib/notify'
 import type { Panel } from '@/types/database'
 
 export function usePanels(projectId: string, chapterId: string, initial: PanelWithCover[] = []) {
@@ -109,7 +110,7 @@ export function usePanels(projectId: string, chapterId: string, initial: PanelWi
 
   async function addPanel(caption?: string): Promise<{ error: string } | PanelWithCover> {
     const nextPosition = panels.length > 0 ? Math.max(...panels.map((p) => p.position)) + 1 : 0
-    const result = await createPanel(projectId, chapterId, nextPosition, caption)
+    const result = await settle(createPanel(projectId, chapterId, nextPosition, caption))
     if ('error' in result) return result
     setPanels((prev) => [...prev, result])
     return result
@@ -120,12 +121,15 @@ export function usePanels(projectId: string, chapterId: string, initial: PanelWi
     updates: Parameters<typeof updatePanel>[2]
   ): Promise<ActionResult> {
     setPanels((prev) => prev.map((p) => (p.id === id ? { ...p, ...updates } : p)))
-    return updatePanel(id, projectId, updates)
+    return settle(updatePanel(id, projectId, updates))
   }
 
   async function removePanel(id: string): Promise<ActionResult> {
-    setPanels((prev) => prev.filter((p) => p.id !== id))
-    return deletePanel(id, projectId)
+    // Removed only once the delete succeeds: removing first and restoring on
+    // failure would remount the card and lose its inline error.
+    const result = await settle(deletePanel(id, projectId))
+    if (!('error' in result)) setPanels((prev) => prev.filter((p) => p.id !== id))
+    return result
   }
 
   // cover_url is a signed URL, not a persisted column — the caller (the sketch
@@ -137,7 +141,7 @@ export function usePanels(projectId: string, chapterId: string, initial: PanelWi
     setPanels((prev) =>
       prev.map((p) => (p.id === id ? { ...p, image_url: imageUrl, cover_url: coverUrl } : p))
     )
-    const result = await updatePanel(id, projectId, { image_url: imageUrl })
+    const result = await settle(updatePanel(id, projectId, { image_url: imageUrl }))
     // Undo the optimistic image if the write failed, so the card keeps showing
     // what the row actually points at. Skipped if a later change already
     // replaced it.

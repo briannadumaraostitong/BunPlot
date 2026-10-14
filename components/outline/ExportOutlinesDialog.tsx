@@ -6,6 +6,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } f
 import { Button } from '@/components/ui/button'
 import { cn } from '@/lib/utils'
 import { exportOutlines } from '@/actions/export'
+import { settle } from '@/lib/notify'
 import { downloadBase64 } from '@/lib/export/downloadBase64'
 import type { Outline } from '@/types/database'
 
@@ -39,7 +40,7 @@ export function ExportOutlinesDialog({ projectId, outlines, open, onClose }: Exp
     if (selected.size === 0) return
     setExporting(true)
     setError(null)
-    const result = await exportOutlines(projectId, [...selected], format)
+    const result = await settle(exportOutlines(projectId, [...selected], format))
     setExporting(false)
 
     if ('error' in result) {

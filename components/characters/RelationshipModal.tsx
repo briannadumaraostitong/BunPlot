@@ -19,6 +19,7 @@ import {
   SelectValue,
 } from '@/components/ui/select'
 import { createRelationship } from '@/actions/characters'
+import { settle } from '@/lib/notify'
 import type { Character, RelationshipType } from '@/types/database'
 
 const RELATIONSHIP_TYPES: { value: RelationshipType; label: string; symmetric: boolean }[] = [
@@ -67,7 +68,7 @@ export function RelationshipModal({
     if (!source || !target) return
     setSaving(true)
     setError(null)
-    const result = await createRelationship(projectId, source.id, target.id, type, label.trim() || null)
+    const result = await settle(createRelationship(projectId, source.id, target.id, type, label.trim() || null))
     setSaving(false)
     if (result && 'error' in result) {
       setError(result.error)

@@ -14,6 +14,7 @@ import {
   setDefaultStatus,
   deleteStatus,
 } from '@/actions/statuses'
+import { settle } from '@/lib/notify'
 import type { Status } from '@/types/database'
 
 const FALLBACK_COLOR = '#71717a'
@@ -154,7 +155,7 @@ function StatusRow({
     e.stopPropagation()
     if (status.is_default) return
     setDeleting(true)
-    const result = await deleteStatus(status.id, projectId)
+    const result = await settle(deleteStatus(status.id, projectId))
     if (result && 'error' in result) onError(result.error)
     setDeleting(false)
   }
@@ -185,7 +186,7 @@ function StatusRow({
 
   async function handleSetDefault(e: React.MouseEvent) {
     e.stopPropagation()
-    const result = await setDefaultStatus(status.id, projectId)
+    const result = await settle(setDefaultStatus(status.id, projectId))
     if (result && 'error' in result) onError(result.error)
   }
 

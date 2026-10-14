@@ -6,6 +6,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } f
 import { Button } from '@/components/ui/button'
 import { cn } from '@/lib/utils'
 import { getStoryboardPanels, type StoryboardChapter } from '@/actions/export'
+import { settle } from '@/lib/notify'
 import { buildStoryboardZip, sanitizeFileName } from '@/lib/export/storyboardZip'
 import { prepareStoryboardImages } from '@/lib/export/storyboardImages'
 import { downloadBlob } from '@/lib/export/downloadBlob'
@@ -117,7 +118,9 @@ export function ExportStoryboardDialog({ projectId, chapters, onClose }: ExportS
     setNotice(null)
     setPhase({ kind: 'preparing' })
     try {
-      const result = await getStoryboardPanels(projectId, [...selected])
+      // Settled, so a failed request shows the connection message rather than
+      // the catch's "Failed to build the …".
+      const result = await settle(getStoryboardPanels(projectId, [...selected]))
       if ('error' in result) {
         setError(result.error)
         return

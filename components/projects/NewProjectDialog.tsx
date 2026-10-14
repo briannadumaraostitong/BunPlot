@@ -16,6 +16,7 @@ import { Label } from '@/components/ui/label'
 import { Textarea } from '@/components/ui/textarea'
 import { createClient } from '@/lib/supabase/client'
 import { createProject, updateProject } from '@/actions/projects'
+import { settle } from '@/lib/notify'
 
 interface NewProjectDialogProps {
   trigger?: string
@@ -50,10 +51,10 @@ export function NewProjectDialog({ trigger }: NewProjectDialogProps) {
     setLoading(true)
     setError(null)
 
-    const result = await createProject({
+    const result = await settle(createProject({
       title: title.trim(),
       description: description.trim(),
-    })
+    }))
 
     if ('error' in result) {
       setError(result.error)

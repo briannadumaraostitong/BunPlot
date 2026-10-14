@@ -15,6 +15,7 @@ import {
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { createFolder } from '@/actions/folders'
+import { settle } from '@/lib/notify'
 
 export function NewFolderDialog() {
   const router = useRouter()
@@ -28,7 +29,7 @@ export function NewFolderDialog() {
     setLoading(true)
     setError(null)
 
-    const result = await createFolder(name.trim())
+    const result = await settle(createFolder(name.trim()))
 
     if (result && 'error' in result) {
       setError(result.error)

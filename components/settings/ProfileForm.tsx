@@ -8,6 +8,7 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { updateProfile } from '@/actions/profile'
+import { settle } from '@/lib/notify'
 import type { Profile } from '@/types/database'
 
 interface ProfileFormProps {
@@ -38,7 +39,7 @@ export function ProfileForm({ profile, email }: ProfileFormProps) {
     setError(null)
     setSaved(false)
 
-    const result = await updateProfile({ display_name: displayName.trim() })
+    const result = await settle(updateProfile({ display_name: displayName.trim() }))
 
     if (result && 'error' in result) {
       setError(result.error)

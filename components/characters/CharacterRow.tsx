@@ -5,6 +5,7 @@ import { Trash2, Loader2, Plus } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { playClickSound } from '@/lib/sound'
 import { deleteCharacter, updateCharacter } from '@/actions/characters'
+import { settle } from '@/lib/notify'
 import type { Character } from '@/types/database'
 
 export function getInitials(name: string) {
@@ -47,7 +48,7 @@ export function CharacterRow({
     if (hasRelationships || deleting) return
     setDeleting(true)
     setError(null)
-    const result = await deleteCharacter(character.id, character.project_id)
+    const result = await settle(deleteCharacter(character.id, character.project_id))
     if (result && 'error' in result) {
       setError(result.error)
       setDeleting(false)

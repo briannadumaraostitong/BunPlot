@@ -53,8 +53,9 @@ export function DeleteChapterDialog({
   useEffect(() => {
     let cancelled = false
     ;(async () => {
-      const count = await getPanelCountForChapter(chapter.id)
-      if (!cancelled) setPanelCount(count)
+      // On failure the count stays unknown and the panel note is just left out.
+      const count = await settle(getPanelCountForChapter(chapter.id))
+      if (!cancelled && typeof count === 'number') setPanelCount(count)
     })()
     return () => {
       cancelled = true

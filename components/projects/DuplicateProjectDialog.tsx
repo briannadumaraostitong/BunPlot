@@ -14,6 +14,7 @@ import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { cn } from '@/lib/utils'
 import { duplicateProject } from '@/actions/projects'
+import { settle } from '@/lib/notify'
 import type { Project } from '@/types/database'
 
 interface DuplicateProjectDialogProps {
@@ -45,7 +46,7 @@ export function DuplicateProjectDialog({ project, open, onOpenChange }: Duplicat
     setLoading(true)
     setError(null)
 
-    const result = await duplicateProject(project.id, title.trim(), mode)
+    const result = await settle(duplicateProject(project.id, title.trim(), mode))
 
     if ('error' in result) {
       setError(result.error)

@@ -6,6 +6,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } f
 import { Button } from '@/components/ui/button'
 import { cn } from '@/lib/utils'
 import { exportStoryBible } from '@/actions/export'
+import { settle } from '@/lib/notify'
 import { downloadBase64 } from '@/lib/export/downloadBase64'
 import { STORY_BIBLE_SECTIONS, type StoryBibleSection } from '@/lib/export/storyBible'
 
@@ -46,7 +47,7 @@ export function ExportStoryBibleDialog({ projectId, open, onClose }: ExportStory
     setError(null)
     // Keep the document's fixed section order regardless of click order.
     const sections = STORY_BIBLE_SECTIONS.filter((s) => selected.has(s))
-    const result = await exportStoryBible(projectId, sections, format)
+    const result = await settle(exportStoryBible(projectId, sections, format))
     setExporting(false)
 
     if ('error' in result) {
