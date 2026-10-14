@@ -16,7 +16,7 @@ import { Label } from '@/components/ui/label'
 import { Textarea } from '@/components/ui/textarea'
 import { createClient } from '@/lib/supabase/client'
 import { createProject, updateProject } from '@/actions/projects'
-import { settle } from '@/lib/notify'
+import { notifyError, reportResult, settle } from '@/lib/notify'
 
 interface NewProjectDialogProps {
   trigger?: string
@@ -68,15 +68,20 @@ export function NewProjectDialog({ trigger }: NewProjectDialogProps) {
     // successfully, so a cover-upload hiccup shouldn't stop navigation into
     // it; a cover can always be added later from the project card.
     if (coverFile) {
+      const supabase = createClient()
+      const safeName = coverFile.name.replace(/\s+/g, '-')
+      const path = `projects/${result.id}/${Date.now()}-${safeName}`
       try {
-        const supabase = createClient()
-        const safeName = coverFile.name.replace(/\s+/g, '-')
-        const path = `projects/${result.id}/${Date.now()}-${safeName}`
         const { error: uploadErr } = await supabase.storage.from('attachments').upload(path, coverFile)
         if (uploadErr) throw uploadErr
-        await updateProject(result.id, { cover_image_url: path })
+        const updated = await settle(updateProject(result.id, { cover_image_url: path }))
+        // The file is uploaded but the project doesn't point at it, so
+        // nothing would ever show or clean it up.
+        if (!reportResult(updated, "Couldn't add the cover image. You can add one from the project card.")) {
+          supabase.storage.from('attachments').remove([path]).catch(() => {})
+        }
       } catch (err) {
-        console.error('Project cover upload error:', err)
+        notifyError("Couldn't upload the cover image. You can add one from the project card.", err)
       }
     }
 

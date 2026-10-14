@@ -14,6 +14,7 @@ import { Plus, ChevronLeft, ChevronRight, Loader2 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { LayerRow } from './LayerRow'
 import { createLayer, reorderLayers } from '@/actions/layers'
+import { reportResult, settle } from '@/lib/notify'
 import { cn } from '@/lib/utils'
 import type { Layer, Project } from '@/types/database'
 
@@ -53,9 +54,11 @@ export function LayerPanel({
   async function handleAddLayer() {
     if (adding) return
     setAdding(true)
-    await createLayer(project.id, `Layer ${layers.length + 1}`)
-    await new Promise((r) => setTimeout(r, 500))
-    onLayerAdded()
+    const result = await settle(createLayer(project.id, `Layer ${layers.length + 1}`))
+    if (reportResult(result, "Couldn't create the layer.")) {
+      await new Promise((r) => setTimeout(r, 500))
+      onLayerAdded()
+    }
     setAdding(false)
   }
 

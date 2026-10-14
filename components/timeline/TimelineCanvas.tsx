@@ -21,6 +21,7 @@ import { TimelineFlowView } from './TimelineFlowView'
 import { ExportStoryBibleDialog } from './ExportStoryBibleDialog'
 import { EventModal } from '@/components/events/EventModal'
 import { cn } from '@/lib/utils'
+import { reportResult, settle } from '@/lib/notify'
 import { useLayers } from '@/hooks/useLayers'
 import { useEvents } from '@/hooks/useEvents'
 import { useChapters } from '@/hooks/useChapters'
@@ -240,14 +241,15 @@ export function TimelineCanvas({
   ])
 
   async function handleChapterCellClick(layer: Layer, chapter: Chapter) {
-    await createEvent({
+    const created = await settle(createEvent({
       project_id: project.id,
       layer_id: layer.id,
       chapter_id: chapter.id,
       title: 'New Event',
       position: 0,
       duration: 1,
-    })
+    }))
+    if (!reportResult(created, "Couldn't create the event.")) return
     refreshEvents()
   }
 

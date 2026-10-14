@@ -128,8 +128,8 @@ export function CharactersPanel({ projectId, initialSelectedCharacterId }: Chara
   }
 
   async function handleAddTree() {
-    const created = await createFamilyTree(projectId, `Family Tree ${trees.length + 1}`)
-    if ('error' in created) return
+    const created = await settle(createFamilyTree(projectId, `Family Tree ${trees.length + 1}`))
+    if (!reportResult(created, "Couldn't create the family tree.")) return
     setTrees((prev) => [...prev, created])
     setActiveTreeId(created.id)
   }

@@ -8,6 +8,7 @@ import { cn } from '@/lib/utils'
 import { playClickSound } from '@/lib/sound'
 import { createEvent } from '@/actions/events'
 import { createChapter } from '@/actions/chapters'
+import { reportResult, settle } from '@/lib/notify'
 import type { Layer, Event, Chapter } from '@/types/database'
 
 interface TimelineFlowViewProps {
@@ -81,19 +82,18 @@ export function TimelineFlowView({
         : 0
 
     setCreating(true)
-    const created = await createEvent({
+    const created = await settle(createEvent({
       project_id: projectId,
       layer_id: selectedLayerId,
       chapter_id: targetChapterId,
       title: 'New Event',
       position: nextPosition,
       duration: 1,
-    })
-    onEventCreated()
+    }))
     setCreating(false)
-    if (created && !('error' in created)) {
-      onSelectEvent(created as Event)
-    }
+    if (!reportResult(created, "Couldn't create the event.")) return
+    onEventCreated()
+    onSelectEvent(created as Event)
   }
 
   // No refresh afterwards: useChapters' realtime subscription inserts the new
@@ -101,7 +101,8 @@ export function TimelineFlowView({
   async function handleAddChapter() {
     if (addingChapter) return
     setAddingChapter(true)
-    await createChapter(projectId, `Chapter ${chapters.length + 1}`)
+    const result = await settle(createChapter(projectId, `Chapter ${chapters.length + 1}`))
+    reportResult(result, "Couldn't create the chapter.")
     setAddingChapter(false)
   }
 

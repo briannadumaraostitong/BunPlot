@@ -56,9 +56,11 @@ export function ChapterHeader({
   async function handleAdd() {
     if (adding) return
     setAdding(true)
-    await createChapter(projectId, `Chapter ${chapters.length + 1}`)
-    await new Promise((r) => setTimeout(r, 400))
-    onAdded()
+    const result = await settle(createChapter(projectId, `Chapter ${chapters.length + 1}`))
+    if (reportResult(result, "Couldn't create the chapter.")) {
+      await new Promise((r) => setTimeout(r, 400))
+      onAdded()
+    }
     setAdding(false)
   }
 

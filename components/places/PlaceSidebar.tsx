@@ -13,6 +13,7 @@ import {
 } from '@/components/ui/select'
 import { PlaceRow } from './PlaceRow'
 import { createPlace } from '@/actions/places'
+import { reportResult, settle } from '@/lib/notify'
 import { PLACE_TYPES } from '@/lib/places.config'
 import { cn } from '@/lib/utils'
 import type { PlaceType } from '@/types/database'
@@ -62,8 +63,8 @@ export function PlaceSidebar({
   async function handleAddPlace() {
     if (adding) return
     setAdding(true)
-    const created = await createPlace(projectId, `Place ${totalCount + 1}`)
-    if (!('error' in created)) {
+    const created = await settle(createPlace(projectId, `Place ${totalCount + 1}`))
+    if (reportResult(created, "Couldn't create the place.")) {
       onPlaceAdded(created)
     }
     setAdding(false)

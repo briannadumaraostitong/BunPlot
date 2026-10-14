@@ -42,7 +42,9 @@ export function StatusPicker({ statuses, projectId, value, onChange, onReorder }
   async function handleAddStatus() {
     if (adding) return
     setAdding(true)
-    await createStatus(projectId, `Status ${statuses.length + 1}`)
+    setError(null)
+    const result = await settle(createStatus(projectId, `Status ${statuses.length + 1}`))
+    if ('error' in result) setError(result.error)
     setAdding(false)
   }
 

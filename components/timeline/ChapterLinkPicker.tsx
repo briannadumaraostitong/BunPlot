@@ -6,6 +6,7 @@ import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover
 import { Input } from '@/components/ui/input'
 import { cn } from '@/lib/utils'
 import { getChapterLinks, addChapterLink, removeChapterLink } from '@/actions/chapters'
+import { reportResult, settle } from '@/lib/notify'
 import type { Chapter } from '@/types/database'
 import type { ChapterLinkWithSource } from '@/actions/chapters'
 
@@ -38,8 +39,8 @@ export function ChapterLinkPicker({ chapter, allChapters, projectId }: ChapterLi
 
   async function handleAdd(source: Chapter) {
     setSearch('')
-    const created = await addChapterLink(chapter.id, source.id, projectId)
-    if ('error' in created) return
+    const created = await settle(addChapterLink(chapter.id, source.id, projectId))
+    if (!reportResult(created, "Couldn't link the chapter.")) return
     setLinks((prev) => [...prev, { id: created.id, continues_from: source }])
   }
 

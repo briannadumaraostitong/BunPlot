@@ -5,6 +5,7 @@ import { Plus, ChevronLeft, ChevronRight, Loader2 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { CharacterRow } from './CharacterRow'
 import { createCharacter } from '@/actions/characters'
+import { reportResult, settle } from '@/lib/notify'
 import { cn } from '@/lib/utils'
 import type { Character } from '@/types/database'
 
@@ -46,8 +47,8 @@ export function CharacterSidebar({
   async function handleAddCharacter() {
     if (adding) return
     setAdding(true)
-    const created = await createCharacter(projectId, `Character ${characters.length + 1}`)
-    if (!('error' in created)) {
+    const created = await settle(createCharacter(projectId, `Character ${characters.length + 1}`))
+    if (reportResult(created, "Couldn't create the character.")) {
       onCharacterAdded(created)
     }
     setAdding(false)
