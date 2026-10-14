@@ -151,6 +151,21 @@ export async function duplicateEvent(eventId: string, projectId: string) {
     duration: number
   }
 
+  // The copy goes directly after the original: halfway to the next event in
+  // the same cell (position is a FLOAT), or one past the original if it's
+  // last. Reusing orig.position would tie with the original.
+  let nextInCell = supabase
+    .from('events')
+    .select('position')
+    .eq('layer_id', orig.layer_id)
+    .gt('position', orig.position)
+    .order('position', { ascending: true })
+    .limit(1)
+  nextInCell = orig.chapter_id ? nextInCell.eq('chapter_id', orig.chapter_id) : nextInCell.is('chapter_id', null)
+  const { data: nextRows } = await nextInCell
+  const next = (nextRows ?? [])[0] as { position: number } | undefined
+  const copyPosition = next ? (orig.position + next.position) / 2 : orig.position + 1
+
   const { data, error } = await supabase
     .from('events')
     .insert({
@@ -162,7 +177,7 @@ export async function duplicateEvent(eventId: string, projectId: string) {
       notes: orig.notes,
       status_id: orig.status_id,
       color: orig.color,
-      position: orig.position,
+      position: copyPosition,
       duration: orig.duration,
     } as never)
     .select()

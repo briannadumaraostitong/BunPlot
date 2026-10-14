@@ -9,6 +9,7 @@ import { playClickSound } from '@/lib/sound'
 import { createEvent } from '@/actions/events'
 import { createChapter } from '@/actions/chapters'
 import { reportResult, settle } from '@/lib/notify'
+import { byPosition } from '@/lib/eventOrder'
 import type { Layer, Event, Chapter } from '@/types/database'
 
 interface TimelineFlowViewProps {
@@ -58,7 +59,7 @@ export function TimelineFlowView({
       const posA = a.chapter_id ? (chapterPositionById.get(a.chapter_id) ?? Infinity) : Infinity
       const posB = b.chapter_id ? (chapterPositionById.get(b.chapter_id) ?? Infinity) : Infinity
       if (posA !== posB) return posA - posB
-      return a.position - b.position
+      return byPosition(a, b)
     })
 
   async function handleAddEvent() {

@@ -2,6 +2,7 @@
 
 import { useEffect, useState, useCallback } from 'react'
 import { createClient } from '@/lib/supabase/client'
+import { byPosition } from '@/lib/eventOrder'
 import type { Event } from '@/types/database'
 
 export function useEvents(projectId: string, initial: Event[] = []) {
@@ -14,6 +15,7 @@ export function useEvents(projectId: string, initial: Event[] = []) {
       .select('*')
       .eq('project_id', projectId)
       .order('position')
+      .order('created_at')
     if (data) setEvents(data as Event[])
   }, [projectId, supabase])
 
@@ -60,7 +62,7 @@ export function useEvents(projectId: string, initial: Event[] = []) {
   function eventsForLayer(layerId: string) {
     return events
       .filter((e) => e.layer_id === layerId)
-      .sort((a, b) => a.position - b.position)
+      .sort(byPosition)
   }
 
   return { events, setEvents, refresh, moveEventToCell, eventsForLayer }

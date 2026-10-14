@@ -5,6 +5,7 @@
 import { tiptapToBlocks, type BlockNode } from './outlineIR'
 import { htmlToParagraphs } from './htmlToText'
 import { PLACE_TYPE_LABELS } from '@/lib/places.config'
+import { byPosition } from '@/lib/eventOrder'
 import type {
   Chapter,
   Character,
@@ -235,7 +236,12 @@ export function buildStoryBible(input: StoryBibleInput): StoryBible {
       notes: htmlToParagraphs(e.notes),
     })
 
-    const sortedEvents = [...input.events].sort((a, b) => a.position - b.position)
+    // Same order as the Grid: layers in their row order, then each layer's
+    // events in cell order. Event positions only mean something within one
+    // layer's cell, so sorting a chapter by position alone interleaves layers.
+    const layerPositionById = new Map(input.layers.map((l) => [l.id, l.position]))
+    const layerRank = (e: Event) => layerPositionById.get(e.layer_id) ?? Number.MAX_SAFE_INTEGER
+    const sortedEvents = [...input.events].sort((a, b) => layerRank(a) - layerRank(b) || byPosition(a, b))
     const chapterIds = new Set(sortedChapters.map((ch) => ch.id))
 
     timeline = sortedChapters

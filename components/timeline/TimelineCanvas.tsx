@@ -24,6 +24,7 @@ import { cn } from '@/lib/utils'
 import { reportResult, settle } from '@/lib/notify'
 import { useLayers } from '@/hooks/useLayers'
 import { useEvents } from '@/hooks/useEvents'
+import { byPosition } from '@/lib/eventOrder'
 import { useChapters } from '@/hooks/useChapters'
 import { useStatuses } from '@/hooks/useStatuses'
 import { createEvent, reorderEvents, moveEventToChapter } from '@/actions/events'
@@ -245,12 +246,20 @@ export function TimelineCanvas({
   ])
 
   async function handleChapterCellClick(layer: Layer, chapter: Chapter) {
+    // Append to the end of the cell, as TimelineFlowView's Add event does:
+    // createEvent takes position literally, so 0 would tie with the cell's
+    // first event and the order between them would be undefined.
+    const cellPositions = events
+      .filter((e) => e.layer_id === layer.id && e.chapter_id === chapter.id)
+      .map((e) => e.position)
+    const nextPosition = cellPositions.length > 0 ? Math.max(...cellPositions) + 1 : 0
+
     const created = await settle(createEvent({
       project_id: project.id,
       layer_id: layer.id,
       chapter_id: chapter.id,
       title: 'New Event',
-      position: 0,
+      position: nextPosition,
       duration: 1,
     }))
     if (!reportResult(created, "Couldn't create the event.")) return
@@ -260,7 +269,7 @@ export function TimelineCanvas({
   function idsInCell(layerId: string, chapterId: string, excludeId?: string) {
     return events
       .filter((e) => e.layer_id === layerId && e.chapter_id === chapterId && e.id !== excludeId)
-      .sort((a, b) => a.position - b.position)
+      .sort(byPosition)
       .map((e) => e.id)
   }
 

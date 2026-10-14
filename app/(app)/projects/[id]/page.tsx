@@ -44,6 +44,8 @@ export default async function ProjectPage({ params }: Props) {
     .select('*')
     .eq('project_id', id)
     .order('position')
+    // Tiebreaker so events sharing a position keep the same order on every load.
+    .order('created_at')
 
   const { data: chaptersData } = await supabase
     .from('chapters')
