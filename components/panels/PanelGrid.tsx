@@ -9,6 +9,7 @@ import { PanelCard } from './PanelCard'
 import { SketchModal } from './sketch/SketchModal'
 import { usePanels } from '@/hooks/usePanels'
 import { reorderPanels } from '@/actions/panels'
+import { reportResult, settle } from '@/lib/notify'
 import type { PanelWithCover } from '@/actions/panels'
 
 interface PanelGridProps {
@@ -44,10 +45,8 @@ export function PanelGrid({ projectId, chapterId }: PanelGridProps) {
     const newOrder = [...panels]
     const [moved] = newOrder.splice(from, 1)
     newOrder.splice(to, 0, moved)
-    await reorderPanels(
-      projectId,
-      newOrder.map((p) => p.id)
-    )
+    const result = await settle(reorderPanels(projectId, newOrder.map((p) => p.id)))
+    reportResult(result, "Couldn't save the panel order.", { id: 'panel-order' })
   }
 
   if (loading) {

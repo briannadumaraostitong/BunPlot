@@ -18,6 +18,13 @@ const CANVAS_HEIGHT = 1400
 
 const SYMMETRIC_TYPES = new Set(['sibling', 'spouse', 'friend', 'enemy', 'rival', 'other'])
 
+// Shared by drag saves and adds, so a failing drag session shows one toast.
+const TREE_LAYOUT_TOAST_ID = 'tree-layout'
+
+function saveMemberPosition(treeId: string, characterId: string, x: number, y: number) {
+  return settle(saveFamilyTreeMemberPosition(treeId, characterId, x, y))
+}
+
 export interface RelationshipCanvasHandle {
   // Mobile fallback for CharacterRow's native-HTML5-drag add-to-canvas, which
   // doesn't fire on touch — places the character centered in whatever's
@@ -71,6 +78,7 @@ export const RelationshipCanvas = forwardRef<RelationshipCanvasHandle, Relations
     }, [treeId])
 
     function addOrUpdateMember(characterId: string, x: number, y: number) {
+      const isNew = !members.some((m) => m.character_id === characterId)
       setMembers((prev) => {
         const exists = prev.some((m) => m.character_id === characterId)
         if (exists) return prev.map((m) => (m.character_id === characterId ? { ...m, x, y } : m))
@@ -79,7 +87,13 @@ export const RelationshipCanvas = forwardRef<RelationshipCanvasHandle, Relations
           { tree_id: treeId, character_id: characterId, x, y, created_at: new Date().toISOString() },
         ]
       })
-      saveFamilyTreeMemberPosition(treeId, characterId, x, y)
+      saveMemberPosition(treeId, characterId, x, y).then((result) => {
+        const message = isNew ? "Couldn't add the character to the tree." : "Couldn't save the family tree layout."
+        if (reportResult(result, message, { id: TREE_LAYOUT_TOAST_ID }) || !isNew) return
+        // A new member that never saved: take it back off the canvas. A moved
+        // one keeps its new spot (toast only, like other drags).
+        setMembers((prev) => prev.filter((m) => m.character_id !== characterId))
+      })
     }
 
     useImperativeHandle(
@@ -111,7 +125,9 @@ export const RelationshipCanvas = forwardRef<RelationshipCanvasHandle, Relations
 
     function handleDragEnd(characterId: string, x: number, y: number) {
       setMembers((prev) => prev.map((m) => (m.character_id === characterId ? { ...m, x, y } : m)))
-      saveFamilyTreeMemberPosition(treeId, characterId, x, y)
+      saveMemberPosition(treeId, characterId, x, y).then((result) =>
+        reportResult(result, "Couldn't save the family tree layout.", { id: TREE_LAYOUT_TOAST_ID })
+      )
     }
 
     async function handleRemoveMember(characterId: string) {

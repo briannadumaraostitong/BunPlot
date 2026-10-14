@@ -61,7 +61,9 @@ export function StatusPicker({ statuses, projectId, value, onChange, onReorder }
     const newOrder = [...statuses]
     const [moved] = newOrder.splice(from, 1)
     newOrder.splice(to, 0, moved)
-    await reorderStatuses(projectId, newOrder.map((s) => s.id))
+    setError(null)
+    const result = await settle(reorderStatuses(projectId, newOrder.map((s) => s.id)))
+    if ('error' in result) setError(result.error)
   }
 
   function handleSelect(status: Status) {

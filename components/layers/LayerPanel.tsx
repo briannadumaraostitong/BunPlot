@@ -72,10 +72,8 @@ export function LayerPanel({
     const newOrder = [...layers]
     const [moved] = newOrder.splice(from, 1)
     newOrder.splice(to, 0, moved)
-    await reorderLayers(
-      project.id,
-      newOrder.map((l) => l.id)
-    )
+    const result = await settle(reorderLayers(project.id, newOrder.map((l) => l.id)))
+    reportResult(result, "Couldn't save the layer order.", { id: 'layer-order' })
   }
 
   return (

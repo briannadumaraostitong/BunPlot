@@ -63,7 +63,7 @@ export async function updateLayer(
 
 export async function reorderLayers(projectId: string, orderedIds: string[]) {
   const supabase = await createClient()
-  await Promise.all(
+  const results = await Promise.all(
     orderedIds.map((id, index) =>
       supabase
         .from('layers')
@@ -72,6 +72,10 @@ export async function reorderLayers(projectId: string, orderedIds: string[]) {
     )
   )
   revalidatePath(`/projects/${projectId}`)
+  // Each row is its own update; report the first failure instead of
+  // claiming the whole order saved.
+  const failed = results.find((r) => r.error)
+  if (failed?.error) return { error: failed.error.message }
   return { success: true }
 }
 

@@ -131,7 +131,7 @@ export async function deletePanel(id: string, projectId: string): Promise<Action
 
 export async function reorderPanels(projectId: string, orderedIds: string[]): Promise<ActionResult> {
   const supabase = await createClient()
-  await Promise.all(
+  const results = await Promise.all(
     orderedIds.map((id, index) =>
       supabase
         .from('panels')
@@ -140,6 +140,10 @@ export async function reorderPanels(projectId: string, orderedIds: string[]): Pr
     )
   )
   revalidatePath(`/projects/${projectId}`)
+  // Each row is its own update; report the first failure instead of
+  // claiming the whole order saved.
+  const failed = results.find((r) => r.error)
+  if (failed?.error) return { error: failed.error.message }
   return { success: true }
 }
 

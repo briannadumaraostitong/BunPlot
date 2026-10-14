@@ -33,6 +33,10 @@ import type { Project, Layer, Event, Chapter, Character, Status } from '@/types/
 import type { PlaceWithCover, EventPlaceLink } from '@/actions/places'
 import type { EventCharacterLink } from '@/actions/characters'
 
+// One toast for every failed drag in the grid, so repeated drags while
+// offline don't stack.
+const EVENT_ORDER_TOAST_ID = 'event-order'
+
 // Mirrors stripHtml in LayerRow.tsx/ProjectCard.tsx — events store description
 // as an HTML string, so search needs the same tag-stripping before matching.
 function stripHtml(html: string) {
@@ -287,13 +291,19 @@ export function TimelineCanvas({
     moveEventToCell(active.id as string, targetChapterId, targetLayerId, targetIds)
 
     if (!sameCell) {
-      await moveEventToChapter(active.id as string, project.id, targetChapterId, targetLayerId)
+      const moved = await settle(moveEventToChapter(active.id as string, project.id, targetChapterId, targetLayerId))
+      // The event didn't move, so there's no new order to save in either cell.
+      if (!reportResult(moved, "Couldn't move the event.", { id: EVENT_ORDER_TOAST_ID })) return
     }
-    await reorderEvents(project.id, targetIds)
+    const reordered = await settle(reorderEvents(project.id, targetIds))
+    reportResult(reordered, "Couldn't save the event order.", { id: EVENT_ORDER_TOAST_ID })
 
     if (!sameCell) {
       const sourceIds = idsInCell(dragged.layer_id, dragged.chapter_id!, active.id as string)
-      if (sourceIds.length > 0) await reorderEvents(project.id, sourceIds)
+      if (sourceIds.length > 0) {
+        const source = await settle(reorderEvents(project.id, sourceIds))
+        reportResult(source, "Couldn't save the event order.", { id: EVENT_ORDER_TOAST_ID })
+      }
     }
   }
 

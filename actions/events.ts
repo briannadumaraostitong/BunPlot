@@ -92,7 +92,7 @@ export async function deleteEvent(id: string, projectId: string) {
 
 export async function reorderEvents(projectId: string, orderedIds: string[]) {
   const supabase = await createClient()
-  await Promise.all(
+  const results = await Promise.all(
     orderedIds.map((id, index) =>
       supabase
         .from('events')
@@ -101,6 +101,10 @@ export async function reorderEvents(projectId: string, orderedIds: string[]) {
     )
   )
   revalidatePath(`/projects/${projectId}`)
+  // Each row is its own update; report the first failure instead of
+  // claiming the whole order saved.
+  const failed = results.find((r) => r.error)
+  if (failed?.error) return { error: failed.error.message }
   return { success: true }
 }
 

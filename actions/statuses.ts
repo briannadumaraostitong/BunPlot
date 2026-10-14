@@ -75,9 +75,9 @@ export async function updateStatus(
 export async function reorderStatuses(
   projectId: string,
   orderedIds: string[]
-): Promise<{ success: true }> {
+): Promise<{ error: string } | { success: true }> {
   const supabase = await createClient()
-  await Promise.all(
+  const results = await Promise.all(
     orderedIds.map((id, index) =>
       supabase
         .from('statuses')
@@ -86,6 +86,10 @@ export async function reorderStatuses(
     )
   )
   revalidatePath(`/projects/${projectId}`)
+  // Each row is its own update; report the first failure instead of
+  // claiming the whole order saved.
+  const failed = results.find((r) => r.error)
+  if (failed?.error) return { error: failed.error.message }
   return { success: true }
 }
 
