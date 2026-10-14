@@ -21,8 +21,8 @@ export function PlaceRow({ place, selected, onSelect, onColorChanged, onDeleted 
   const colorInputRef = useRef<HTMLInputElement>(null)
 
   async function handleColorChange(color: string) {
-    await updatePlace(place.id, place.project_id, { color })
-    onColorChanged(color)
+    const result = await settle(updatePlace(place.id, place.project_id, { color }))
+    if (reportResult(result, "Couldn't change the place color.")) onColorChanged(color)
   }
 
   async function handleDelete(e: React.MouseEvent) {

@@ -5,7 +5,7 @@ import { Trash2, Loader2, Plus } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { playClickSound } from '@/lib/sound'
 import { deleteCharacter, updateCharacter } from '@/actions/characters'
-import { settle } from '@/lib/notify'
+import { reportResult, settle } from '@/lib/notify'
 import type { Character } from '@/types/database'
 
 export function getInitials(name: string) {
@@ -39,8 +39,8 @@ export function CharacterRow({
   const colorInputRef = useRef<HTMLInputElement>(null)
 
   async function handleColorChange(color: string) {
-    await updateCharacter(character.id, character.project_id, { color })
-    onColorChanged(color)
+    const result = await settle(updateCharacter(character.id, character.project_id, { color }))
+    if (reportResult(result, "Couldn't change the character color.")) onColorChanged(color)
   }
 
   async function handleDelete(e: React.MouseEvent) {

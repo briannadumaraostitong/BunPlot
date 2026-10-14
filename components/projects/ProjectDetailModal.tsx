@@ -94,12 +94,14 @@ export function ProjectDetailModal({ project, folders, stats, open, onClose, onU
   }
 
   async function handleArchive() {
-    await archiveProject(project.id)
+    const result = await settle(archiveProject(project.id))
+    reportResult(result, "Couldn't archive the project.")
     router.refresh()
   }
 
   async function handleUnarchive() {
-    await unarchiveProject(project.id)
+    const result = await settle(unarchiveProject(project.id))
+    reportResult(result, "Couldn't unarchive the project.")
     router.refresh()
   }
 
@@ -110,7 +112,8 @@ export function ProjectDetailModal({ project, folders, stats, open, onClose, onU
       return
     }
     onUpdated({ title: title.trim() })
-    await updateProject(project.id, { title: title.trim() })
+    const result = await settle(updateProject(project.id, { title: title.trim() }))
+    reportResult(result, "Couldn't rename the project.")
     setEditingTitle(false)
   }
 
@@ -123,7 +126,8 @@ export function ProjectDetailModal({ project, folders, stats, open, onClose, onU
   }
 
   async function handleMoveToFolder(folderId: string | null) {
-    await moveProjectToFolder(project.id, folderId)
+    const result = await settle(moveProjectToFolder(project.id, folderId))
+    reportResult(result, "Couldn't move the project.")
     router.refresh()
   }
 
@@ -131,7 +135,8 @@ export function ProjectDetailModal({ project, folders, stats, open, onClose, onU
     if (description === (project.description ?? '')) return
     const next = description.trim() || null
     onUpdated({ description: next })
-    await updateProject(project.id, { description: next })
+    const result = await settle(updateProject(project.id, { description: next }))
+    reportResult(result, "Couldn't save the description.")
   }
 
   function handleOpenTimeline() {
@@ -358,8 +363,15 @@ function ProjectCoverImage({
       if (signError || !data) throw signError ?? new Error('Failed to create signed URL')
 
       const previousPath = imagePath
+      // Row first: only once it points at the new file is it safe to show it
+      // and delete the old one. On failure the row still has the old cover,
+      // so drop the new upload instead.
+      const result = await settle(updateProject(projectId, { cover_image_url: path }))
+      if ('error' in result) {
+        supabase.storage.from('attachments').remove([path]).catch(() => {})
+        throw new Error(result.error)
+      }
       onUpdated({ imagePath: path, url: data.signedUrl })
-      await updateProject(projectId, { cover_image_url: path })
 
       if (previousPath) {
         supabase.storage.from('attachments').remove([previousPath]).catch(() => {})
@@ -376,8 +388,14 @@ function ProjectCoverImage({
     e.stopPropagation()
     if (!imagePath) return
     const path = imagePath
+    setError(null)
+    // Clear the row first; the file is only deleted once nothing points at it.
+    const result = await settle(updateProject(projectId, { cover_image_url: null }))
+    if ('error' in result) {
+      setError('Failed to remove image')
+      return
+    }
     onUpdated({ imagePath: null, url: null })
-    await updateProject(projectId, { cover_image_url: null })
     createClient().storage.from('attachments').remove([path]).catch(() => {})
   }
 

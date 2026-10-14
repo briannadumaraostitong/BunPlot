@@ -320,25 +320,43 @@ function EventForm({
   async function handleAddPlace(place: Place) {
     setPlaces((prev) => [...prev, place]);
     onPlaceLinked?.(event.id, place.id);
-    await linkEventToPlace(event.id, place.id, event.project_id);
+    const result = await settle(linkEventToPlace(event.id, place.id, event.project_id));
+    if (!reportResult(result, "Couldn't add the place to this event.")) {
+      setPlaces((prev) => prev.filter((p) => p.id !== place.id));
+      onPlaceUnlinked?.(event.id, place.id);
+    }
   }
 
   async function handleRemovePlace(placeId: string) {
+    const removed = places.find((p) => p.id === placeId);
     setPlaces((prev) => prev.filter((p) => p.id !== placeId));
     onPlaceUnlinked?.(event.id, placeId);
-    await unlinkEventFromPlace(event.id, placeId, event.project_id);
+    const result = await settle(unlinkEventFromPlace(event.id, placeId, event.project_id));
+    if (!reportResult(result, "Couldn't remove the place from this event.") && removed) {
+      setPlaces((prev) => [...prev, removed]);
+      onPlaceLinked?.(event.id, placeId);
+    }
   }
 
   async function handleAddCharacter(character: Character) {
     setCharacters((prev) => [...prev, character]);
     onCharacterLinked?.(event.id, character.id);
-    await linkEventToCharacter(event.id, character.id, event.project_id);
+    const result = await settle(linkEventToCharacter(event.id, character.id, event.project_id));
+    if (!reportResult(result, "Couldn't add the character to this event.")) {
+      setCharacters((prev) => prev.filter((c) => c.id !== character.id));
+      onCharacterUnlinked?.(event.id, character.id);
+    }
   }
 
   async function handleRemoveCharacter(characterId: string) {
+    const removed = characters.find((c) => c.id === characterId);
     setCharacters((prev) => prev.filter((c) => c.id !== characterId));
     onCharacterUnlinked?.(event.id, characterId);
-    await unlinkEventFromCharacter(event.id, characterId, event.project_id);
+    const result = await settle(unlinkEventFromCharacter(event.id, characterId, event.project_id));
+    if (!reportResult(result, "Couldn't remove the character from this event.") && removed) {
+      setCharacters((prev) => [...prev, removed]);
+      onCharacterLinked?.(event.id, characterId);
+    }
   }
 
   async function handleSave() {

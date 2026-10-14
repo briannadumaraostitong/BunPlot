@@ -100,14 +100,14 @@ export function LayerRow({
       setEditing(false)
       return
     }
-    await updateLayer(layer.id, projectId, { name: name.trim() })
-    onRenamed?.(name.trim())
+    const result = await settle(updateLayer(layer.id, projectId, { name: name.trim() }))
+    if (reportResult(result, "Couldn't rename the layer.")) onRenamed?.(name.trim())
     setEditing(false)
   }
 
   async function handleColorChange(color: string) {
-    await updateLayer(layer.id, projectId, { color })
-    onColorChanged?.(color)
+    const result = await settle(updateLayer(layer.id, projectId, { color }))
+    if (reportResult(result, "Couldn't change the layer color.")) onColorChanged?.(color)
   }
 
   function handleKeyDown(e: React.KeyboardEvent) {

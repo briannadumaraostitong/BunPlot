@@ -114,9 +114,13 @@ export const RelationshipCanvas = forwardRef<RelationshipCanvasHandle, Relations
       saveFamilyTreeMemberPosition(treeId, characterId, x, y)
     }
 
-    function handleRemoveMember(characterId: string) {
+    async function handleRemoveMember(characterId: string) {
+      const removed = members.find((m) => m.character_id === characterId)
       setMembers((prev) => prev.filter((m) => m.character_id !== characterId))
-      removeFamilyTreeMember(treeId, characterId)
+      const result = await settle(removeFamilyTreeMember(treeId, characterId))
+      if (!reportResult(result, "Couldn't remove the character from the tree.") && removed) {
+        setMembers((prev) => [...prev, removed])
+      }
     }
 
     function handleDrop(e: React.DragEvent) {

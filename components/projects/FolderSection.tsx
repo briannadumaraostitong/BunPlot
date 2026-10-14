@@ -35,7 +35,8 @@ export function FolderSection({ folder, projects, allFolders, statsByProject }: 
   async function handleToggleCollapsed() {
     const next = !collapsed
     setCollapsed(next)
-    await updateFolder(folder.id, { collapsed: next })
+    const result = await settle(updateFolder(folder.id, { collapsed: next }))
+    reportResult(result, next ? "Couldn't collapse the folder." : "Couldn't expand the folder.")
     router.refresh()
   }
 
@@ -45,7 +46,8 @@ export function FolderSection({ folder, projects, allFolders, statsByProject }: 
       setEditing(false)
       return
     }
-    await updateFolder(folder.id, { name: name.trim() })
+    const result = await settle(updateFolder(folder.id, { name: name.trim() }))
+    reportResult(result, "Couldn't rename the folder.")
     setEditing(false)
     router.refresh()
   }

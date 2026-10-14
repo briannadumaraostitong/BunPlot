@@ -15,7 +15,7 @@ import {
 import { createClient } from '@/lib/supabase/client'
 import { updatePlace } from '@/actions/places'
 import { savePlaceFields } from './pendingPlaceSaves'
-import { dismissError, reportResult } from '@/lib/notify'
+import { dismissError, reportResult, settle } from '@/lib/notify'
 import { PLACE_TYPES } from '@/lib/places.config'
 import { PlaceRichTextEditor } from './PlaceRichTextEditor'
 import type { Chapter, Event, PlaceType } from '@/types/database'
@@ -272,8 +272,13 @@ function CoverImageField({
       if (signError || !data) throw signError ?? new Error('Failed to create signed URL')
 
       const previousPath = place.image_url
+      // Row first, as in ProjectDetailModal's cover field.
+      const result = await settle(updatePlace(place.id, place.project_id, { image_url: path }))
+      if ('error' in result) {
+        supabase.storage.from('attachments').remove([path]).catch(() => {})
+        throw new Error(result.error)
+      }
       onUpdated(place.id, { image_url: path, cover_url: data.signedUrl })
-      await updatePlace(place.id, place.project_id, { image_url: path })
 
       if (previousPath) {
         supabase.storage.from('attachments').remove([previousPath]).catch(() => {})
@@ -290,8 +295,13 @@ function CoverImageField({
     e.stopPropagation()
     if (!place.image_url) return
     const path = place.image_url
+    setError(null)
+    const result = await settle(updatePlace(place.id, place.project_id, { image_url: null }))
+    if ('error' in result) {
+      setError('Failed to remove image')
+      return
+    }
     onUpdated(place.id, { image_url: null, cover_url: null })
-    await updatePlace(place.id, place.project_id, { image_url: null })
     createClient().storage.from('attachments').remove([path]).catch(() => {})
   }
 

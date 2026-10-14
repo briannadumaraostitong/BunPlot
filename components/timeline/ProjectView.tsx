@@ -11,6 +11,7 @@ import { CharactersPanel } from '@/components/characters/CharactersPanel'
 import { PlacesPanel } from '@/components/places/PlacesPanel'
 import { PanelsBoard } from '@/components/panels/PanelsBoard'
 import { updateProject } from '@/actions/projects'
+import { reportResult, settle } from '@/lib/notify'
 import type { Project, Layer, Event, Chapter, Status } from '@/types/database'
 
 interface ProjectViewProps {
@@ -54,7 +55,8 @@ export function ProjectView({ project, initialLayers, initialEvents, initialChap
       setEditingTitle(false)
       return
     }
-    await updateProject(project.id, { title: title.trim() })
+    const result = await settle(updateProject(project.id, { title: title.trim() }))
+    reportResult(result, "Couldn't rename the project.")
     setTitle(title.trim())
     setEditingTitle(false)
   }

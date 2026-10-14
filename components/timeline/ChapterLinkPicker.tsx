@@ -45,8 +45,12 @@ export function ChapterLinkPicker({ chapter, allChapters, projectId }: ChapterLi
   }
 
   async function handleRemove(linkId: string) {
+    const removed = links.find((l) => l.id === linkId)
     setLinks((prev) => prev.filter((l) => l.id !== linkId))
-    await removeChapterLink(linkId, projectId)
+    const result = await settle(removeChapterLink(linkId, projectId))
+    if (!reportResult(result, "Couldn't unlink the chapter.") && removed) {
+      setLinks((prev) => [...prev, removed])
+    }
   }
 
   const linkedIds = new Set(links.map((l) => l.continues_from.id))

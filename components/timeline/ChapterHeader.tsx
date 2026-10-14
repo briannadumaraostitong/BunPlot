@@ -139,9 +139,8 @@ function ChapterVisibilityPopover({
   async function handleToggle(chapter: Chapter) {
     const next = !chapter.visible
     onUpdated(chapter.id, { visible: next })
-    const result = await updateChapter(chapter.id, projectId, { visible: next })
-    if ('error' in result) {
-      console.error('Chapter visibility update error:', result.error)
+    const result = await settle(updateChapter(chapter.id, projectId, { visible: next }))
+    if (!reportResult(result, next ? "Couldn't show the chapter." : "Couldn't hide the chapter.")) {
       // Snap the optimistic change back so the UI doesn't keep claiming a
       // write that never actually landed.
       onUpdated(chapter.id, { visible: chapter.visible })
@@ -284,8 +283,8 @@ function ChapterCell({
       setEditing(false)
       return
     }
-    await updateChapter(chapter.id, projectId, { title: title.trim() })
-    onRenamed(chapter.id, title.trim())
+    const result = await settle(updateChapter(chapter.id, projectId, { title: title.trim() }))
+    if (reportResult(result, "Couldn't rename the chapter.")) onRenamed(chapter.id, title.trim())
     setEditing(false)
   }
 
@@ -306,9 +305,8 @@ function ChapterCell({
   async function handleHide(e: React.MouseEvent) {
     e.stopPropagation()
     onUpdated(chapter.id, { visible: false })
-    const result = await updateChapter(chapter.id, projectId, { visible: false })
-    if ('error' in result) {
-      console.error('Chapter visibility update error:', result.error)
+    const result = await settle(updateChapter(chapter.id, projectId, { visible: false }))
+    if (!reportResult(result, "Couldn't hide the chapter.")) {
       onUpdated(chapter.id, { visible: true })
     }
   }

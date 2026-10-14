@@ -6,6 +6,7 @@ import { cn } from '@/lib/utils'
 import { Button } from '@/components/ui/button'
 import { Textarea } from '@/components/ui/textarea'
 import { updateCharacter } from '@/actions/characters'
+import { reportResult, settle } from '@/lib/notify'
 import { getInitials } from './CharacterRow'
 import type { Character, CharacterRelationship } from '@/types/database'
 
@@ -118,12 +119,14 @@ function CharacterDetailContent({
     updates: Partial<{ name: string; role: string | null; description: string | null }>
   ) {
     onUpdated(character.id, updates)
-    await updateCharacter(character.id, character.project_id, updates)
+    const result = await settle(updateCharacter(character.id, character.project_id, updates))
+    reportResult(result, "Couldn't save the character.")
   }
 
   async function handleColorChange(color: string) {
     onUpdated(character.id, { color })
-    await updateCharacter(character.id, character.project_id, { color })
+    const result = await settle(updateCharacter(character.id, character.project_id, { color }))
+    reportResult(result, "Couldn't change the character color.")
   }
 
   const characterRelationships = relationships.filter(

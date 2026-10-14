@@ -168,7 +168,8 @@ function StatusRow({
       setEditing(false)
       return
     }
-    await updateStatus(status.id, projectId, { name: name.trim() })
+    const result = await settle(updateStatus(status.id, projectId, { name: name.trim() }))
+    if ('error' in result) onError(result.error)
     setEditing(false)
   }
 
@@ -182,7 +183,9 @@ function StatusRow({
   function handleColorInput(color: string) {
     if (colorDebounceRef.current) clearTimeout(colorDebounceRef.current)
     colorDebounceRef.current = setTimeout(() => {
-      updateStatus(status.id, projectId, { color })
+      settle(updateStatus(status.id, projectId, { color })).then((result) => {
+        if ('error' in result) onError(result.error)
+      })
     }, 200)
   }
 

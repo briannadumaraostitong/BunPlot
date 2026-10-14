@@ -134,9 +134,10 @@ export function CharactersPanel({ projectId, initialSelectedCharacterId }: Chara
     setActiveTreeId(created.id)
   }
 
-  function handleRenameTree(id: string, name: string) {
+  async function handleRenameTree(id: string, name: string) {
     setTrees((prev) => prev.map((t) => (t.id === id ? { ...t, name } : t)))
-    renameFamilyTree(id, projectId, name)
+    const result = await settle(renameFamilyTree(id, projectId, name))
+    reportResult(result, "Couldn't rename the family tree.")
   }
 
   async function handleDeleteTree(id: string) {
