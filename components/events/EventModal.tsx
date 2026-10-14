@@ -285,7 +285,9 @@ function EventForm({
   // hold up the core linked data from appearing.
   useEffect(() => {
     let cancelled = false;
-    setLinkedDataLoading(true);
+    // No loading reset here: the content is keyed by event.id (see the
+    // EventModal wrapper), so this only runs on mount, when
+    // linkedDataLoading already starts as true.
     (async () => {
       const [linkedPlaces, linkedCharacters] = await Promise.all([
         getPlacesForEvent(event.id),
@@ -303,10 +305,9 @@ function EventForm({
 
   useEffect(() => {
     const chapterId = event.chapter_id;
-    if (!chapterId) {
-      setSuggestedCharacters([]);
-      return;
-    }
+    // No chapter means no suggestions; that's handled during render below,
+    // so there's nothing to clear here.
+    if (!chapterId) return;
     let cancelled = false;
     (async () => {
       const suggested = await getSuggestedCharactersForChapter(chapterId);
@@ -316,6 +317,8 @@ function EventForm({
       cancelled = true;
     };
   }, [event.chapter_id]);
+
+  const visibleSuggestions = event.chapter_id ? suggestedCharacters : [];
 
   async function handleAddPlace(place: Place) {
     setPlaces((prev) => [...prev, place]);
@@ -507,7 +510,7 @@ function EventForm({
           <EventCharactersField
             characters={characters}
             allCharacters={allCharacters}
-            suggestedCharacters={suggestedCharacters}
+            suggestedCharacters={visibleSuggestions}
             loading={linkedDataLoading}
             onAdd={handleAddCharacter}
             onRemove={handleRemoveCharacter}
