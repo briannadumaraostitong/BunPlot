@@ -37,7 +37,17 @@ import { SidebarRowSkeleton } from '@/components/ui/sidebar-skeleton-row'
 import { createClient } from '@/lib/supabase/client'
 import { getEditorJson } from '@/lib/editorJson'
 import { dismissError, reportResult, settle } from '@/lib/notify'
-import { backupBeforeSave, clearBackup, clearBackupAfterSave, newSessionId, pruneBackups } from '@/lib/editorBackup'
+import {
+  backupBeforeSave,
+  clearBackup,
+  clearBackupAfterSave,
+  newSessionId,
+  pruneBackups,
+  readBackup,
+  sameContent,
+  type EditorBackup,
+} from '@/lib/editorBackup'
+import { Button } from '@/components/ui/button'
 import {
   getOutlines,
   createOutline,
@@ -263,6 +273,27 @@ function OutlineDocumentEditor({ outline, onExport }: { outline: Outline; onExpo
   // build on, which moves forward with each successful save.
   const [sessionId] = useState(newSessionId)
   const baseUpdatedAt = useRef(outline.updated_at)
+  // A backup from an earlier session that differs from the saved content:
+  // edits that never reached the database, offered in the banner below.
+  // Read once on open. This editor only mounts on the client, after the
+  // outlines load, so reading localStorage here can't cause a hydration mismatch.
+  const [pendingBackup, setPendingBackup] = useState<EditorBackup | null>(() => {
+    const backup = readBackup('outline', outline.id)
+    return backup && !sameContent(backup.content, outline.content) ? backup : null
+  })
+  // Set when Restore is clicked after typing, to confirm inside the banner.
+  const [confirmingRestore, setConfirmingRestore] = useState(false)
+  // Whether the document was edited since it opened, so Restore can warn
+  // before replacing that.
+  const editedSinceOpen = useRef(false)
+
+  // A backup identical to the saved content holds nothing unsaved. Clear it,
+  // or it would block this session's own backups (backupBeforeSave keeps
+  // another session's backup when the content differs).
+  useEffect(() => {
+    const backup = readBackup('outline', outline.id)
+    if (backup && sameContent(backup.content, outline.content)) clearBackup('outline', outline.id)
+  }, [outline.id, outline.content])
   const [uploadingImage, setUploadingImage] = useState(false)
   const [imageError, setImageError] = useState<string | null>(null)
 
@@ -351,12 +382,37 @@ function OutlineDocumentEditor({ outline, onExport }: { outline: Outline; onExpo
       latestJson.current = JSON.stringify(editor!.getJSON())
       setWordCount(countWords(editor!.getText()))
     }
+    function handleEdit() {
+      editedSinceOpen.current = true
+      handleUpdate()
+    }
     handleUpdate() // set the initial count on mount, not just on the first edit
-    editor.on('update', handleUpdate)
+    editor.on('update', handleEdit)
     return () => {
-      editor.off('update', handleUpdate)
+      editor.off('update', handleEdit)
     }
   }, [editor])
+
+  function handleRestore() {
+    if (!editor || !pendingBackup) return
+    if (editedSinceOpen.current && !confirmingRestore) {
+      setConfirmingRestore(true)
+      return
+    }
+    editor.commands.setContent(pendingBackup.content, { emitUpdate: true })
+    // Cleared before saving, so this session's save backs up the restored
+    // content under its own id instead of being blocked by the old backup.
+    clearBackup('outline', outline.id)
+    setPendingBackup(null)
+    setConfirmingRestore(false)
+    void handleSave()
+  }
+
+  function handleDiscard() {
+    clearBackup('outline', outline.id)
+    setPendingBackup(null)
+    setConfirmingRestore(false)
+  }
 
   useEffect(() => {
     return () => {
@@ -580,6 +636,40 @@ function OutlineDocumentEditor({ outline, onExport }: { outline: Outline; onExpo
           </button>
         </div>
       </div>
+
+      {pendingBackup && (
+        <div className="flex shrink-0 flex-wrap items-center gap-2 border-b border-border bg-secondary/30 px-4 py-2 text-xs">
+          <p className="min-w-0 flex-1">
+            {confirmingRestore ? (
+              <>This replaces what you&apos;ve typed since opening this outline. Restore anyway?</>
+            ) : (
+              <>
+                Unsaved changes from{' '}
+                {new Date(pendingBackup.savedAt).toLocaleString(undefined, { dateStyle: 'medium', timeStyle: 'short' })}{' '}
+                were found.
+                {pendingBackup.baseUpdatedAt !== outline.updated_at && (
+                  <span className="text-muted-foreground">
+                    {' '}This outline has changed since. Restoring replaces the newer version.
+                  </span>
+                )}
+              </>
+            )}
+          </p>
+          <div className="flex shrink-0 items-center gap-1.5">
+            <Button size="sm" className="h-7" onClick={handleRestore}>
+              {confirmingRestore ? 'Restore anyway' : 'Restore'}
+            </Button>
+            <Button
+              size="sm"
+              variant="ghost"
+              className="h-7"
+              onClick={confirmingRestore ? () => setConfirmingRestore(false) : handleDiscard}
+            >
+              {confirmingRestore ? 'Cancel' : 'Discard'}
+            </Button>
+          </div>
+        </div>
+      )}
 
       <div className="flex-1 min-h-0 overflow-y-auto scrollbar-thin bg-secondary/10">
         <div className="mx-auto max-w-3xl bg-card px-16 py-12 min-h-full">
