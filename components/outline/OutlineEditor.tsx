@@ -37,6 +37,7 @@ import { SidebarRowSkeleton } from '@/components/ui/sidebar-skeleton-row'
 import { createClient } from '@/lib/supabase/client'
 import { getEditorJson } from '@/lib/editorJson'
 import { dismissError, reportResult, settle } from '@/lib/notify'
+import { backupBeforeSave, clearBackup, clearBackupAfterSave, newSessionId, pruneBackups } from '@/lib/editorBackup'
 import {
   getOutlines,
   createOutline,
@@ -79,12 +80,26 @@ function countWords(text: string) {
 // the component unmounting.
 const pendingOutlineSaves = new Map<string, Promise<unknown>>()
 
-function saveOutline(id: string, content: Record<string, unknown>) {
-  const promise = settle(updateOutline(id, content)).finally(() => {
-    if (pendingOutlineSaves.get(id) === promise) {
-      pendingOutlineSaves.delete(id)
-    }
-  })
+interface OutlineBackupContext {
+  projectId: string
+  sessionId: string
+  baseUpdatedAt: string
+}
+
+function saveOutline(id: string, content: Record<string, unknown>, backup: OutlineBackupContext) {
+  // Backed up before the request, so the edits survive even if it never
+  // finishes (tab closed, crash), not only if it fails.
+  backupBeforeSave({ kind: 'outline', id, content, ...backup })
+  const promise = settle(updateOutline(id, content))
+    .then((result) => {
+      if (!('error' in result)) clearBackupAfterSave('outline', id, backup.sessionId, content)
+      return result
+    })
+    .finally(() => {
+      if (pendingOutlineSaves.get(id) === promise) {
+        pendingOutlineSaves.delete(id)
+      }
+    })
   pendingOutlineSaves.set(id, promise)
   return promise
 }
@@ -113,6 +128,10 @@ export function OutlineEditor({ projectId }: OutlineEditorProps) {
       }
       const data = await getOutlines(projectId)
       if (cancelled) return
+      // Only after a successful load: getOutlines returns [] on error (and a
+      // successful load always has at least one outline), and pruning against
+      // an empty list would wipe this project's backups exactly when they're needed.
+      if (data.length > 0) pruneBackups('outline', projectId, data.map((o) => o.id))
       setOutlines(data)
       setActiveId(data[0]?.id ?? null)
       setLoading(false)
@@ -143,6 +162,7 @@ export function OutlineEditor({ projectId }: OutlineEditorProps) {
   async function handleDelete(id: string) {
     const result = await settle(deleteOutline(id, projectId))
     if (!reportResult(result, "Couldn't delete the outline.")) return
+    clearBackup('outline', id)
     const remaining = outlines.filter((o) => o.id !== id)
 
     if (remaining.length === 0) {
@@ -238,6 +258,11 @@ function OutlineDocumentEditor({ outline, onExport }: { outline: Outline; onExpo
   const lastSavedJson = useRef(initialSerialized)
   const latestJson = useRef(initialSerialized)
   const fileInputRef = useRef<HTMLInputElement>(null)
+  // This editor's identity for the backup rule (another tab's backup isn't
+  // cleared or overwritten by this one), and the saved version its edits
+  // build on, which moves forward with each successful save.
+  const [sessionId] = useState(newSessionId)
+  const baseUpdatedAt = useRef(outline.updated_at)
   const [uploadingImage, setUploadingImage] = useState(false)
   const [imageError, setImageError] = useState<string | null>(null)
 
@@ -290,17 +315,22 @@ function OutlineDocumentEditor({ outline, onExport }: { outline: Outline; onExpo
     }
 
     setSaveStatus('saving')
-    const result = await saveOutline(outline.id, json)
+    const result = await saveOutline(outline.id, json, {
+      projectId: outline.project_id,
+      sessionId,
+      baseUpdatedAt: baseUpdatedAt.current,
+    })
     // lastSavedJson stays as it was on failure, so the next interval or blur
     // tries again.
     if (!reportResult(result, "Couldn't save the outline. It will retry automatically.", { id: SAVE_TOAST_ID })) {
       setSaveStatus('error')
       return
     }
+    if (result.updated_at) baseUpdatedAt.current = result.updated_at
     lastSavedJson.current = serialized
     setSaveStatus('saved')
     dismissError(SAVE_TOAST_ID)
-  }, [editor, outline.id])
+  }, [editor, outline.id, outline.project_id, sessionId])
 
   useEffect(() => {
     const interval = setInterval(handleSave, AUTOSAVE_INTERVAL_MS)
@@ -335,12 +365,16 @@ function OutlineDocumentEditor({ outline, onExport }: { outline: Outline; onExpo
         // getEditorJson) — and safe to read after the editor is torn down.
         // The editor is gone, so there's no retry — the toast (from the root
         // Toaster) is the only sign the last edits didn't make it.
-        saveOutline(outline.id, JSON.parse(latestJson.current)).then((result) =>
+        saveOutline(outline.id, JSON.parse(latestJson.current), {
+          projectId: outline.project_id,
+          sessionId,
+          baseUpdatedAt: baseUpdatedAt.current,
+        }).then((result) =>
           reportResult(result, "Couldn't save the outline.", { id: SAVE_TOAST_ID })
         )
       }
     }
-  }, [outline.id])
+  }, [outline.id, outline.project_id, sessionId])
 
   async function handleImageUpload(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0]

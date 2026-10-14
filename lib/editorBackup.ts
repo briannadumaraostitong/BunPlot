@@ -81,6 +81,18 @@ export function writeBackup(backup: Omit<EditorBackup, 'savedAt'>): boolean {
   }
 }
 
+// Before a save attempt: back up the content about to be saved, unless
+// another session's backup with different content is already stored. That
+// one holds edits nobody has restored or discarded yet, so it's kept rather
+// than overwritten. Returns whether a backup was written.
+export function backupBeforeSave(backup: Omit<EditorBackup, 'savedAt'>): boolean {
+  const existing = readBackup(backup.kind, backup.id)
+  if (existing && existing.sessionId !== backup.sessionId && !sameContent(existing.content, backup.content)) {
+    return false
+  }
+  return writeBackup(backup)
+}
+
 export function readBackup(kind: BackupKind, id: string): EditorBackup | null {
   const storage = getStorage()
   if (!storage) return null

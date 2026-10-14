@@ -69,20 +69,24 @@ export async function createOutline(
 export async function updateOutline(
   id: string,
   content: Record<string, unknown>
-): Promise<{ error: string } | { success: true }> {
+): Promise<{ error: string } | { success: true; updated_at: string | null }> {
   const supabase = await createClient()
 
-  const { error } = await supabase
+  const { data, error } = await supabase
     .from('outlines')
     .update({ content } as never)
     .eq('id', id)
+    .select('updated_at')
 
   if (error) {
     console.error('Update outline error:', error)
     return { error: error.message }
   }
 
-  return { success: true }
+  // The new updated_at, so the editor knows which saved version its next
+  // edits build on. Null when no row was updated (e.g. deleted meanwhile).
+  const row = (data ?? [])[0] as { updated_at: string } | undefined
+  return { success: true, updated_at: row?.updated_at ?? null }
 }
 
 export async function renameOutline(
