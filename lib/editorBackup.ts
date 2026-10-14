@@ -1,0 +1,180 @@
+// Local backups of rich-text edits that haven't reached the database yet.
+// A backup is written before every save attempt and cleared once a save
+// succeeds, so one survives a failed save, a closed tab or a crash. Kinds are
+// listed so place descriptions and notes can use the same storage later.
+// Every storage access is wrapped: localStorage can be unavailable (private
+// mode, blocked site data) or full, and a backup must never block a save.
+
+export type BackupKind = 'outline'
+
+export interface EditorBackup {
+  kind: BackupKind
+  id: string
+  projectId: string
+  content: Record<string, unknown>
+  // When this backup was written.
+  savedAt: string
+  // updated_at of the saved version these edits started from, to tell
+  // whether the saved copy has changed since (another tab or device).
+  baseUpdatedAt: string
+  // The editor session that wrote it. A successful save in a different
+  // session (another tab) mustn't clear it unless the content matches.
+  sessionId: string
+}
+
+const PREFIX = 'bunplot:backup:'
+const MAX_AGE_MS = 30 * 24 * 60 * 60 * 1000
+
+function keyFor(kind: BackupKind, id: string) {
+  return `${PREFIX}${kind}:${id}`
+}
+
+function getStorage(): Storage | null {
+  if (typeof window === 'undefined') return null
+  try {
+    return window.localStorage
+  } catch {
+    return null
+  }
+}
+
+// JSON with object keys sorted at every level. Postgres jsonb reorders keys,
+// so a document read back from the database can stringify differently from
+// the editor's copy even when nothing changed; compare with this instead.
+export function stableStringify(value: unknown): string {
+  return JSON.stringify(sortKeys(value))
+}
+
+function sortKeys(value: unknown): unknown {
+  if (Array.isArray(value)) return value.map(sortKeys)
+  if (value !== null && typeof value === 'object') {
+    const sorted: Record<string, unknown> = {}
+    for (const key of Object.keys(value).sort()) {
+      sorted[key] = sortKeys((value as Record<string, unknown>)[key])
+    }
+    return sorted
+  }
+  return value
+}
+
+export function sameContent(a: unknown, b: unknown) {
+  return stableStringify(a) === stableStringify(b)
+}
+
+export function newSessionId() {
+  if (typeof crypto !== 'undefined' && typeof crypto.randomUUID === 'function') return crypto.randomUUID()
+  return `${Date.now()}-${Math.random().toString(36).slice(2)}`
+}
+
+// Returns false if the backup couldn't be stored (unavailable or full);
+// callers just carry on, since the save itself still runs.
+export function writeBackup(backup: Omit<EditorBackup, 'savedAt'>): boolean {
+  const storage = getStorage()
+  if (!storage) return false
+  try {
+    const value: EditorBackup = { ...backup, savedAt: new Date().toISOString() }
+    storage.setItem(keyFor(backup.kind, backup.id), JSON.stringify(value))
+    return true
+  } catch (err) {
+    console.error('Editor backup write failed:', err)
+    return false
+  }
+}
+
+export function readBackup(kind: BackupKind, id: string): EditorBackup | null {
+  const storage = getStorage()
+  if (!storage) return null
+  try {
+    const raw = storage.getItem(keyFor(kind, id))
+    if (!raw) return null
+    const parsed = JSON.parse(raw) as Partial<EditorBackup>
+    // Anything malformed (hand-edited, or from an older shape) is dropped.
+    if (
+      parsed.kind !== kind ||
+      parsed.id !== id ||
+      typeof parsed.projectId !== 'string' ||
+      typeof parsed.savedAt !== 'string' ||
+      typeof parsed.baseUpdatedAt !== 'string' ||
+      typeof parsed.sessionId !== 'string' ||
+      parsed.content === null ||
+      typeof parsed.content !== 'object'
+    ) {
+      storage.removeItem(keyFor(kind, id))
+      return null
+    }
+    return parsed as EditorBackup
+  } catch {
+    return null
+  }
+}
+
+export function clearBackup(kind: BackupKind, id: string) {
+  try {
+    getStorage()?.removeItem(keyFor(kind, id))
+  } catch {
+    // Nothing to do: a leftover backup is pruned later or offered on open.
+  }
+}
+
+// After a successful save: clear the backup if this session wrote it, or if
+// it holds exactly what was just saved. A backup from another tab with
+// different content is kept, so that tab's unsaved edits aren't lost.
+export function clearBackupAfterSave(
+  kind: BackupKind,
+  id: string,
+  sessionId: string,
+  savedContent: unknown
+) {
+  const backup = readBackup(kind, id)
+  if (!backup) return
+  if (backup.sessionId === sessionId || sameContent(backup.content, savedContent)) {
+    clearBackup(kind, id)
+  }
+}
+
+// Removes backups older than 30 days (any kind or project), and backups of
+// this kind in this project whose item no longer exists (deleted elsewhere).
+export function pruneBackups(kind: BackupKind, projectId: string, existingIds: Iterable<string>) {
+  const storage = getStorage()
+  if (!storage) return
+  const keep = new Set(existingIds)
+  const now = Date.now()
+  try {
+    const toRemove: string[] = []
+    for (let i = 0; i < storage.length; i++) {
+      const key = storage.key(i)
+      if (!key?.startsWith(PREFIX)) continue
+      let backup: Partial<EditorBackup> | null = null
+      try {
+        backup = JSON.parse(storage.getItem(key) ?? 'null')
+      } catch {
+        // Unreadable: treat as stale.
+      }
+      const savedAt = backup?.savedAt ? Date.parse(backup.savedAt) : NaN
+      const expired = !Number.isFinite(savedAt) || now - savedAt > MAX_AGE_MS
+      const orphaned =
+        backup?.kind === kind && backup.projectId === projectId && !keep.has(backup.id ?? '')
+      if (expired || orphaned) toRemove.push(key)
+    }
+    // Removed after the loop, since removing shifts storage.key indexes.
+    for (const key of toRemove) storage.removeItem(key)
+  } catch (err) {
+    console.error('Editor backup cleanup failed:', err)
+  }
+}
+
+// On sign-out, so someone else using this browser doesn't inherit drafts.
+export function clearAllBackups() {
+  const storage = getStorage()
+  if (!storage) return
+  try {
+    const keys: string[] = []
+    for (let i = 0; i < storage.length; i++) {
+      const key = storage.key(i)
+      if (key?.startsWith(PREFIX)) keys.push(key)
+    }
+    for (const key of keys) storage.removeItem(key)
+  } catch (err) {
+    console.error('Editor backup clear failed:', err)
+  }
+}
