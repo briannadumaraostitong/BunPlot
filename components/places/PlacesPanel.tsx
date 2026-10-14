@@ -1,6 +1,7 @@
 'use client'
 
 import { useEffect, useMemo, useState } from 'react'
+import { pruneBackups } from '@/lib/editorBackup'
 import { Skeleton } from '@/components/ui/skeleton'
 import { SidebarRowSkeleton } from '@/components/ui/sidebar-skeleton-row'
 import { PlaceSidebar } from './PlaceSidebar'
@@ -68,6 +69,15 @@ export function PlacesPanel({
         getEventPlaceLinks(projectId),
       ])
       if (cancelled) return
+      // Only when places came back: getPlaces returns [] on error, and pruning
+      // against an empty list would wipe this project's backups exactly when
+      // they're needed. (A project with no places keeps any orphans until
+      // they reach 30 days.)
+      if (placesData.length > 0) {
+        const ids = placesData.map((p) => p.id)
+        pruneBackups('place-description', projectId, ids)
+        pruneBackups('place-notes', projectId, ids)
+      }
       setPlaces(placesData)
       setEventPlaceLinks(linksData)
       setSelectedPlaceId((current) =>

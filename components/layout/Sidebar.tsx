@@ -164,8 +164,8 @@ function SidebarContent({
             <DialogHeader>
               <DialogTitle>Sign out?</DialogTitle>
               <DialogDescription>
-                You have outline changes that haven&apos;t been saved. Signing out deletes them from this
-                device. Sign out anyway?
+                You have changes that haven&apos;t been saved. Signing out deletes them from this device.
+                Sign out anyway?
               </DialogDescription>
             </DialogHeader>
             <div className="flex justify-end gap-2">

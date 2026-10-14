@@ -6,6 +6,7 @@ import { cn } from '@/lib/utils'
 import { deletePlace, updatePlace } from '@/actions/places'
 import { PLACE_TYPE_LABELS } from '@/lib/places.config'
 import { reportResult, settle } from '@/lib/notify'
+import { clearBackup } from '@/lib/editorBackup'
 import type { PlaceWithCover } from '@/actions/places'
 
 interface PlaceRowProps {
@@ -30,7 +31,11 @@ export function PlaceRow({ place, selected, onSelect, onColorChanged, onDeleted 
     if (deleting) return
     setDeleting(true)
     const result = await settle(deletePlace(place.id, place.project_id))
-    if (reportResult(result, "Couldn't delete the place.")) onDeleted()
+    if (reportResult(result, "Couldn't delete the place.")) {
+      clearBackup('place-description', place.id)
+      clearBackup('place-notes', place.id)
+      onDeleted()
+    }
     setDeleting(false)
   }
 

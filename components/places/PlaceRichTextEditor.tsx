@@ -26,6 +26,10 @@ import {
 } from 'lucide-react'
 import { Separator } from '@/components/ui/separator'
 import { getEditorJson } from '@/lib/editorJson'
+import { isSigningOut, registerFlusher } from '@/lib/saveRegistry'
+import { useEditorBackup } from '@/hooks/useEditorBackup'
+import { RestoreBackupBanner } from '@/components/editor/RestoreBackupBanner'
+import type { BackupKind } from '@/lib/editorBackup'
 import { cn } from '@/lib/utils'
 
 interface PlaceRichTextEditorProps {
@@ -34,6 +38,10 @@ interface PlaceRichTextEditorProps {
   // Resolves false if the save failed; the editor then shows "Not saved" and
   // retries on the next blur. The caller reports the failure.
   onSave: (json: Record<string, unknown>) => Promise<boolean>
+  // Where local backups of unsaved edits are kept (useEditorBackup).
+  backupKind: BackupKind
+  placeId: string
+  projectId: string
 }
 
 // New places store the column default '{}', which isn't a valid document and
@@ -52,6 +60,9 @@ export function PlaceRichTextEditor({
   content,
   placeholder,
   onSave,
+  backupKind,
+  placeId,
+  projectId,
 }: PlaceRichTextEditorProps) {
   const [saveStatus, setSaveStatus] = useState<'saved' | 'saving' | 'error'>('saved')
   // Only the first render's content matters (the editor reads it once), so
@@ -65,6 +76,18 @@ export function PlaceRichTextEditor({
   // only ever sees its first render's closure.
   const [loadFailed, setLoadFailed] = useState(false)
   const loadFailedRef = useRef(false)
+  // The first render's content: the parent passes `place.description ?? {}`,
+  // a new object whenever the field is null.
+  const [savedContent] = useState(content)
+  const { backup, banner } = useEditorBackup({
+    kind: backupKind,
+    id: placeId,
+    projectId,
+    savedContent,
+    latestJson,
+    lastSavedJson,
+    disabledRef: loadFailedRef,
+  })
 
   const editor = useEditor({
     immediatelyRender: false,
@@ -114,25 +137,35 @@ export function PlaceRichTextEditor({
     },
   })
 
-  const handleSave = useCallback(async () => {
-    if (!editor || loadFailedRef.current) return
+  const handleSave = useCallback(async (): Promise<boolean> => {
+    // Nothing that can be saved: no editor yet, or content that didn't load
+    // (editing is paused, so there are no edits).
+    if (!editor || loadFailedRef.current) return true
     const json = getEditorJson(editor)
     const serialized = JSON.stringify(json)
     if (serialized === lastSavedJson.current) {
       // Edited back to what's already saved after a failed save.
       setSaveStatus((s) => (s === 'error' ? 'saved' : s))
-      return
+      return true
     }
 
     setSaveStatus('saving')
+    // Backed up before the request, so the edits survive even if it never
+    // finishes (tab closed, crash), not only if it fails.
+    backup.beforeSave(json)
     // lastSavedJson stays as it was on failure, so the next blur retries.
     if (!(await onSave(json))) {
       setSaveStatus('error')
-      return
+      return false
     }
+    backup.afterSave(json)
     lastSavedJson.current = serialized
     setSaveStatus('saved')
-  }, [editor, onSave])
+    return true
+  }, [editor, onSave, backup])
+
+  // Sign-out saves this editor first (see flushAllEdits).
+  useEffect(() => registerFlusher(handleSave), [handleSave])
 
   useEffect(() => {
     if (!editor) return
@@ -146,19 +179,28 @@ export function PlaceRichTextEditor({
     if (!editor) return
     function handleUpdate() {
       latestJson.current = JSON.stringify(editor!.getJSON())
+      backup.noteEdit()
     }
     editor.on('update', handleUpdate)
     return () => {
       editor.off('update', handleUpdate)
     }
-  }, [editor])
+  }, [editor, backup])
 
   useEffect(() => {
     return () => {
-      if (!loadFailedRef.current && latestJson.current !== lastSavedJson.current) {
+      // Signing out was confirmed with these edits unsaved; saving now would
+      // only fail.
+      if (isSigningOut()) return
+      // isUnsaved ignores key order, so opening and leaving doesn't re-save.
+      if (!loadFailedRef.current && backup.isUnsaved()) {
         // Parsed from the serialized snapshot, so already plain JSON (see
         // getEditorJson) — and safe to read after the editor is torn down.
-        onSave(JSON.parse(latestJson.current))
+        const json = JSON.parse(latestJson.current)
+        backup.beforeSave(json)
+        onSave(json).then((saved) => {
+          if (saved) backup.afterSave(json)
+        })
       }
     }
     // Flush-on-unmount only; content/onSave intentionally excluded so this
@@ -300,6 +342,15 @@ export function PlaceRichTextEditor({
           )}
         </div>
       </div>
+
+      <RestoreBackupBanner
+        banner={banner}
+        compact
+        onApply={(restored) => {
+          editor.commands.setContent(restored, { emitUpdate: true })
+          void handleSave()
+        }}
+      />
 
       <div className="flex-1 min-h-0 overflow-y-auto scrollbar-thin bg-background px-3 py-2">
         <EditorContent editor={editor} />

@@ -199,6 +199,9 @@ function PlaceDetailContent({
                 content={place.description ?? {}}
                 placeholder="What does this place look and feel like?"
                 onSave={handleDescriptionSave}
+                backupKind="place-description"
+                placeId={place.id}
+                projectId={place.project_id}
               />
             ) : (
               <PlaceRichTextEditor
@@ -206,6 +209,9 @@ function PlaceDetailContent({
                 content={place.notes ?? {}}
                 placeholder="Private notes, worldbuilding details, ideas..."
                 onSave={handleNotesSave}
+                backupKind="place-notes"
+                placeId={place.id}
+                projectId={place.project_id}
               />
             )}
           </div>

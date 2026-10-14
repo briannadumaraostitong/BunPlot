@@ -1,11 +1,11 @@
 // Local backups of rich-text edits that haven't reached the database yet.
 // A backup is written before every save attempt and cleared once a save
-// succeeds, so one survives a failed save, a closed tab or a crash. Kinds are
-// listed so place descriptions and notes can use the same storage later.
+// succeeds, so one survives a failed save, a closed tab or a crash. Shared by
+// the Outline editor and place descriptions and notes.
 // Every storage access is wrapped: localStorage can be unavailable (private
 // mode, blocked site data) or full, and a backup must never block a save.
 
-export type BackupKind = 'outline'
+export type BackupKind = 'outline' | 'place-description' | 'place-notes'
 
 export interface EditorBackup {
   kind: BackupKind
