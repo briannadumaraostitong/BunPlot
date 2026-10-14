@@ -25,6 +25,16 @@ export interface EditorBackup {
 const PREFIX = 'bunplot:backup:'
 const MAX_AGE_MS = 30 * 24 * 60 * 60 * 1000
 
+// Set on sign-out. An open editor's final save runs only when the page
+// changes, after the sign-out, and would otherwise write a fresh backup right
+// after the clear. The next editor to open resumes backups (resumeBackups),
+// which can only happen after someone signs in again.
+let backupsPaused = false
+
+export function resumeBackups() {
+  backupsPaused = false
+}
+
 function keyFor(kind: BackupKind, id: string) {
   return `${PREFIX}${kind}:${id}`
 }
@@ -69,6 +79,7 @@ export function newSessionId() {
 // Returns false if the backup couldn't be stored (unavailable or full);
 // callers just carry on, since the save itself still runs.
 export function writeBackup(backup: Omit<EditorBackup, 'savedAt'>): boolean {
+  if (backupsPaused) return false
   const storage = getStorage()
   if (!storage) return false
   try {
@@ -176,7 +187,9 @@ export function pruneBackups(kind: BackupKind, projectId: string, existingIds: I
 }
 
 // On sign-out, so someone else using this browser doesn't inherit drafts.
+// Also pauses backup writes until the next editor opens (see backupsPaused).
 export function clearAllBackups() {
+  backupsPaused = true
   const storage = getStorage()
   if (!storage) return
   try {

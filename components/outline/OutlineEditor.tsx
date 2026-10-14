@@ -45,6 +45,7 @@ import {
   newSessionId,
   pruneBackups,
   readBackup,
+  resumeBackups,
   sameContent,
   type EditorBackup,
 } from '@/lib/editorBackup'
@@ -289,6 +290,12 @@ function OutlineDocumentEditor({ outline, onExport }: { outline: Outline; onExpo
   // Whether the document was edited since it opened, so Restore can warn
   // before replacing that.
   const editedSinceOpen = useRef(false)
+
+  // Backups are paused after a sign-out; an editor opening means someone is
+  // signed in again, so they resume.
+  useEffect(() => {
+    resumeBackups()
+  }, [])
 
   // A backup identical to the saved content holds nothing unsaved. Clear it,
   // or it would block this session's own backups (backupBeforeSave keeps

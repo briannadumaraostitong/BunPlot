@@ -9,6 +9,7 @@ import { createClient } from '@/lib/supabase/client'
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
 import { Separator } from '@/components/ui/separator'
 import { Sheet, SheetContent, SheetTitle, SheetDescription } from '@/components/ui/sheet'
+import { clearAllBackups } from '@/lib/editorBackup'
 import type { Profile } from '@/types/database'
 
 const NAV_ITEMS = [
@@ -61,6 +62,9 @@ function SidebarContent({
   async function handleSignOut() {
     onNavigate()
     await supabase.auth.signOut()
+    // Local drafts belong to this account; remove them so the next person
+    // using this browser doesn't inherit them.
+    clearAllBackups()
     router.push('/login')
     router.refresh()
   }
