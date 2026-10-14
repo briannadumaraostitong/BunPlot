@@ -186,6 +186,21 @@ export function pruneBackups(kind: BackupKind, projectId: string, existingIds: I
   }
 }
 
+// Whether any backup is stored (any kind or project): unsaved edits that
+// signing out would delete.
+export function hasAnyBackup(): boolean {
+  const storage = getStorage()
+  if (!storage) return false
+  try {
+    for (let i = 0; i < storage.length; i++) {
+      if (storage.key(i)?.startsWith(PREFIX)) return true
+    }
+  } catch {
+    // Unreadable storage: nothing we can report.
+  }
+  return false
+}
+
 // On sign-out, so someone else using this browser doesn't inherit drafts.
 // Also pauses backup writes until the next editor opens (see backupsPaused).
 export function clearAllBackups() {

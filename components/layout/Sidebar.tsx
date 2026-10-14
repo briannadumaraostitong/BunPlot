@@ -1,15 +1,19 @@
 'use client'
 
+import { useState } from 'react'
 import Link from 'next/link'
 import Image from 'next/image'
 import { usePathname, useRouter } from 'next/navigation'
-import { LayoutDashboard, FolderOpen, Settings, Search, LogOut } from 'lucide-react'
+import { LayoutDashboard, FolderOpen, Settings, Search, LogOut, Loader2 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { createClient } from '@/lib/supabase/client'
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
 import { Separator } from '@/components/ui/separator'
 import { Sheet, SheetContent, SheetTitle, SheetDescription } from '@/components/ui/sheet'
-import { clearAllBackups } from '@/lib/editorBackup'
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog'
+import { Button } from '@/components/ui/button'
+import { clearAllBackups, hasAnyBackup } from '@/lib/editorBackup'
+import { flushAllEdits, markSigningOut } from '@/lib/saveRegistry'
 import type { Profile } from '@/types/database'
 
 const NAV_ITEMS = [
@@ -59,8 +63,30 @@ function SidebarContent({
   const router = useRouter()
   const supabase = createClient()
 
+  const [signingOut, setSigningOut] = useState(false)
+  const [confirmOpen, setConfirmOpen] = useState(false)
+
+  // Save open edits and wait for saves in flight while still signed in. Only
+  // if something didn't save, or a backup is left (here or in another outline
+  // or project), ask first, since signing out deletes backups.
   async function handleSignOut() {
+    if (signingOut) return
+    setSigningOut(true)
+    const allSaved = await flushAllEdits()
+    if (!allSaved || hasAnyBackup()) {
+      setSigningOut(false)
+      setConfirmOpen(true)
+      return
+    }
+    await signOut()
+  }
+
+  async function signOut() {
+    setConfirmOpen(false)
+    setSigningOut(true)
+    // Closes the mobile menu; only now, so the confirmation isn't hidden with it.
     onNavigate()
+    markSigningOut()
     await supabase.auth.signOut()
     // Local drafts belong to this account; remove them so the next person
     // using this browser doesn't inherit them.
@@ -126,11 +152,32 @@ function SidebarContent({
 
         <button
           onClick={handleSignOut}
-          className="w-full flex items-center gap-2.5 rounded-md px-3 py-2 text-sm font-medium text-muted-foreground hover:bg-secondary hover:text-foreground transition-colors"
+          disabled={signingOut}
+          className="w-full flex items-center gap-2.5 rounded-md px-3 py-2 text-sm font-medium text-muted-foreground hover:bg-secondary hover:text-foreground transition-colors disabled:opacity-50"
         >
-          <LogOut className="h-4 w-4" />
-          Sign Out
+          {signingOut ? <Loader2 className="h-4 w-4 animate-spin" /> : <LogOut className="h-4 w-4" />}
+          {signingOut ? 'Signing out...' : 'Sign Out'}
         </button>
+
+        <Dialog open={confirmOpen} onOpenChange={setConfirmOpen}>
+          <DialogContent className="sm:max-w-md">
+            <DialogHeader>
+              <DialogTitle>Sign out?</DialogTitle>
+              <DialogDescription>
+                You have outline changes that haven&apos;t been saved. Signing out deletes them from this
+                device. Sign out anyway?
+              </DialogDescription>
+            </DialogHeader>
+            <div className="flex justify-end gap-2">
+              <Button variant="outline" size="sm" onClick={() => setConfirmOpen(false)}>
+                Cancel
+              </Button>
+              <Button variant="destructive" size="sm" onClick={signOut}>
+                Sign out anyway
+              </Button>
+            </div>
+          </DialogContent>
+        </Dialog>
 
         <div className="flex items-center gap-2.5 px-3 py-2 mt-1">
           <Avatar className="h-7 w-7">

@@ -50,6 +50,7 @@ import {
   type EditorBackup,
 } from '@/lib/editorBackup'
 import { Button } from '@/components/ui/button'
+import { clearSigningOut, isSigningOut, registerFlusher, trackSave } from '@/lib/saveRegistry'
 import {
   getOutlines,
   createOutline,
@@ -115,7 +116,8 @@ function saveOutline(id: string, content: Record<string, unknown>, backup: Outli
       }
     })
   pendingOutlineSaves.set(id, promise)
-  return promise
+  // Also tracked globally, so sign-out can wait for it.
+  return trackSave(promise, (result) => !('error' in result))
 }
 
 interface OutlineEditorProps {
@@ -295,6 +297,7 @@ function OutlineDocumentEditor({ outline, onExport }: { outline: Outline; onExpo
   // signed in again, so they resume.
   useEffect(() => {
     resumeBackups()
+    clearSigningOut()
   }, [])
 
   // A backup identical to the saved content holds nothing unsaved. Clear it,
@@ -343,8 +346,8 @@ function OutlineDocumentEditor({ outline, onExport }: { outline: Outline; onExpo
       editor?.isActive('image') ? ((editor.getAttributes('image').imageAlign as ImageAlign) ?? null) : null,
   })
 
-  const handleSave = useCallback(async () => {
-    if (!editor) return
+  const handleSave = useCallback(async (): Promise<boolean> => {
+    if (!editor) return true
     const json = getEditorJson(editor)
     const serialized = JSON.stringify(json)
     if (serialized === lastSavedJson.current) {
@@ -352,7 +355,7 @@ function OutlineDocumentEditor({ outline, onExport }: { outline: Outline; onExpo
       // unsaved any more.
       setSaveStatus((s) => (s === 'error' ? 'saved' : s))
       dismissError(SAVE_TOAST_ID)
-      return
+      return true
     }
 
     setSaveStatus('saving')
@@ -365,13 +368,17 @@ function OutlineDocumentEditor({ outline, onExport }: { outline: Outline; onExpo
     // tries again.
     if (!reportResult(result, "Couldn't save the outline. It will retry automatically.", { id: SAVE_TOAST_ID })) {
       setSaveStatus('error')
-      return
+      return false
     }
     if (result.updated_at) baseUpdatedAt.current = result.updated_at
     lastSavedJson.current = serialized
     setSaveStatus('saved')
     dismissError(SAVE_TOAST_ID)
+    return true
   }, [editor, outline.id, outline.project_id, sessionId])
+
+  // Sign-out saves this editor first (see flushAllEdits).
+  useEffect(() => registerFlusher(handleSave), [handleSave])
 
   useEffect(() => {
     const interval = setInterval(handleSave, AUTOSAVE_INTERVAL_MS)
@@ -455,6 +462,9 @@ function OutlineDocumentEditor({ outline, onExport }: { outline: Outline; onExpo
 
   useEffect(() => {
     return () => {
+      // Signing out was confirmed with these edits unsaved; saving now would
+      // only fail.
+      if (isSigningOut()) return
       if (
         latestJson.current !== lastSavedJson.current &&
         // Same document with keys reordered by jsonb isn't an unsaved edit,

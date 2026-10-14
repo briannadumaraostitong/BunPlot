@@ -1,5 +1,6 @@
 import { updatePlace } from '@/actions/places'
 import { settle } from '@/lib/notify'
+import { trackSave } from '@/lib/saveRegistry'
 import type { PlaceType } from '@/types/database'
 
 // Same approach as pendingOutlineSaves in OutlineEditor.tsx, in its own module
@@ -34,7 +35,8 @@ export function savePlaceFields(placeId: string, projectId: string, updates: Tra
     }
   })
   pendingPlaceSaves.set(key, promise)
-  return promise
+  // Also tracked globally, so sign-out waits for it.
+  return trackSave(promise, (result) => !('error' in result))
 }
 
 export async function waitForPendingPlaceSaves() {
