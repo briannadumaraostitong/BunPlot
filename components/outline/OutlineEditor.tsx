@@ -37,20 +37,10 @@ import { SidebarRowSkeleton } from '@/components/ui/sidebar-skeleton-row'
 import { createClient } from '@/lib/supabase/client'
 import { getEditorJson } from '@/lib/editorJson'
 import { dismissError, reportResult, settle } from '@/lib/notify'
-import {
-  backupBeforeSave,
-  clearBackup,
-  clearBackupAfterSave,
-  clearOwnBackup,
-  newSessionId,
-  pruneBackups,
-  readBackup,
-  resumeBackups,
-  sameContent,
-  type EditorBackup,
-} from '@/lib/editorBackup'
-import { Button } from '@/components/ui/button'
-import { clearSigningOut, isSigningOut, registerFlusher, trackSave } from '@/lib/saveRegistry'
+import { clearBackup, pruneBackups } from '@/lib/editorBackup'
+import { isSigningOut, registerFlusher, trackSave } from '@/lib/saveRegistry'
+import { useEditorBackup } from '@/hooks/useEditorBackup'
+import { RestoreBackupBanner } from '@/components/editor/RestoreBackupBanner'
 import {
   getOutlines,
   createOutline,
@@ -78,8 +68,6 @@ type SaveStatus = 'saved' | 'saving' | 'error'
 // One toast for every outline save failure, so a failing autosave interval
 // updates the same toast instead of stacking them.
 const SAVE_TOAST_ID = 'outline-save'
-// How long after typing stops the local backup is written.
-const BACKUP_DEBOUNCE_MS = 1000
 
 function countWords(text: string) {
   const trimmed = text.trim()
@@ -95,26 +83,14 @@ function countWords(text: string) {
 // the component unmounting.
 const pendingOutlineSaves = new Map<string, Promise<unknown>>()
 
-interface OutlineBackupContext {
-  projectId: string
-  sessionId: string
-  baseUpdatedAt: string
-}
-
-function saveOutline(id: string, content: Record<string, unknown>, backup: OutlineBackupContext) {
-  // Backed up before the request, so the edits survive even if it never
-  // finishes (tab closed, crash), not only if it fails.
-  backupBeforeSave({ kind: 'outline', id, content, ...backup })
-  const promise = settle(updateOutline(id, content))
-    .then((result) => {
-      if (!('error' in result)) clearBackupAfterSave('outline', id, content)
-      return result
-    })
-    .finally(() => {
-      if (pendingOutlineSaves.get(id) === promise) {
-        pendingOutlineSaves.delete(id)
-      }
-    })
+// Local backups around this save are handled by the caller (useEditorBackup's
+// beforeSave/afterSave).
+function saveOutline(id: string, content: Record<string, unknown>) {
+  const promise = settle(updateOutline(id, content)).finally(() => {
+    if (pendingOutlineSaves.get(id) === promise) {
+      pendingOutlineSaves.delete(id)
+    }
+  })
   pendingOutlineSaves.set(id, promise)
   // Also tracked globally, so sign-out can wait for it.
   return trackSave(promise, (result) => !('error' in result))
@@ -274,39 +250,14 @@ function OutlineDocumentEditor({ outline, onExport }: { outline: Outline; onExpo
   const lastSavedJson = useRef(initialSerialized)
   const latestJson = useRef(initialSerialized)
   const fileInputRef = useRef<HTMLInputElement>(null)
-  // This editor's identity for the backup rule (another tab's backup isn't
-  // cleared or overwritten by this one), and the saved version its edits
-  // build on, which moves forward with each successful save.
-  const [sessionId] = useState(newSessionId)
-  const baseUpdatedAt = useRef(outline.updated_at)
-  // A backup from an earlier session that differs from the saved content:
-  // edits that never reached the database, offered in the banner below.
-  // Read once on open. This editor only mounts on the client, after the
-  // outlines load, so reading localStorage here can't cause a hydration mismatch.
-  const [pendingBackup, setPendingBackup] = useState<EditorBackup | null>(() => {
-    const backup = readBackup('outline', outline.id)
-    return backup && !sameContent(backup.content, outline.content) ? backup : null
+  const { backup, banner } = useEditorBackup({
+    kind: 'outline',
+    id: outline.id,
+    projectId: outline.project_id,
+    savedContent: outline.content,
+    latestJson,
+    lastSavedJson,
   })
-  // Set when Restore is clicked after typing, to confirm inside the banner.
-  const [confirmingRestore, setConfirmingRestore] = useState(false)
-  // Whether the document was edited since it opened, so Restore can warn
-  // before replacing that.
-  const editedSinceOpen = useRef(false)
-
-  // Backups are paused after a sign-out; an editor opening means someone is
-  // signed in again, so they resume.
-  useEffect(() => {
-    resumeBackups()
-    clearSigningOut()
-  }, [])
-
-  // A backup identical to the saved content holds nothing unsaved. Clear it,
-  // or it would block this session's own backups (backupBeforeSave keeps
-  // another session's backup when the content differs).
-  useEffect(() => {
-    const backup = readBackup('outline', outline.id)
-    if (backup && sameContent(backup.content, outline.content)) clearBackup('outline', outline.id)
-  }, [outline.id, outline.content])
   const [uploadingImage, setUploadingImage] = useState(false)
   const [imageError, setImageError] = useState<string | null>(null)
 
@@ -359,23 +310,22 @@ function OutlineDocumentEditor({ outline, onExport }: { outline: Outline; onExpo
     }
 
     setSaveStatus('saving')
-    const result = await saveOutline(outline.id, json, {
-      projectId: outline.project_id,
-      sessionId,
-      baseUpdatedAt: baseUpdatedAt.current,
-    })
+    // Backed up before the request, so the edits survive even if it never
+    // finishes (tab closed, crash), not only if it fails.
+    backup.beforeSave(json)
+    const result = await saveOutline(outline.id, json)
     // lastSavedJson stays as it was on failure, so the next interval or blur
     // tries again.
     if (!reportResult(result, "Couldn't save the outline. It will retry automatically.", { id: SAVE_TOAST_ID })) {
       setSaveStatus('error')
       return false
     }
-    if (result.updated_at) baseUpdatedAt.current = result.updated_at
+    backup.afterSave(json)
     lastSavedJson.current = serialized
     setSaveStatus('saved')
     dismissError(SAVE_TOAST_ID)
     return true
-  }, [editor, outline.id, outline.project_id, sessionId])
+  }, [editor, outline.id, backup])
 
   // Sign-out saves this editor first (see flushAllEdits).
   useEffect(() => registerFlusher(handleSave), [handleSave])
@@ -395,128 +345,41 @@ function OutlineDocumentEditor({ outline, onExport }: { outline: Outline; onExpo
 
   useEffect(() => {
     if (!editor) return
-    let backupTimer: ReturnType<typeof setTimeout> | null = null
     function handleUpdate() {
       latestJson.current = JSON.stringify(editor!.getJSON())
       setWordCount(countWords(editor!.getText()))
     }
-    // Shortly after typing stops, back up what's on screen, so a reload or a
-    // closed tab (which skip the unmount save) can't lose it. Same rules as
-    // the backup written before a save: another session's unresolved backup
-    // isn't overwritten. Edited back to the saved version means nothing is
-    // unsaved, so this session's backup is cleared instead.
-    function scheduleBackup() {
-      if (backupTimer) clearTimeout(backupTimer)
-      backupTimer = setTimeout(() => {
-        backupTimer = null
-        const content = JSON.parse(latestJson.current)
-        if (sameContent(content, JSON.parse(lastSavedJson.current))) {
-          clearOwnBackup('outline', outline.id, sessionId)
-          return
-        }
-        backupBeforeSave({
-          kind: 'outline',
-          id: outline.id,
-          projectId: outline.project_id,
-          content,
-          sessionId,
-          baseUpdatedAt: baseUpdatedAt.current,
-        })
-      }, BACKUP_DEBOUNCE_MS)
-    }
     function handleEdit() {
-      editedSinceOpen.current = true
       handleUpdate()
-      scheduleBackup()
+      backup.noteEdit()
     }
     handleUpdate() // set the initial count on mount, not just on the first edit
     editor.on('update', handleEdit)
     return () => {
       editor.off('update', handleEdit)
-      // The unmount save backs up whatever is unsaved, so a pending timer
-      // isn't needed any more.
-      if (backupTimer) clearTimeout(backupTimer)
     }
-  }, [editor, outline.id, outline.project_id, sessionId])
-
-  function handleRestore() {
-    if (!editor || !pendingBackup) return
-    if (editedSinceOpen.current && !confirmingRestore) {
-      setConfirmingRestore(true)
-      return
-    }
-    editor.commands.setContent(pendingBackup.content, { emitUpdate: true })
-    // Cleared before saving, so this session's save backs up the restored
-    // content under its own id instead of being blocked by the old backup.
-    clearBackup('outline', outline.id)
-    setPendingBackup(null)
-    setConfirmingRestore(false)
-    void handleSave()
-  }
-
-  function handleDiscard() {
-    clearBackup('outline', outline.id)
-    setPendingBackup(null)
-    setConfirmingRestore(false)
-  }
+  }, [editor, backup])
 
   useEffect(() => {
     return () => {
       // Signing out was confirmed with these edits unsaved; saving now would
       // only fail.
       if (isSigningOut()) return
-      if (
-        latestJson.current !== lastSavedJson.current &&
-        // Same document with keys reordered by jsonb isn't an unsaved edit,
-        // so opening and leaving an outline doesn't re-save it.
-        !sameContent(JSON.parse(latestJson.current), JSON.parse(lastSavedJson.current))
-      ) {
+      // isUnsaved ignores key order, so opening and leaving an outline
+      // doesn't re-save it.
+      if (backup.isUnsaved()) {
         // Parsed from the serialized snapshot, so already plain JSON (see
         // getEditorJson) — and safe to read after the editor is torn down.
         // The editor is gone, so there's no retry — the toast (from the root
         // Toaster) is the only sign the last edits didn't make it.
-        saveOutline(outline.id, JSON.parse(latestJson.current), {
-          projectId: outline.project_id,
-          sessionId,
-          baseUpdatedAt: baseUpdatedAt.current,
-        }).then((result) =>
-          reportResult(result, "Couldn't save the outline.", { id: SAVE_TOAST_ID })
-        )
-      }
-    }
-  }, [outline.id, outline.project_id, sessionId])
-
-  // Ask before closing or reloading the browser tab while there are unsaved
-  // edits or an outline save is still running. Browsers show their own
-  // generic message; the text can't be customized. In-app tab switches don't
-  // fire this; the local backup covers those.
-  useEffect(() => {
-    function handleBeforeUnload(e: BeforeUnloadEvent) {
-      const unsaved =
-        latestJson.current !== lastSavedJson.current &&
-        // Same document with keys in a different order (jsonb reorders them)
-        // isn't an unsaved edit.
-        !sameContent(JSON.parse(latestJson.current), JSON.parse(lastSavedJson.current))
-      if (!unsaved && pendingOutlineSaves.size === 0) return
-      // Back up right now (localStorage writes are synchronous), covering a
-      // reload within the debounce window after the last keystroke.
-      if (unsaved) {
-        backupBeforeSave({
-          kind: 'outline',
-          id: outline.id,
-          projectId: outline.project_id,
-          content: JSON.parse(latestJson.current),
-          sessionId,
-          baseUpdatedAt: baseUpdatedAt.current,
+        const content = JSON.parse(latestJson.current)
+        backup.beforeSave(content)
+        saveOutline(outline.id, content).then((result) => {
+          if (reportResult(result, "Couldn't save the outline.", { id: SAVE_TOAST_ID })) backup.afterSave(content)
         })
       }
-      e.preventDefault()
-      // Older browsers only show the prompt when returnValue is set.
-      e.returnValue = ''
     }
-    window.addEventListener('beforeunload', handleBeforeUnload)
-    return () => window.removeEventListener('beforeunload', handleBeforeUnload)
-  }, [outline.id, outline.project_id, sessionId])
+  }, [outline.id, backup])
 
   async function handleImageUpload(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0]
@@ -723,39 +586,13 @@ function OutlineDocumentEditor({ outline, onExport }: { outline: Outline; onExpo
         </div>
       </div>
 
-      {pendingBackup && (
-        <div className="flex shrink-0 flex-wrap items-center gap-2 border-b border-border bg-secondary/30 px-4 py-2 text-xs">
-          <p className="min-w-0 flex-1">
-            {confirmingRestore ? (
-              <>This replaces what you&apos;ve typed since opening this outline. Restore anyway?</>
-            ) : (
-              <>
-                Unsaved changes from{' '}
-                {new Date(pendingBackup.savedAt).toLocaleString(undefined, { dateStyle: 'medium', timeStyle: 'short' })}{' '}
-                were found.
-                {pendingBackup.baseUpdatedAt !== outline.updated_at && (
-                  <span className="text-muted-foreground">
-                    {' '}This outline has changed since. Restoring replaces the newer version.
-                  </span>
-                )}
-              </>
-            )}
-          </p>
-          <div className="flex shrink-0 items-center gap-1.5">
-            <Button size="sm" className="h-7" onClick={handleRestore}>
-              {confirmingRestore ? 'Restore anyway' : 'Restore'}
-            </Button>
-            <Button
-              size="sm"
-              variant="ghost"
-              className="h-7"
-              onClick={confirmingRestore ? () => setConfirmingRestore(false) : handleDiscard}
-            >
-              {confirmingRestore ? 'Cancel' : 'Discard'}
-            </Button>
-          </div>
-        </div>
-      )}
+      <RestoreBackupBanner
+        banner={banner}
+        onApply={(content) => {
+          editor?.commands.setContent(content, { emitUpdate: true })
+          void handleSave()
+        }}
+      />
 
       <div className="flex-1 min-h-0 overflow-y-auto scrollbar-thin bg-secondary/10">
         <div className="mx-auto max-w-3xl bg-card px-16 py-12 min-h-full">

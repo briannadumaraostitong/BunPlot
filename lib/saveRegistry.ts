@@ -27,6 +27,11 @@ export function trackSave<T>(promise: Promise<T>, succeeded: (result: T) => bool
   return promise
 }
 
+// Whether any tracked save hasn't settled yet (for the beforeunload prompt).
+export function hasSavesInFlight() {
+  return inFlight.size > 0
+}
+
 // Saves every open editor and waits for all saves in flight. True only if
 // everything saved; false on any failure, or if it takes longer than 10
 // seconds (a hanging request mustn't block sign-out forever).

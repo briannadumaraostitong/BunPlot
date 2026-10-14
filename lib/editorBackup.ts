@@ -14,9 +14,11 @@ export interface EditorBackup {
   content: Record<string, unknown>
   // When this backup was written.
   savedAt: string
-  // updated_at of the saved version these edits started from, to tell
-  // whether the saved copy has changed since (another tab or device).
-  baseUpdatedAt: string
+  // Hash of the saved content these edits started from (contentHash), to
+  // tell whether the saved copy has changed since (another tab or device).
+  // A content hash rather than updated_at: a place's updated_at changes with
+  // any field, not just this one. Absent in backups written before this.
+  baseHash?: string
   // The editor session that wrote it. A successful save in a different
   // session (another tab) mustn't clear it unless the content matches.
   sessionId: string
@@ -71,6 +73,15 @@ export function sameContent(a: unknown, b: unknown) {
   return stableStringify(a) === stableStringify(b)
 }
 
+// A short, stable fingerprint of a document (djb2 over stableStringify),
+// enough to tell whether saved content changed.
+export function contentHash(value: unknown): string {
+  const text = stableStringify(value)
+  let hash = 5381
+  for (let i = 0; i < text.length; i++) hash = ((hash << 5) + hash + text.charCodeAt(i)) | 0
+  return (hash >>> 0).toString(36)
+}
+
 export function newSessionId() {
   if (typeof crypto !== 'undefined' && typeof crypto.randomUUID === 'function') return crypto.randomUUID()
   return `${Date.now()}-${Math.random().toString(36).slice(2)}`
@@ -117,7 +128,7 @@ export function readBackup(kind: BackupKind, id: string): EditorBackup | null {
       parsed.id !== id ||
       typeof parsed.projectId !== 'string' ||
       typeof parsed.savedAt !== 'string' ||
-      typeof parsed.baseUpdatedAt !== 'string' ||
+      (parsed.baseHash !== undefined && typeof parsed.baseHash !== 'string') ||
       typeof parsed.sessionId !== 'string' ||
       parsed.content === null ||
       typeof parsed.content !== 'object'
