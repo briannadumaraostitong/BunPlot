@@ -14,12 +14,15 @@ export default async function SettingsPage() {
 
   if (!user) redirect('/login')
 
-  const { data } = await supabase
+  const { data, error } = await supabase
     .from('profiles')
     .select('*')
     .eq('id', user.id)
     .single()
 
+  // A failed load shows error.tsx; only a genuinely missing profile (PGRST116)
+  // still goes to login.
+  if (error && error.code !== 'PGRST116') throw new Error(`Couldn't load profile: ${error.message}`)
   const profile = data as Profile | null
   if (!profile) redirect('/login')
 

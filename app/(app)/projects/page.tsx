@@ -40,12 +40,15 @@ export default async function ProjectsPage({ searchParams }: Props) {
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
 
-  const { data } = await supabase
+  const { data, error } = await supabase
     .from('projects')
     .select('*')
     .eq('owner_id', user!.id)
     .eq('archived', showArchived)
     .order('updated_at', { ascending: false })
+
+  // Without this, a failed load shows "No projects yet". Stats stay best-effort.
+  if (error) throw new Error(`Couldn't load projects: ${error.message}`)
 
   const projects = await withProjectCoverUrls(supabase, (data ?? []) as Project[])
 

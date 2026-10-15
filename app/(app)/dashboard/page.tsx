@@ -33,7 +33,10 @@ export default async function DashboardPage() {
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
 
-  const [{ data: projectsData }, { data: foldersData }] = await Promise.all([
+  const [
+    { data: projectsData, error: projectsError },
+    { data: foldersData, error: foldersError },
+  ] = await Promise.all([
     supabase
       .from('projects')
       .select('*')
@@ -46,6 +49,11 @@ export default async function DashboardPage() {
       .eq('owner_id', user!.id)
       .order('position'),
   ])
+
+  // Without this, a failed load shows "No projects yet". Stats queries below
+  // stay best-effort: a missing count is wrong but not misleading enough to block the page.
+  const loadError = projectsError ?? foldersError
+  if (loadError) throw new Error(`Couldn't load dashboard: ${loadError.message}`)
 
   const projects = await withProjectCoverUrls(supabase, (projectsData ?? []) as Project[])
   const folders = (foldersData ?? []) as ProjectFolder[]
