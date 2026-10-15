@@ -11,6 +11,10 @@ import type { Place } from '@/types/database'
 interface EventPlacesFieldProps {
   places: Place[]
   allPlaces: Place[]
+  // The project's place list (the parent's load) failed: say so in the
+  // picker rather than "No places in this project yet".
+  allPlacesFailed?: boolean
+  onRetryAllPlaces?: () => void
   loading: boolean
   loadFailed: boolean
   onRetry: () => void
@@ -21,6 +25,8 @@ interface EventPlacesFieldProps {
 export function EventPlacesField({
   places,
   allPlaces,
+  allPlacesFailed,
+  onRetryAllPlaces,
   loading,
   loadFailed,
   onRetry,
@@ -101,7 +107,11 @@ export function EventPlacesField({
                 />
               </div>
               <div className="max-h-48 overflow-y-auto scrollbar-thin p-1">
-                {available.length === 0 ? (
+                {allPlacesFailed && onRetryAllPlaces ? (
+                  <div className="px-2 py-3">
+                    <LoadError compact thing="places" onRetry={onRetryAllPlaces} />
+                  </div>
+                ) : available.length === 0 ? (
                   <p className="px-2 py-3 text-center text-[11px] text-muted-foreground">
                     {allPlaces.length === 0 ? 'No places in this project yet' : 'No matches'}
                   </p>

@@ -112,6 +112,10 @@ export function TimelineCanvas({
   const [activeEvent, setActiveEvent] = useState<Event | null>(null)
   const [allPlaces, setAllPlaces] = useState<PlaceWithCover[]>([])
   const [allCharacters, setAllCharacters] = useState<Character[]>([])
+  const [allPlacesFailed, setAllPlacesFailed] = useState(false)
+  const [allCharactersFailed, setAllCharactersFailed] = useState(false)
+  // Bumped by the pickers' Retry to re-run the four project-list loads below.
+  const [projectListsAttempt, setProjectListsAttempt] = useState(0)
   const [viewMode, setViewMode] = useState<'grid' | 'flow'>('grid')
   const [exportOpen, setExportOpen] = useState(false)
   const [eventPlaceLinks, setEventPlaceLinks] = useState<EventPlaceLink[]>([])
@@ -127,24 +131,28 @@ export function TimelineCanvas({
     ;(async () => {
       const result = await settle(getPlaces(project.id))
       if (cancelled) return
-      if (reportResult(result, PROJECT_LISTS_MESSAGE, { id: PROJECT_LISTS_TOAST_ID })) setAllPlaces(result)
+      const ok = reportResult(result, PROJECT_LISTS_MESSAGE, { id: PROJECT_LISTS_TOAST_ID })
+      if (ok) setAllPlaces(result)
+      setAllPlacesFailed(!ok)
     })()
     return () => {
       cancelled = true
     }
-  }, [project.id])
+  }, [project.id, projectListsAttempt])
 
   useEffect(() => {
     let cancelled = false
     ;(async () => {
       const result = await settle(getCharacters(project.id))
       if (cancelled) return
-      if (reportResult(result, PROJECT_LISTS_MESSAGE, { id: PROJECT_LISTS_TOAST_ID })) setAllCharacters(result)
+      const ok = reportResult(result, PROJECT_LISTS_MESSAGE, { id: PROJECT_LISTS_TOAST_ID })
+      if (ok) setAllCharacters(result)
+      setAllCharactersFailed(!ok)
     })()
     return () => {
       cancelled = true
     }
-  }, [project.id])
+  }, [project.id, projectListsAttempt])
 
   useEffect(() => {
     let cancelled = false
@@ -156,7 +164,7 @@ export function TimelineCanvas({
     return () => {
       cancelled = true
     }
-  }, [project.id])
+  }, [project.id, projectListsAttempt])
 
   useEffect(() => {
     let cancelled = false
@@ -168,7 +176,7 @@ export function TimelineCanvas({
     return () => {
       cancelled = true
     }
-  }, [project.id])
+  }, [project.id, projectListsAttempt])
 
   const sensors = useSensors(
     useSensor(PointerSensor, { activationConstraint: { distance: 4 } }),
@@ -532,6 +540,10 @@ export function TimelineCanvas({
         onStatusReorder={reorderStatusLocal}
         allPlaces={allPlaces}
         allCharacters={allCharacters}
+        allPlacesFailed={allPlacesFailed}
+        onRetryAllPlaces={() => setProjectListsAttempt((n) => n + 1)}
+        allCharactersFailed={allCharactersFailed}
+        onRetryAllCharacters={() => setProjectListsAttempt((n) => n + 1)}
         onPlaceLinked={handlePlaceLinked}
         onPlaceUnlinked={handlePlaceUnlinked}
         onCharacterLinked={handleCharacterLinked}

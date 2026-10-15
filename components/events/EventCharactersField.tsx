@@ -11,6 +11,10 @@ import type { Character } from '@/types/database'
 interface EventCharactersFieldProps {
   characters: Character[]
   allCharacters: Character[]
+  // The project's character list (the parent's load) failed: say so in the
+  // picker rather than "No characters in this project yet".
+  allCharactersFailed?: boolean
+  onRetryAllCharacters?: () => void
   suggestedCharacters: Character[]
   loading: boolean
   loadFailed: boolean
@@ -22,6 +26,8 @@ interface EventCharactersFieldProps {
 export function EventCharactersField({
   characters,
   allCharacters,
+  allCharactersFailed,
+  onRetryAllCharacters,
   suggestedCharacters,
   loading,
   loadFailed,
@@ -137,7 +143,11 @@ export function EventCharactersField({
                 />
               </div>
               <div className="max-h-48 overflow-y-auto scrollbar-thin p-1">
-                {available.length === 0 ? (
+                {allCharactersFailed && onRetryAllCharacters ? (
+                  <div className="px-2 py-3">
+                    <LoadError compact thing="characters" onRetry={onRetryAllCharacters} />
+                  </div>
+                ) : available.length === 0 ? (
                   <p className="px-2 py-3 text-center text-[11px] text-muted-foreground">
                     {allCharacters.length === 0 ? 'No characters in this project yet' : 'No matches'}
                   </p>

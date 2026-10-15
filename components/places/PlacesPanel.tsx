@@ -44,6 +44,9 @@ export function PlacesPanel({
   const [places, setPlaces] = useState<PlaceWithCover[]>([])
   const [eventPlaceLinks, setEventPlaceLinks] = useState<EventPlaceLink[]>([])
   const [allCharacters, setAllCharacters] = useState<Character[]>([])
+  const [allCharactersFailed, setAllCharactersFailed] = useState(false)
+  // Bumped by the character picker's Retry.
+  const [charactersAttempt, setCharactersAttempt] = useState(0)
   // Trusts the deep-linked id until the fetch below resolves and validates
   // it against the real place list, clearing it if unmatched — same
   // failure mode fixed in CharactersPanel/TimelineCanvas: a stale/bad id
@@ -115,14 +118,14 @@ export function PlacesPanel({
     ;(async () => {
       const result = await settle(getCharacters(projectId))
       if (cancelled) return
-      if (reportResult(result, "Couldn't load this project's characters. Reload to try again.", { id: 'places-characters' })) {
-        setAllCharacters(result)
-      }
+      const ok = reportResult(result, "Couldn't load this project's characters.", { id: 'places-characters' })
+      if (ok) setAllCharacters(result)
+      setAllCharactersFailed(!ok)
     })()
     return () => {
       cancelled = true
     }
-  }, [projectId])
+  }, [projectId, charactersAttempt])
 
   const filteredPlaces = useMemo(() => {
     const q = search.trim().toLowerCase()
@@ -279,6 +282,8 @@ export function PlacesPanel({
         statuses={statuses}
         allPlaces={places}
         allCharacters={allCharacters}
+        allCharactersFailed={allCharactersFailed}
+        onRetryAllCharacters={() => setCharactersAttempt((n) => n + 1)}
         onPlaceLinked={handlePlaceLinked}
         onPlaceUnlinked={handlePlaceUnlinked}
         open={modalOpen}

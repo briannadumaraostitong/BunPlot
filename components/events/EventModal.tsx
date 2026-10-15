@@ -67,6 +67,10 @@ interface EventModalProps {
   onStatusReorder?: (from: number, to: number) => void;
   allPlaces: Place[];
   allCharacters: Character[];
+  allPlacesFailed?: boolean;
+  onRetryAllPlaces?: () => void;
+  allCharactersFailed?: boolean;
+  onRetryAllCharacters?: () => void;
   open: boolean;
   onClose: () => void;
   onUpdated: () => void;
@@ -239,6 +243,10 @@ function EventForm({
   onStatusReorder,
   allPlaces,
   allCharacters,
+  allPlacesFailed,
+  onRetryAllPlaces,
+  allCharactersFailed,
+  onRetryAllCharacters,
   onPlaceLinked,
   onPlaceUnlinked,
   onCharacterLinked,
@@ -254,6 +262,10 @@ function EventForm({
   onStatusReorder?: (from: number, to: number) => void;
   allPlaces: Place[];
   allCharacters: Character[];
+  allPlacesFailed?: boolean;
+  onRetryAllPlaces?: () => void;
+  allCharactersFailed?: boolean;
+  onRetryAllCharacters?: () => void;
   onPlaceLinked?: (eventId: string, placeId: string) => void;
   onPlaceUnlinked?: (eventId: string, placeId: string) => void;
   onCharacterLinked?: (eventId: string, characterId: string) => void;
@@ -530,6 +542,8 @@ function EventForm({
           <EventCharactersField
             characters={characters}
             allCharacters={allCharacters}
+            allCharactersFailed={allCharactersFailed}
+            onRetryAllCharacters={onRetryAllCharacters}
             suggestedCharacters={visibleSuggestions}
             loading={linkedDataLoading}
             loadFailed={linkedDataFailed}
@@ -541,6 +555,8 @@ function EventForm({
           <EventPlacesField
             places={places}
             allPlaces={allPlaces}
+            allPlacesFailed={allPlacesFailed}
+            onRetryAllPlaces={onRetryAllPlaces}
             loading={linkedDataLoading}
             loadFailed={linkedDataFailed}
             onRetry={retryLinkedData}
@@ -667,6 +683,10 @@ export function EventModal({
   onStatusReorder,
   allPlaces,
   allCharacters,
+  allPlacesFailed,
+  onRetryAllPlaces,
+  allCharactersFailed,
+  onRetryAllCharacters,
   onPlaceLinked,
   onPlaceUnlinked,
   onCharacterLinked,
@@ -693,6 +713,10 @@ export function EventModal({
             onStatusReorder={onStatusReorder}
             allPlaces={allPlaces}
             allCharacters={allCharacters}
+            allPlacesFailed={allPlacesFailed}
+            onRetryAllPlaces={onRetryAllPlaces}
+            allCharactersFailed={allCharactersFailed}
+            onRetryAllCharacters={onRetryAllCharacters}
             onPlaceLinked={onPlaceLinked}
             onPlaceUnlinked={onPlaceUnlinked}
             onCharacterLinked={onCharacterLinked}
