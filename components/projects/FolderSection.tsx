@@ -129,7 +129,7 @@ export function FolderSection({ folder, projects, allFolders, statsByProject }: 
         {!editing && (
           <button
             onClick={() => setConfirmDelete(true)}
-            className="relative ml-1 text-muted-foreground hover:text-destructive p-0.5 opacity-100 md:opacity-0 md:group-hover:opacity-100 transition-opacity after:absolute after:-inset-2"
+            className="relative ml-1 text-muted-foreground hover:text-destructive p-0.5 opacity-100 md:can-hover:opacity-0 md:group-hover:opacity-100 transition-opacity after:absolute after:-inset-2"
           >
             <Trash2 className="h-3.5 w-3.5" />
           </button>

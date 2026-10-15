@@ -125,7 +125,7 @@ function FamilyTreeTab({
             onDelete()
           }}
           title="Delete family tree"
-          className="relative shrink-0 text-muted-foreground opacity-100 md:opacity-0 transition-opacity hover:text-destructive md:group-hover:opacity-100 after:absolute after:-inset-y-1 after:-inset-x-0.5"
+          className="relative shrink-0 text-muted-foreground opacity-100 md:can-hover:opacity-0 transition-opacity hover:text-destructive md:group-hover:opacity-100 after:absolute after:-inset-y-1 after:-inset-x-0.5"
         >
           <X className="h-3 w-3" />
         </button>

@@ -111,7 +111,7 @@ export function PanelCard({
         <div
           className={`absolute inset-0 flex items-center justify-center gap-2 transition-opacity ${
             panel.cover_url
-              ? 'bg-background/70 opacity-100 md:opacity-0 md:group-hover/image:opacity-100'
+              ? 'bg-background/70 opacity-100 md:can-hover:opacity-0 md:group-hover/image:opacity-100'
               : 'opacity-100'
           }`}
         >
@@ -141,7 +141,7 @@ export function PanelCard({
           {...attributes}
           {...listeners}
           onClick={(e) => e.stopPropagation()}
-          className="absolute left-1.5 top-1.5 flex h-6 w-6 items-center justify-center rounded-full bg-background/90 text-muted-foreground opacity-100 md:opacity-0 md:group-hover:opacity-100 shadow-sm transition-opacity cursor-grab active:cursor-grabbing"
+          className="absolute left-1.5 top-1.5 flex h-6 w-6 items-center justify-center rounded-full bg-background/90 text-muted-foreground opacity-100 md:can-hover:opacity-0 md:group-hover:opacity-100 shadow-sm transition-opacity cursor-grab active:cursor-grabbing"
         >
           <GripVertical className="h-3.5 w-3.5" />
         </button>
@@ -149,7 +149,7 @@ export function PanelCard({
         <button
           onClick={handleDelete}
           title="Delete panel"
-          className="absolute right-1.5 top-1.5 flex h-6 w-6 items-center justify-center rounded-full bg-background/90 text-muted-foreground opacity-100 md:opacity-0 md:group-hover:opacity-100 shadow-sm transition-opacity hover:text-destructive"
+          className="absolute right-1.5 top-1.5 flex h-6 w-6 items-center justify-center rounded-full bg-background/90 text-muted-foreground opacity-100 md:can-hover:opacity-0 md:group-hover:opacity-100 shadow-sm transition-opacity hover:text-destructive"
         >
           <Trash2 className="h-3.5 w-3.5" />
         </button>

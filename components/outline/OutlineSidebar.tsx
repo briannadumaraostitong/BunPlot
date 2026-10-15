@@ -233,7 +233,7 @@ function OutlineRow({
             onDeleteRequest()
           }}
           title="Delete document"
-          className="relative shrink-0 p-0.5 text-muted-foreground opacity-100 md:opacity-0 transition-opacity hover:text-destructive md:group-hover:opacity-100 after:absolute after:-inset-1.5"
+          className="relative shrink-0 p-0.5 text-muted-foreground opacity-100 md:can-hover:opacity-0 transition-opacity hover:text-destructive md:group-hover:opacity-100 after:absolute after:-inset-1.5"
         >
           <X className="h-3.5 w-3.5" />
         </button>

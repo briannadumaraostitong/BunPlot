@@ -221,7 +221,7 @@ function StatusRow({
         {...attributes}
         {...listeners}
         onClick={(e) => e.stopPropagation()}
-        className="relative shrink-0 cursor-grab text-muted-foreground opacity-100 transition-opacity active:cursor-grabbing after:absolute after:-inset-1.5 md:opacity-0 md:group-hover:opacity-100"
+        className="relative shrink-0 cursor-grab text-muted-foreground opacity-100 transition-opacity active:cursor-grabbing after:absolute after:-inset-1.5 md:can-hover:opacity-0 md:group-hover:opacity-100"
       >
         <GripVertical className="h-3.5 w-3.5" />
       </button>
@@ -279,7 +279,7 @@ function StatusRow({
               setEditing(true)
             }}
             title="Rename status"
-            className="relative p-0.5 text-muted-foreground/40 opacity-100 transition-opacity hover:text-foreground md:opacity-0 md:group-hover:opacity-100 after:absolute after:-inset-y-1.5"
+            className="relative p-0.5 text-muted-foreground/40 opacity-100 transition-opacity hover:text-foreground md:can-hover:opacity-0 md:group-hover:opacity-100 after:absolute after:-inset-y-1.5"
           >
             <Pencil className="h-3 w-3" />
           </button>
@@ -292,7 +292,7 @@ function StatusRow({
             <button
               onClick={handleSetDefault}
               title="Set as default"
-              className="relative p-0.5 text-muted-foreground/40 opacity-100 transition-opacity hover:text-foreground md:opacity-0 md:group-hover:opacity-100 after:absolute after:-inset-y-1.5"
+              className="relative p-0.5 text-muted-foreground/40 opacity-100 transition-opacity hover:text-foreground md:can-hover:opacity-0 md:group-hover:opacity-100 after:absolute after:-inset-y-1.5"
             >
               <Star className="h-3 w-3" />
             </button>
@@ -303,7 +303,7 @@ function StatusRow({
               onClick={handleDelete}
               disabled={deleting}
               title="Delete status"
-              className="relative p-0.5 text-muted-foreground opacity-100 transition-colors md:opacity-0 md:group-hover:opacity-100 hover:text-destructive after:absolute after:-inset-y-1.5"
+              className="relative p-0.5 text-muted-foreground opacity-100 transition-colors md:can-hover:opacity-0 md:group-hover:opacity-100 hover:text-destructive after:absolute after:-inset-y-1.5"
             >
               <Trash2 className="h-3.5 w-3.5" />
             </button>

@@ -124,7 +124,7 @@ export function CharacterRow({
         disabled={hasRelationships || deleting}
         title={hasRelationships ? 'Remove relationships before deleting' : 'Delete character'}
         className={cn(
-          'relative shrink-0 p-0.5 opacity-100 md:opacity-0 md:group-hover:opacity-100 transition-opacity after:absolute after:-inset-1.5',
+          'relative shrink-0 p-0.5 opacity-100 md:can-hover:opacity-0 md:group-hover:opacity-100 transition-opacity after:absolute after:-inset-1.5',
           hasRelationships
             ? 'text-muted-foreground/40 cursor-not-allowed'
             : 'text-muted-foreground hover:text-destructive'

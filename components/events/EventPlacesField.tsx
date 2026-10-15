@@ -81,7 +81,7 @@ export function EventPlacesField({
               <button
                 onClick={() => onRemove(place.id)}
                 title={`Remove ${place.name}`}
-                className="relative shrink-0 text-muted-foreground opacity-100 md:opacity-0 transition-opacity hover:text-destructive md:group-hover:opacity-100 after:absolute after:-inset-1.5"
+                className="relative shrink-0 text-muted-foreground opacity-100 md:can-hover:opacity-0 transition-opacity hover:text-destructive md:group-hover:opacity-100 after:absolute after:-inset-1.5"
               >
                 <X className="h-3 w-3" />
               </button>

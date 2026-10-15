@@ -114,7 +114,7 @@ export function ChapterLinkPicker({ chapter, allChapters, projectId }: ChapterLi
                   <button
                     onClick={() => handleRemove(link.id)}
                     title={`Remove link to ${link.continues_from.title}`}
-                    className="relative shrink-0 text-muted-foreground opacity-100 md:opacity-0 transition-opacity hover:text-destructive md:group-hover:opacity-100 after:absolute after:-inset-1.5"
+                    className="relative shrink-0 text-muted-foreground opacity-100 md:can-hover:opacity-0 transition-opacity hover:text-destructive md:group-hover:opacity-100 after:absolute after:-inset-1.5"
                   >
                     <X className="h-3 w-3" />
                   </button>

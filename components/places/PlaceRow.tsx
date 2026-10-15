@@ -77,7 +77,7 @@ export function PlaceRow({ place, selected, onSelect, onColorChanged, onDeleted 
         onClick={handleDelete}
         disabled={deleting}
         title="Delete place"
-        className="relative shrink-0 p-0.5 opacity-100 md:opacity-0 md:group-hover:opacity-100 transition-opacity text-muted-foreground hover:text-destructive after:absolute after:-inset-1.5"
+        className="relative shrink-0 p-0.5 opacity-100 md:can-hover:opacity-0 md:group-hover:opacity-100 transition-opacity text-muted-foreground hover:text-destructive after:absolute after:-inset-1.5"
       >
         {deleting ? (
           <Loader2 className="h-3.5 w-3.5 animate-spin" />

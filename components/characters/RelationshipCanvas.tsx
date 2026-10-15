@@ -266,7 +266,7 @@ export const RelationshipCanvas = forwardRef<RelationshipCanvasHandle, Relations
                   <span className="capitalize">{rel.relationship_label || rel.relationship_type}</span>
                   <button
                     onClick={() => handleDeleteRelationship(rel.id)}
-                    className="relative opacity-100 md:opacity-0 md:group-hover:opacity-100 hover:text-destructive transition-opacity after:absolute after:-inset-1.5"
+                    className="relative opacity-100 md:can-hover:opacity-0 md:group-hover:opacity-100 hover:text-destructive transition-opacity after:absolute after:-inset-1.5"
                     title="Remove relationship"
                   >
                     <X className="h-2.5 w-2.5" />

@@ -439,7 +439,7 @@ function ProjectCoverImage({
       {displayUrl && !uploading && (
         <button
           onClick={handleRemove}
-          className="absolute right-1.5 top-1.5 flex h-6 w-6 items-center justify-center rounded-full bg-background/90 text-muted-foreground opacity-100 md:opacity-0 shadow-sm transition-opacity hover:text-destructive md:group-hover/cover:opacity-100 after:absolute after:-inset-2.5"
+          className="absolute right-1.5 top-1.5 flex h-6 w-6 items-center justify-center rounded-full bg-background/90 text-muted-foreground opacity-100 md:can-hover:opacity-0 shadow-sm transition-opacity hover:text-destructive md:group-hover/cover:opacity-100 after:absolute after:-inset-2.5"
           title="Remove cover image"
         >
           <X className="h-3.5 w-3.5" />

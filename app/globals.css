@@ -8,6 +8,13 @@
    expects — without this, every Tabs active/inactive style is a no-op. */
 @custom-variant data-active (&[data-state="active"]);
 
+/* Devices that can hover, the same condition Tailwind puts on hover: and
+   group-hover:. Hover-revealed controls hide with md:can-hover:opacity-0, so
+   a wide touch screen (tablet, landscape phone), where the hover that would
+   reveal them never happens, shows them instead of leaving them invisible
+   but still tappable. */
+@custom-variant can-hover (@media (hover: hover));
+
 @theme inline {
   --color-background: hsl(var(--background));
   --color-foreground: hsl(var(--foreground));
