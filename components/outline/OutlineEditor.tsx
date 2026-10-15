@@ -1,6 +1,6 @@
 'use client'
 
-import { useCallback, useEffect, useRef, useState } from 'react'
+import { Fragment, useCallback, useEffect, useRef, useState } from 'react'
 import { useEditor, useEditorState, EditorContent } from '@tiptap/react'
 import { BubbleMenu } from '@tiptap/react/menus'
 import StarterKit from '@tiptap/starter-kit'
@@ -30,6 +30,9 @@ import {
   PanelLeft,
   PanelRight,
   Download,
+  ChevronDown,
+  ChevronUp,
+  type LucideIcon,
 } from 'lucide-react'
 import { Separator } from '@/components/ui/separator'
 import { Skeleton } from '@/components/ui/skeleton'
@@ -291,6 +294,8 @@ function OutlineDocumentEditor({ outline, onExport }: { outline: Outline; onExpo
     lastSavedJson,
   })
   const [uploadingImage, setUploadingImage] = useState(false)
+  // Phones only: whether the second row of toolbar tools is showing.
+  const [moreTools, setMoreTools] = useState(false)
   const [imageError, setImageError] = useState<string | null>(null)
 
   const editor = useEditor({
@@ -474,119 +479,48 @@ function OutlineDocumentEditor({ outline, onExport }: { outline: Outline; onExpo
 
   if (!editor) return null
 
+  // One list drives both toolbar layouts. md and up shows every tool in this
+  // order, wrapping as before. Phones show the `primary` ones plus a toggle
+  // that reveals the rest in a second, wrapping row. A change of `group`
+  // puts a separator between tools.
+  const tools: ToolbarTool[] = [
+    { id: 'bold', group: 0, primary: true, title: 'Bold', icon: Bold, active: editor.isActive('bold'), onClick: () => editor.chain().focus().toggleBold().run() },
+    { id: 'italic', group: 0, primary: true, title: 'Italic', icon: Italic, active: editor.isActive('italic'), onClick: () => editor.chain().focus().toggleItalic().run() },
+    { id: 'underline', group: 0, primary: true, title: 'Underline', icon: UnderlineIcon, active: editor.isActive('underline'), onClick: () => editor.chain().focus().toggleUnderline().run() },
+    { id: 'strike', group: 0, title: 'Strikethrough', icon: Strikethrough, active: editor.isActive('strike'), onClick: () => editor.chain().focus().toggleStrike().run() },
+    { id: 'h1', group: 1, title: 'Heading 1', icon: Heading1, active: editor.isActive('heading', { level: 1 }), onClick: () => editor.chain().focus().toggleHeading({ level: 1 }).run() },
+    { id: 'h2', group: 1, title: 'Heading 2', icon: Heading2, active: editor.isActive('heading', { level: 2 }), onClick: () => editor.chain().focus().toggleHeading({ level: 2 }).run() },
+    { id: 'h3', group: 1, title: 'Heading 3', icon: Heading3, active: editor.isActive('heading', { level: 3 }), onClick: () => editor.chain().focus().toggleHeading({ level: 3 }).run() },
+    { id: 'bullet', group: 2, primary: true, title: 'Bullet list', icon: List, active: editor.isActive('bulletList'), onClick: () => editor.chain().focus().toggleBulletList().run() },
+    { id: 'ordered', group: 2, title: 'Numbered list', icon: ListOrdered, active: editor.isActive('orderedList'), onClick: () => editor.chain().focus().toggleOrderedList().run() },
+    { id: 'quote', group: 2, title: 'Blockquote', icon: Quote, active: editor.isActive('blockquote'), onClick: () => editor.chain().focus().toggleBlockquote().run() },
+    { id: 'align-left', group: 3, title: 'Align left', icon: AlignLeft, active: isAlignActive('left'), onClick: () => setAlign('left') },
+    { id: 'align-center', group: 3, title: 'Align center', icon: AlignCenter, active: isAlignActive('center'), onClick: () => setAlign('center') },
+    { id: 'align-right', group: 3, title: 'Align right', icon: AlignRight, active: isAlignActive('right'), onClick: () => setAlign('right') },
+    { id: 'align-justify', group: 3, title: 'Justify', icon: AlignJustify, active: isAlignActive('justify'), onClick: () => setAlign('justify') },
+    { id: 'image', group: 4, primary: true, title: 'Insert image', icon: uploadingImage ? Loader2 : ImageIcon, iconClassName: uploadingImage ? 'animate-spin' : undefined, disabled: uploadingImage, onClick: () => fileInputRef.current?.click() },
+  ]
+
   return (
     <div className="flex h-full flex-col overflow-hidden">
-      <div className="flex shrink-0 items-center justify-between gap-2 border-b border-border bg-background px-4 py-2">
-        <div className="flex flex-wrap items-center gap-0.5">
-          <ToolbarBtn
-            onClick={() => editor.chain().focus().toggleBold().run()}
-            active={editor.isActive('bold')}
-            title="Bold"
-          >
-            <Bold className="h-3.5 w-3.5" />
-          </ToolbarBtn>
-          <ToolbarBtn
-            onClick={() => editor.chain().focus().toggleItalic().run()}
-            active={editor.isActive('italic')}
-            title="Italic"
-          >
-            <Italic className="h-3.5 w-3.5" />
-          </ToolbarBtn>
-          <ToolbarBtn
-            onClick={() => editor.chain().focus().toggleUnderline().run()}
-            active={editor.isActive('underline')}
-            title="Underline"
-          >
-            <UnderlineIcon className="h-3.5 w-3.5" />
-          </ToolbarBtn>
-          <ToolbarBtn
-            onClick={() => editor.chain().focus().toggleStrike().run()}
-            active={editor.isActive('strike')}
-            title="Strikethrough"
-          >
-            <Strikethrough className="h-3.5 w-3.5" />
-          </ToolbarBtn>
-
-          <Separator orientation="vertical" className="h-4 mx-2" />
-
-          <ToolbarBtn
-            onClick={() => editor.chain().focus().toggleHeading({ level: 1 }).run()}
-            active={editor.isActive('heading', { level: 1 })}
-            title="Heading 1"
-          >
-            <Heading1 className="h-3.5 w-3.5" />
-          </ToolbarBtn>
-          <ToolbarBtn
-            onClick={() => editor.chain().focus().toggleHeading({ level: 2 }).run()}
-            active={editor.isActive('heading', { level: 2 })}
-            title="Heading 2"
-          >
-            <Heading2 className="h-3.5 w-3.5" />
-          </ToolbarBtn>
-          <ToolbarBtn
-            onClick={() => editor.chain().focus().toggleHeading({ level: 3 }).run()}
-            active={editor.isActive('heading', { level: 3 })}
-            title="Heading 3"
-          >
-            <Heading3 className="h-3.5 w-3.5" />
-          </ToolbarBtn>
-
-          <Separator orientation="vertical" className="h-4 mx-2" />
-
-          <ToolbarBtn
-            onClick={() => editor.chain().focus().toggleBulletList().run()}
-            active={editor.isActive('bulletList')}
-            title="Bullet list"
-          >
-            <List className="h-3.5 w-3.5" />
-          </ToolbarBtn>
-          <ToolbarBtn
-            onClick={() => editor.chain().focus().toggleOrderedList().run()}
-            active={editor.isActive('orderedList')}
-            title="Numbered list"
-          >
-            <ListOrdered className="h-3.5 w-3.5" />
-          </ToolbarBtn>
-          <ToolbarBtn
-            onClick={() => editor.chain().focus().toggleBlockquote().run()}
-            active={editor.isActive('blockquote')}
-            title="Blockquote"
-          >
-            <Quote className="h-3.5 w-3.5" />
-          </ToolbarBtn>
-
-          <Separator orientation="vertical" className="h-4 mx-2" />
-
-          <ToolbarBtn onClick={() => setAlign('left')} active={isAlignActive('left')} title="Align left">
-            <AlignLeft className="h-3.5 w-3.5" />
-          </ToolbarBtn>
-          <ToolbarBtn
-            onClick={() => setAlign('center')}
-            active={isAlignActive('center')}
-            title="Align center"
-          >
-            <AlignCenter className="h-3.5 w-3.5" />
-          </ToolbarBtn>
-          <ToolbarBtn onClick={() => setAlign('right')} active={isAlignActive('right')} title="Align right">
-            <AlignRight className="h-3.5 w-3.5" />
-          </ToolbarBtn>
-          <ToolbarBtn onClick={() => setAlign('justify')} active={isAlignActive('justify')} title="Justify">
-            <AlignJustify className="h-3.5 w-3.5" />
-          </ToolbarBtn>
-
-          <Separator orientation="vertical" className="h-4 mx-2" />
-
-          <ToolbarBtn
-            onClick={() => fileInputRef.current?.click()}
-            title="Insert image"
-            disabled={uploadingImage}
-          >
-            {uploadingImage ? (
-              <Loader2 className="h-3.5 w-3.5 animate-spin" />
-            ) : (
-              <ImageIcon className="h-3.5 w-3.5" />
-            )}
-          </ToolbarBtn>
+      <div className="shrink-0 border-b border-border bg-background">
+        <div className="flex items-center justify-between gap-2 px-4 py-2">
+          {/* md and up: every tool, wrapping, exactly as before. */}
+          <div className="hidden flex-wrap items-center gap-0.5 md:flex">
+            <ToolbarTools tools={tools} />
+          </div>
+          {/* Phones: the most-used tools and a toggle for the rest. */}
+          <div className="flex min-w-0 flex-wrap items-center gap-0.5 md:hidden">
+            <ToolbarTools tools={tools} show="primary" separators={false} />
+            <ToolbarBtn
+              onClick={() => setMoreTools((v) => !v)}
+              active={moreTools}
+              title={moreTools ? 'Fewer tools' : 'More tools'}
+              expanded={moreTools}
+            >
+              {moreTools ? <ChevronUp className="h-3.5 w-3.5" /> : <ChevronDown className="h-3.5 w-3.5" />}
+            </ToolbarBtn>
+          </div>
           <input
             ref={fileInputRef}
             type="file"
@@ -594,32 +528,37 @@ function OutlineDocumentEditor({ outline, onExport }: { outline: Outline; onExpo
             className="hidden"
             onChange={handleImageUpload}
           />
-        </div>
 
-        <div className="flex shrink-0 items-center gap-3 text-xs">
-          {imageError && <span className="text-destructive">{imageError}</span>}
-          <span className="text-muted-foreground">
-            {wordCount} word{wordCount === 1 ? '' : 's'}
-          </span>
-          {saveStatus === 'saving' ? (
-            <span className="text-muted-foreground">Saving...</span>
-          ) : saveStatus === 'error' ? (
-            <span className="text-destructive">Not saved</span>
-          ) : (
-            <span className="text-emerald-600 dark:text-emerald-500">Saved ✓</span>
-          )}
-          {/* Same button as the Timeline and Panels tabs' Export, so every tab
-              puts its export in the same place. Also in the sidebar's File
-              menu, but this one stays visible when the sidebar is collapsed. */}
-          <button
-            onClick={onExport}
-            aria-label="Export manuscript"
-            className="relative ml-auto flex h-7 shrink-0 items-center gap-1.5 rounded-lg border border-border px-2 text-xs text-muted-foreground transition-colors hover:bg-secondary hover:text-foreground after:absolute after:-inset-1 md:px-2.5"
-          >
-            <Download className="h-3 w-3" />
-            <span className="hidden md:inline">Export</span>
-          </button>
+          <div className="flex shrink-0 items-center gap-3 text-xs">
+            {imageError && <span className="text-destructive">{imageError}</span>}
+            <span className="hidden text-muted-foreground sm:inline">
+              {wordCount} word{wordCount === 1 ? '' : 's'}
+            </span>
+            {saveStatus === 'saving' ? (
+              <span className="text-muted-foreground">Saving...</span>
+            ) : saveStatus === 'error' ? (
+              <span className="text-destructive">Not saved</span>
+            ) : (
+              <span className="text-emerald-600 dark:text-emerald-500">Saved ✓</span>
+            )}
+            {/* Same button as the Timeline and Panels tabs' Export, so every tab
+                puts its export in the same place. Also in the sidebar's File
+                menu, but this one stays visible when the sidebar is collapsed. */}
+            <button
+              onClick={onExport}
+              aria-label="Export manuscript"
+              className="relative ml-auto flex h-7 shrink-0 items-center gap-1.5 rounded-lg border border-border px-2 text-xs text-muted-foreground transition-colors hover:bg-secondary hover:text-foreground after:absolute after:-inset-1 md:px-2.5"
+            >
+              <Download className="h-3 w-3" />
+              <span className="hidden md:inline">Export</span>
+            </button>
+          </div>
         </div>
+        {moreTools && (
+          <div className="flex flex-wrap items-center gap-0.5 px-4 pb-2 md:hidden">
+            <ToolbarTools tools={tools} show="more" />
+          </div>
+        )}
       </div>
 
       <RestoreBackupBanner
@@ -671,23 +610,63 @@ function OutlineDocumentEditor({ outline, onExport }: { outline: Outline; onExpo
   )
 }
 
+interface ToolbarTool {
+  id: string
+  group: number
+  primary?: boolean
+  title: string
+  icon: LucideIcon
+  iconClassName?: string
+  active?: boolean
+  disabled?: boolean
+  onClick: () => void
+}
+
+// Filters here rather than in the parent's render: the list holds the image
+// button's handler, which uses a ref, and React's lint rule rejects passing a
+// ref-holding value to a function (like .filter) during render.
+function ToolbarTools({
+  tools,
+  show = 'all',
+  separators = true,
+}: {
+  tools: ToolbarTool[]
+  show?: 'all' | 'primary' | 'more'
+  separators?: boolean
+}) {
+  const shown = show === 'all' ? tools : tools.filter((t) => (show === 'primary') === Boolean(t.primary))
+  return shown.map((tool, i) => (
+    <Fragment key={tool.id}>
+      {separators && i > 0 && tool.group !== shown[i - 1].group && (
+        <Separator orientation="vertical" className="h-4 mx-2" />
+      )}
+      <ToolbarBtn onClick={tool.onClick} active={tool.active} title={tool.title} disabled={tool.disabled}>
+        <tool.icon className={cn('h-3.5 w-3.5', tool.iconClassName)} />
+      </ToolbarBtn>
+    </Fragment>
+  ))
+}
+
 function ToolbarBtn({
   onClick,
   title,
   active,
   disabled,
+  expanded,
   children,
 }: {
   onClick: () => void
   title: string
   active?: boolean
   disabled?: boolean
+  expanded?: boolean
   children: React.ReactNode
 }) {
   return (
     <button
       type="button"
       title={title}
+      aria-expanded={expanded}
       disabled={disabled}
       onMouseDown={(e) => {
         e.preventDefault()
