@@ -5,14 +5,18 @@ import { Loader2 } from 'lucide-react'
 import { Dialog, DialogContent, DialogTitle, DialogDescription } from '@/components/ui/dialog'
 import { Button } from '@/components/ui/button'
 import { createClient } from '@/lib/supabase/client'
+import { useIsBelowMd } from '@/hooks/useIsBelowMd'
 import { SketchToolbar } from './SketchToolbar'
-import { SketchCanvas, type SketchCanvasHandle } from './SketchCanvas'
+import { SketchCanvas, BASE_DISPLAY_WIDTH, type SketchCanvasHandle } from './SketchCanvas'
 import { BRUSH_MIN, BRUSH_MAX, ZOOM_WHEEL_FACTOR, clampZoom, type SketchTool } from './types'
 
 const DEFAULT_FONT_SIZE = 24
 import type { PanelWithCover, ActionResult } from '@/actions/panels'
 
 const SKETCH_SIGNED_URL_TTL = 60 * 60 * 24 // 24h, matches actions/panels.ts's cover-url TTL
+// The scroll container's p-4, both sides — subtracted when fitting the
+// canvas to the container's width on phones.
+const CANVAS_AREA_PADDING_X = 32
 
 function isTypingTarget(el: Element | null): boolean {
   if (!el) return false
@@ -42,6 +46,7 @@ export function SketchModal({ panel, projectId, chapterId, open, onClose, onSave
   const scrollContainerRef = useRef<HTMLDivElement>(null)
   const canvasWrapperRef = useRef<HTMLDivElement>(null)
   const pendingZoomAnchorRef = useRef<ZoomAnchor | null>(null)
+  const isBelowMd = useIsBelowMd()
   const [tool, setTool] = useState<SketchTool>('pen')
   const [color, setColor] = useState('#18181b')
   const [brushSize, setBrushSize] = useState(6)
@@ -226,10 +231,18 @@ export function SketchModal({ panel, projectId, chapterId, open, onClose, onSave
   // the second, so scrollContainerRef.current was still null when it ran.
   // A callback ref sidesteps that entirely: React calls it exactly when the
   // node is actually attached, in whichever commit that turns out to be.
+  //
+  // On phones it also zooms the canvas to fit the container's width each
+  // time the modal opens — 100% (480px wide) is wider than a phone's modal.
+  // Desktop keeps whatever zoom it was left at, as before.
   const attachScrollContainer = useCallback(
     (el: HTMLDivElement | null) => {
       scrollContainerRef.current = el
       if (!el) return
+
+      if (isBelowMd) {
+        setZoom(clampZoom((el.clientWidth - CANVAS_AREA_PADDING_X) / BASE_DISPLAY_WIDTH))
+      }
 
       function handleWheel(e: WheelEvent) {
         if (!e.ctrlKey) return
@@ -241,7 +254,7 @@ export function SketchModal({ panel, projectId, chapterId, open, onClose, onSave
       el.addEventListener('wheel', handleWheel, { passive: false })
       return () => el.removeEventListener('wheel', handleWheel)
     },
-    [zoomAtPoint]
+    [zoomAtPoint, isBelowMd]
   )
 
   async function handleSave() {
@@ -294,7 +307,7 @@ export function SketchModal({ panel, projectId, chapterId, open, onClose, onSave
   return (
     <Dialog open={open} onOpenChange={handleOpenChange}>
       <DialogContent
-        className="sm:max-w-4xl p-0 overflow-hidden gap-0 bg-card"
+        className="sm:max-w-4xl p-0 overflow-hidden gap-0 bg-card max-md:flex max-md:max-h-dvh max-md:flex-col"
         onEscapeKeyDown={(e) => {
           // Radix closes the dialog on Escape by default. If there's a
           // floating selection or a pending text edit, the first Escape
@@ -311,7 +324,9 @@ export function SketchModal({ panel, projectId, chapterId, open, onClose, onSave
 
         {panel && (
           <>
-            <div className="flex h-160">
+            {/* Phones stack the tool strip above the canvas, and the canvas
+                area shrinks (and scrolls) to keep the modal within the screen. */}
+            <div className="flex min-h-0 flex-col md:h-160 md:flex-row">
               <SketchToolbar
                 tool={tool}
                 onToolChange={handleToolChange}
@@ -330,7 +345,7 @@ export function SketchModal({ panel, projectId, chapterId, open, onClose, onSave
 
               <div
                 ref={attachScrollContainer}
-                className="grid flex-1 place-items-center overflow-auto bg-secondary/20 p-4"
+                className="grid min-h-0 flex-1 place-items-center overflow-auto bg-secondary/20 p-4"
               >
                 <SketchCanvas
                   ref={canvasRef}
@@ -346,7 +361,7 @@ export function SketchModal({ panel, projectId, chapterId, open, onClose, onSave
               </div>
             </div>
 
-            <div className="flex items-center justify-between border-t border-border px-5 py-3">
+            <div className="flex shrink-0 items-center justify-between border-t border-border px-5 py-3">
               <p className="text-xs text-destructive">{error}</p>
               <div className="ml-auto flex gap-2">
                 <Button variant="ghost" size="sm" onClick={onClose} disabled={saving}>

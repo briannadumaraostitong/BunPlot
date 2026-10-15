@@ -1,6 +1,6 @@
 'use client'
 
-import { useRef } from 'react'
+import { useRef, useState } from 'react'
 import {
   Pencil,
   Eraser,
@@ -14,6 +14,8 @@ import {
   Trash2,
   ZoomIn,
   ZoomOut,
+  ChevronDown,
+  ChevronUp,
   type LucideIcon,
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
@@ -73,124 +75,152 @@ export function SketchToolbar({
   onClear,
 }: SketchToolbarProps) {
   const colorInputRef = useRef<HTMLInputElement>(null)
+  const [moreTools, setMoreTools] = useState(false)
 
+  // Phones get the Outline toolbar's pattern: one row of drawing tools plus a
+  // chevron that reveals everything else in a wrapping section below. Each
+  // control is rendered once; the two phone-only wrappers turn into
+  // `display: contents` from md up, so the desktop column is laid out exactly
+  // as before.
   return (
-    <div className="flex w-40 shrink-0 flex-col gap-3 border-r border-border p-3 overflow-y-auto scrollbar-thin">
-      <div className="grid grid-cols-2 gap-1">
-        {TOOLS.map(({ id, label, icon: Icon }) => (
-          <button
-            key={id}
-            title={label}
-            onClick={() => onToolChange(id)}
-            className={cn(
-              'flex h-8 items-center justify-center rounded-md transition-colors',
-              tool === id ? 'bg-primary text-primary-foreground' : 'text-muted-foreground hover:bg-secondary'
-            )}
-          >
-            <Icon className="h-4 w-4" />
-          </button>
-        ))}
-      </div>
-
-      <div className="flex gap-1.5 border-t border-border pt-3">
-        <button
-          onClick={onUndo}
-          disabled={!canUndo}
-          title="Undo"
-          className="flex h-8 flex-1 items-center justify-center rounded-md text-muted-foreground transition-colors hover:bg-secondary disabled:pointer-events-none disabled:opacity-40"
-        >
-          <Undo2 className="h-4 w-4" />
-        </button>
-        <button
-          onClick={onClear}
-          title="Clear canvas"
-          className="flex h-8 flex-1 items-center justify-center rounded-md text-muted-foreground transition-colors hover:bg-destructive/10 hover:text-destructive"
-        >
-          <Trash2 className="h-4 w-4" />
-        </button>
-      </div>
-
-      <div className="space-y-1.5 border-t border-border pt-3">
-        <p className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">Color</p>
-        <div className="grid grid-cols-4 gap-1.5">
-          {PALETTE.map((swatch) => (
+    <div className="flex shrink-0 flex-col border-b border-border md:w-40 md:gap-3 md:overflow-y-auto md:border-b-0 md:border-r md:p-3 scrollbar-thin">
+      {/* pr-12 keeps the row clear of the dialog's close button, which sits
+          over its right end; on very narrow screens the row wraps instead. */}
+      <div className="flex flex-wrap items-center gap-0.5 p-2 pr-12 md:contents">
+        <div className="contents md:grid md:grid-cols-2 md:gap-1">
+          {TOOLS.map(({ id, label, icon: Icon }) => (
             <button
-              key={swatch}
-              onClick={() => onColorChange(swatch)}
+              key={id}
+              title={label}
+              onClick={() => onToolChange(id)}
               className={cn(
-                'h-5 w-5 rounded-full ring-1 ring-inset ring-black/15 transition-transform hover:scale-110 dark:ring-white/15',
-                color === swatch && 'ring-2 ring-offset-1 ring-primary'
+                'flex h-8 w-7 items-center justify-center rounded-md transition-colors md:w-auto',
+                tool === id ? 'bg-primary text-primary-foreground' : 'text-muted-foreground hover:bg-secondary'
               )}
-              style={{ backgroundColor: swatch }}
-              title={swatch}
-            />
+            >
+              <Icon className="h-4 w-4" />
+            </button>
           ))}
-          <div className="relative">
-            <button
-              onClick={() => colorInputRef.current?.click()}
-              className="h-5 w-5 rounded-full ring-1 ring-inset ring-black/15 transition-transform hover:scale-110 dark:ring-white/15"
-              style={{ background: 'conic-gradient(red, yellow, lime, cyan, blue, magenta, red)' }}
-              title="Custom color"
-            />
-            <input
-              ref={colorInputRef}
-              type="color"
-              value={color}
-              onChange={(e) => onColorChange(e.target.value)}
-              className="pointer-events-none absolute h-0 w-0 opacity-0"
-              tabIndex={-1}
-            />
+        </div>
+        <button
+          onClick={() => setMoreTools((open) => !open)}
+          title={moreTools ? 'Fewer tools' : 'More tools'}
+          aria-expanded={moreTools}
+          className={cn(
+            'flex h-8 w-7 items-center justify-center rounded-md transition-colors md:hidden',
+            moreTools ? 'bg-secondary text-foreground' : 'text-muted-foreground hover:bg-secondary'
+          )}
+        >
+          {moreTools ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
+        </button>
+      </div>
+
+      <div
+        className={cn(
+          'flex-wrap items-start gap-x-3 gap-y-3 border-t border-border px-3 py-2 md:contents',
+          moreTools ? 'flex' : 'hidden'
+        )}
+      >
+        <div className="flex gap-1.5 border-border md:border-t md:pt-3">
+          <button
+            onClick={onUndo}
+            disabled={!canUndo}
+            title="Undo"
+            className="flex h-8 w-8 items-center justify-center rounded-md text-muted-foreground transition-colors hover:bg-secondary disabled:pointer-events-none disabled:opacity-40 md:w-auto md:flex-1"
+          >
+            <Undo2 className="h-4 w-4" />
+          </button>
+          <button
+            onClick={onClear}
+            title="Clear canvas"
+            className="flex h-8 w-8 items-center justify-center rounded-md text-muted-foreground transition-colors hover:bg-destructive/10 hover:text-destructive md:w-auto md:flex-1"
+          >
+            <Trash2 className="h-4 w-4" />
+          </button>
+        </div>
+
+        <div className="space-y-1.5 border-border md:border-t md:pt-3">
+          <p className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">Color</p>
+          <div className="flex gap-1.5 md:grid md:grid-cols-4">
+            {PALETTE.map((swatch) => (
+              <button
+                key={swatch}
+                onClick={() => onColorChange(swatch)}
+                className={cn(
+                  'h-5 w-5 rounded-full ring-1 ring-inset ring-black/15 transition-transform hover:scale-110 dark:ring-white/15',
+                  color === swatch && 'ring-2 ring-offset-1 ring-primary'
+                )}
+                style={{ backgroundColor: swatch }}
+                title={swatch}
+              />
+            ))}
+            <div className="relative">
+              <button
+                onClick={() => colorInputRef.current?.click()}
+                className="h-5 w-5 rounded-full ring-1 ring-inset ring-black/15 transition-transform hover:scale-110 dark:ring-white/15"
+                style={{ background: 'conic-gradient(red, yellow, lime, cyan, blue, magenta, red)' }}
+                title="Custom color"
+              />
+              <input
+                ref={colorInputRef}
+                type="color"
+                value={color}
+                onChange={(e) => onColorChange(e.target.value)}
+                className="pointer-events-none absolute h-0 w-0 opacity-0"
+                tabIndex={-1}
+              />
+            </div>
           </div>
         </div>
-      </div>
 
-      <div className="space-y-1.5 border-t border-border pt-3">
-        <p className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">Zoom</p>
-        <div className="flex items-center gap-1.5">
-          <button
-            onClick={() => onZoomChange(zoom - ZOOM_BUTTON_STEP)}
-            disabled={zoom <= ZOOM_MIN}
-            title="Zoom out"
-            className="flex h-7 w-7 shrink-0 items-center justify-center rounded-md text-muted-foreground transition-colors hover:bg-secondary disabled:pointer-events-none disabled:opacity-40"
-          >
-            <ZoomOut className="h-3.5 w-3.5" />
-          </button>
-          <p className="flex-1 text-center text-[10px] text-muted-foreground">{Math.round(zoom * 100)}%</p>
-          <button
-            onClick={() => onZoomChange(zoom + ZOOM_BUTTON_STEP)}
-            disabled={zoom >= ZOOM_MAX}
-            title="Zoom in"
-            className="flex h-7 w-7 shrink-0 items-center justify-center rounded-md text-muted-foreground transition-colors hover:bg-secondary disabled:pointer-events-none disabled:opacity-40"
-          >
-            <ZoomIn className="h-3.5 w-3.5" />
-          </button>
+        <div className="w-24 space-y-1.5 border-border md:w-auto md:border-t md:pt-3">
+          <p className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">Zoom</p>
+          <div className="flex items-center gap-1.5">
+            <button
+              onClick={() => onZoomChange(zoom - ZOOM_BUTTON_STEP)}
+              disabled={zoom <= ZOOM_MIN}
+              title="Zoom out"
+              className="flex h-7 w-7 shrink-0 items-center justify-center rounded-md text-muted-foreground transition-colors hover:bg-secondary disabled:pointer-events-none disabled:opacity-40"
+            >
+              <ZoomOut className="h-3.5 w-3.5" />
+            </button>
+            <p className="flex-1 text-center text-[10px] text-muted-foreground">{Math.round(zoom * 100)}%</p>
+            <button
+              onClick={() => onZoomChange(zoom + ZOOM_BUTTON_STEP)}
+              disabled={zoom >= ZOOM_MAX}
+              title="Zoom in"
+              className="flex h-7 w-7 shrink-0 items-center justify-center rounded-md text-muted-foreground transition-colors hover:bg-secondary disabled:pointer-events-none disabled:opacity-40"
+            >
+              <ZoomIn className="h-3.5 w-3.5" />
+            </button>
+          </div>
         </div>
-      </div>
 
-      <div className="space-y-1.5 border-t border-border pt-3">
-        <p className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">Brush size</p>
-        <input
-          type="range"
-          min={BRUSH_MIN}
-          max={BRUSH_MAX}
-          value={brushSize}
-          onChange={(e) => onBrushSizeChange(Number(e.target.value))}
-          className="w-full"
-        />
-        <p className="text-center text-[10px] text-muted-foreground">{brushSize}px</p>
-      </div>
+        <div className="w-24 space-y-1.5 border-border md:w-auto md:border-t md:pt-3">
+          <p className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">Brush size</p>
+          <input
+            type="range"
+            min={BRUSH_MIN}
+            max={BRUSH_MAX}
+            value={brushSize}
+            onChange={(e) => onBrushSizeChange(Number(e.target.value))}
+            className="w-full"
+          />
+          <p className="text-center text-[10px] text-muted-foreground">{brushSize}px</p>
+        </div>
 
-      <div className="space-y-1.5 border-t border-border pt-3">
-        <p className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">Font size</p>
-        <input
-          type="range"
-          min={FONT_SIZE_MIN}
-          max={FONT_SIZE_MAX}
-          value={fontSize}
-          onChange={(e) => onFontSizeChange(Number(e.target.value))}
-          className="w-full"
-        />
-        <p className="text-center text-[10px] text-muted-foreground">{fontSize}px</p>
+        <div className="w-24 space-y-1.5 border-border md:w-auto md:border-t md:pt-3">
+          <p className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">Font size</p>
+          <input
+            type="range"
+            min={FONT_SIZE_MIN}
+            max={FONT_SIZE_MAX}
+            value={fontSize}
+            onChange={(e) => onFontSizeChange(Number(e.target.value))}
+            className="w-full"
+          />
+          <p className="text-center text-[10px] text-muted-foreground">{fontSize}px</p>
+        </div>
       </div>
     </div>
   )

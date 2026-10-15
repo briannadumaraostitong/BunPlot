@@ -24,8 +24,9 @@ export const CANVAS_HEIGHT = 854
 // Display size (CSS pixels) at 100% zoom — separate from CANVAS_WIDTH/HEIGHT,
 // which is the fixed internal pixel-buffer resolution and never changes.
 // Chosen to roughly match how large the canvas rendered before zoom existed
-// (fit within the modal's h-160 content area).
-const BASE_DISPLAY_WIDTH = 480
+// (fit within the modal's h-160 content area). Phones zoom out from this to
+// fit their width — see SketchModal's attachScrollContainer.
+export const BASE_DISPLAY_WIDTH = 480
 const BACKGROUND_COLOR = '#ffffff'
 const MAX_HISTORY = 50
 const MARQUEE_COLOR = '#0ea5e9'
