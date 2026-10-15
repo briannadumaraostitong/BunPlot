@@ -1,6 +1,6 @@
 'use client'
 
-import { forwardRef, useEffect, useImperativeHandle, useRef, useState } from 'react'
+import { forwardRef, useCallback, useEffect, useImperativeHandle, useRef, useState } from 'react'
 import { X } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { CharacterNode, NODE_WIDTH, NODE_HEIGHT } from './CharacterNode'
@@ -87,24 +87,30 @@ export const RelationshipCanvas = forwardRef<RelationshipCanvasHandle, Relations
       }
     }, [treeId, loadAttempt])
 
-    function addOrUpdateMember(characterId: string, x: number, y: number) {
-      const isNew = !members.some((m) => m.character_id === characterId)
-      setMembers((prev) => {
-        const exists = prev.some((m) => m.character_id === characterId)
-        if (exists) return prev.map((m) => (m.character_id === characterId ? { ...m, x, y } : m))
-        return [
-          ...prev,
-          { tree_id: treeId, character_id: characterId, x, y, created_at: new Date().toISOString() },
-        ]
-      })
-      saveMemberPosition(treeId, characterId, x, y).then((result) => {
-        const message = isNew ? "Couldn't add the character to the tree." : "Couldn't save the family tree layout."
-        if (reportResult(result, message, { id: TREE_LAYOUT_TOAST_ID }) || !isNew) return
-        // A new member that never saved: take it back off the canvas. A moved
-        // one keeps its new spot (toast only, like other drags).
-        setMembers((prev) => prev.filter((m) => m.character_id !== characterId))
-      })
-    }
+    // Memoized so the imperative handle below can list it as a dependency
+    // without being rebuilt on every render; it changes exactly when
+    // `members` does, which is when the handle already rebuilds.
+    const addOrUpdateMember = useCallback(
+      (characterId: string, x: number, y: number) => {
+        const isNew = !members.some((m) => m.character_id === characterId)
+        setMembers((prev) => {
+          const exists = prev.some((m) => m.character_id === characterId)
+          if (exists) return prev.map((m) => (m.character_id === characterId ? { ...m, x, y } : m))
+          return [
+            ...prev,
+            { tree_id: treeId, character_id: characterId, x, y, created_at: new Date().toISOString() },
+          ]
+        })
+        saveMemberPosition(treeId, characterId, x, y).then((result) => {
+          const message = isNew ? "Couldn't add the character to the tree." : "Couldn't save the family tree layout."
+          if (reportResult(result, message, { id: TREE_LAYOUT_TOAST_ID }) || !isNew) return
+          // A new member that never saved: take it back off the canvas. A moved
+          // one keeps its new spot (toast only, like other drags).
+          setMembers((prev) => prev.filter((m) => m.character_id !== characterId))
+        })
+      },
+      [members, treeId]
+    )
 
     useImperativeHandle(
       ref,
@@ -129,7 +135,7 @@ export const RelationshipCanvas = forwardRef<RelationshipCanvasHandle, Relations
           addOrUpdateMember(characterId, x, y)
         },
       }),
-      [members, loadFailed]
+      [members, loadFailed, addOrUpdateMember]
     )
 
     function handleDragMove(characterId: string, x: number, y: number) {
