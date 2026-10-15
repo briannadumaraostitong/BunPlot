@@ -12,6 +12,7 @@ import {
   DialogTitle,
 } from '@/components/ui/dialog'
 import { RenameHint } from '@/components/ui/rename-hint'
+import { RenameButton } from '@/components/ui/rename-button'
 import type { FamilyTree } from '@/types/database'
 
 interface FamilyTreeTabBarProps {
@@ -137,7 +138,7 @@ function FamilyTreeTab({
       className={cn(
         // isolate + after:-z-10 keeps the enlarged hit area behind the tab's
         // own content, so it extends the tap target without covering the
-        // input or the delete ✕.
+        // input, the rename pencil or the delete ✕.
         'group relative isolate flex h-6 max-w-40 shrink-0 cursor-pointer items-center gap-1 rounded-md px-2 text-xs font-medium transition-colors select-none after:absolute after:-inset-y-1 after:-inset-x-0.5 after:-z-10',
         active
           ? 'bg-secondary text-foreground'
@@ -160,6 +161,10 @@ function FamilyTreeTab({
           <span className="truncate">{tree.name}</span>
         </RenameHint>
       )}
+
+      {/* Active tab only: the tabs are narrow (max-w-40), and a tap on another
+          tab first selects it. */}
+      {!editing && active && <RenameButton onClick={startEditing} label="Rename family tree" />}
 
       {!editing && canDelete && (
         <button

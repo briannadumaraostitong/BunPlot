@@ -5,6 +5,7 @@ import { ChevronDown, ChevronLeft, ChevronRight, Download, FileText, Plus, X } f
 import { cn } from '@/lib/utils'
 import { Button } from '@/components/ui/button'
 import { RenameHint } from '@/components/ui/rename-hint'
+import { RenameButton } from '@/components/ui/rename-button'
 import {
   Dialog,
   DialogContent,
@@ -225,6 +226,8 @@ function OutlineRow({
           <span className="flex-1 min-w-0 truncate text-xs">{outline.name}</span>
         </RenameHint>
       )}
+
+      {!editing && <RenameButton onClick={startEditing} label="Rename document" />}
 
       {!editing && (
         <button

@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation'
 import { ChevronRight, ChevronDown, Trash2, Check, X } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { RenameHint } from '@/components/ui/rename-hint'
+import { RenameButton } from '@/components/ui/rename-button'
 import {
   Dialog,
   DialogContent,
@@ -121,6 +122,8 @@ export function FolderSection({ folder, projects, allFolders, statsByProject }: 
             </h2>
           </RenameHint>
         )}
+
+        {!editing && <RenameButton onClick={() => setEditing(true)} label="Rename folder" />}
 
         <span className="text-xs text-muted-foreground">
           {projects.length}
