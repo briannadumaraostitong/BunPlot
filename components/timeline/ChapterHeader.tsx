@@ -3,6 +3,7 @@
 import { useState } from 'react'
 import { Plus, X, Loader2, Eye, EyeOff } from 'lucide-react'
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover'
+import { RenameHint } from '@/components/ui/rename-hint'
 import { cn } from '@/lib/utils'
 import { createChapter, updateChapter, deleteChapter } from '@/actions/chapters'
 import { ChapterLinkPicker } from './ChapterLinkPicker'
@@ -326,13 +327,14 @@ function ChapterCell({
           className="flex-1 min-w-0 text-xs bg-background border border-border rounded px-1.5 py-0.5 outline-none focus:border-primary"
         />
       ) : (
-        <span
-          className="text-xs font-semibold truncate cursor-pointer flex-1"
-          onDoubleClick={() => setEditing(true)}
-          title="Double-click to rename"
-        >
-          {chapter.title}
-        </span>
+        <RenameHint name={chapter.title}>
+          <span
+            className="text-xs font-semibold truncate cursor-default flex-1"
+            onDoubleClick={() => setEditing(true)}
+          >
+            {chapter.title}
+          </span>
+        </RenameHint>
       )}
 
       {/* Hide-only, not a visible/hidden toggle — this button only ever

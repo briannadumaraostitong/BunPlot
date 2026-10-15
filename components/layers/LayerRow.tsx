@@ -6,6 +6,7 @@ import { SortableContext, useSortable, verticalListSortingStrategy } from '@dnd-
 import { CSS } from '@dnd-kit/utilities'
 import { Eye, EyeOff, GripVertical, Trash2, Check, X, Plus } from 'lucide-react'
 import { cn } from '@/lib/utils'
+import { RenameHint } from '@/components/ui/rename-hint'
 import { deleteLayer, updateLayer } from '@/actions/layers'
 import { playClickSound } from '@/lib/sound'
 import { reportResult, settle } from '@/lib/notify'
@@ -174,13 +175,14 @@ export function LayerRow({
             </button>
           </div>
         ) : (
-          <span
-            className="text-xs flex-1 truncate cursor-pointer"
-            title={`${layer.name} — double-click to rename`}
-            onDoubleClick={() => setEditing(true)}
-          >
-            {layer.name}
-          </span>
+          <RenameHint name={layer.name}>
+            <span
+              className="text-xs flex-1 truncate cursor-default"
+              onDoubleClick={() => setEditing(true)}
+            >
+              {layer.name}
+            </span>
+          </RenameHint>
         )}
 
         {!editing && (
