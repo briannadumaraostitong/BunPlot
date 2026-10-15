@@ -4,6 +4,7 @@ import { useState } from 'react'
 import { Plus, X, Loader2, Eye, EyeOff } from 'lucide-react'
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover'
 import { RenameHint } from '@/components/ui/rename-hint'
+import { RenameButton } from '@/components/ui/rename-button'
 import { cn } from '@/lib/utils'
 import { createChapter, updateChapter, deleteChapter } from '@/actions/chapters'
 import { ChapterLinkPicker } from './ChapterLinkPicker'
@@ -346,6 +347,8 @@ function ChapterCell({
           </span>
         </RenameHint>
       )}
+
+      {!editing && <RenameButton onClick={() => setEditing(true)} label="Rename chapter" />}
 
       {/* Hide-only, not a visible/hidden toggle — this button only ever
           renders on a chapter that's currently rendering as a column (i.e.

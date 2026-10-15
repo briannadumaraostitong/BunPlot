@@ -6,6 +6,7 @@ import { useSearchParams } from 'next/navigation'
 import { Check, X, GanttChartSquare, List, Users, MapPin, LayoutGrid, Search, type LucideIcon } from 'lucide-react'
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { RenameHint } from '@/components/ui/rename-hint'
+import { RenameButton } from '@/components/ui/rename-button'
 import { TimelineCanvas } from './TimelineCanvas'
 import { OutlineEditor } from '@/components/outline/OutlineEditor'
 import { CharactersPanel } from '@/components/characters/CharactersPanel'
@@ -97,14 +98,17 @@ export function ProjectView({ project, initialLayers, initialEvents, initialChap
             </button>
           </div>
         ) : (
-          <RenameHint name={title}>
-            <span
-              className="text-sm font-medium truncate cursor-default"
-              onDoubleClick={() => setEditingTitle(true)}
-            >
-              {title}
-            </span>
-          </RenameHint>
+          <>
+            <RenameHint name={title}>
+              <span
+                className="text-sm font-medium truncate cursor-default"
+                onDoubleClick={() => setEditingTitle(true)}
+              >
+                {title}
+              </span>
+            </RenameHint>
+            <RenameButton onClick={() => setEditingTitle(true)} label="Rename project" className="ml-1.5" />
+          </>
         )}
       </div>
 

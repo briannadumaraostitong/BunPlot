@@ -15,6 +15,7 @@ import {
   DialogTitle,
 } from '@/components/ui/dialog'
 import { RenameHint } from '@/components/ui/rename-hint'
+import { RenameButton } from '@/components/ui/rename-button'
 import { deleteLayer, updateLayer } from '@/actions/layers'
 import { playClickSound } from '@/lib/sound'
 import { reportResult, settle } from '@/lib/notify'
@@ -201,6 +202,7 @@ export function LayerRow({
 
         {!editing && (
           <div className="flex items-center gap-0.5 opacity-100 md:can-hover:opacity-0 md:group-hover:opacity-100 transition-opacity">
+            <RenameButton onClick={() => setEditing(true)} label="Rename layer" />
             <button
               onClick={onToggleVisibility}
               className="relative text-muted-foreground hover:text-foreground p-0.5 after:absolute after:-inset-y-1.5"

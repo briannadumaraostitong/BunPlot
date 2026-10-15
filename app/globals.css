@@ -15,6 +15,10 @@
    but still tappable. */
 @custom-variant can-hover (@media (hover: hover));
 
+/* The opposite: devices with no hover, where double-click and hover tooltips
+   don't exist. Used for controls only touch devices need, like RenameButton. */
+@custom-variant no-hover (@media (hover: none));
+
 @theme inline {
   --color-background: hsl(var(--background));
   --color-foreground: hsl(var(--foreground));
