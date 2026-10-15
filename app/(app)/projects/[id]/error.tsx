@@ -15,7 +15,7 @@ export default function ProjectError({
   }, [error])
 
   return (
-    <div className="p-6">
+    <div className="p-4 sm:p-6">
       <LoadError thing="this project" onRetry={() => unstable_retry()} />
     </div>
   )

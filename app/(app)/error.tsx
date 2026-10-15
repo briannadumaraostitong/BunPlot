@@ -18,7 +18,7 @@ export default function AppError({
   }, [error])
 
   return (
-    <div className="p-6 max-w-[1600px] mx-auto">
+    <div className="p-4 sm:p-6 max-w-[1600px] mx-auto">
       <LoadError thing="this page" onRetry={() => unstable_retry()} />
     </div>
   )

@@ -16,6 +16,7 @@ import {
 import { ProjectCard, type ProjectStats } from '@/components/projects/ProjectCard'
 import { updateFolder, deleteFolder } from '@/actions/folders'
 import { reportResult, settle } from '@/lib/notify'
+import { COVER_GRID_CLASS } from '@/lib/coverGrid'
 import type { ProjectFolder } from '@/types/database'
 import type { ProjectWithCover } from '@/actions/projects'
 
@@ -141,7 +142,7 @@ export function FolderSection({ folder, projects, allFolders, statsByProject }: 
 
       {!collapsed && (
         projects.length > 0 ? (
-          <div className="grid grid-cols-[repeat(auto-fill,minmax(160px,1fr))] gap-4">
+          <div className={COVER_GRID_CLASS}>
             {projects.map((project) => (
               <ProjectCard
                 key={project.id}

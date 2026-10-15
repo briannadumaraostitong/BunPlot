@@ -47,7 +47,7 @@ export default function SearchPage() {
   if (error) console.error('Search failed:', error)
 
   return (
-    <div className="p-6 max-w-3xl mx-auto space-y-6">
+    <div className="p-4 sm:p-6 max-w-3xl mx-auto space-y-6">
       <div className="space-y-3">
         <h1 className="text-2xl font-semibold tracking-tight">Search</h1>
 

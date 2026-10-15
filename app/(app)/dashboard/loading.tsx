@@ -1,9 +1,10 @@
 import { Skeleton } from '@/components/ui/skeleton'
 import { ProjectCardSkeleton } from '@/components/projects/ProjectCardSkeleton'
+import { COVER_GRID_CLASS } from '@/lib/coverGrid'
 
 export default function DashboardLoading() {
   return (
-    <div className="p-6 max-w-[1600px] mx-auto space-y-6">
+    <div className="p-4 sm:p-6 max-w-[1600px] mx-auto space-y-6">
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <div className="space-y-2">
           <Skeleton className="h-7 w-40" />
@@ -15,7 +16,7 @@ export default function DashboardLoading() {
         </div>
       </div>
 
-      <div className="grid grid-cols-[repeat(auto-fill,minmax(160px,1fr))] gap-4">
+      <div className={COVER_GRID_CLASS}>
         {Array.from({ length: 10 }).map((_, i) => (
           <ProjectCardSkeleton key={i} />
         ))}

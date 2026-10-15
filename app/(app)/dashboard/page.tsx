@@ -7,6 +7,7 @@ import { NewProjectDialog } from '@/components/projects/NewProjectDialog'
 import { NewFolderDialog } from '@/components/projects/NewFolderDialog'
 import { FolderSection } from '@/components/projects/FolderSection'
 import { EmptyState } from '@/components/ui/empty-state'
+import { COVER_GRID_CLASS } from '@/lib/coverGrid'
 import type { Metadata } from 'next'
 import type { Project, ProjectFolder } from '@/types/database'
 import type { ProjectStats } from '@/components/projects/ProjectCard'
@@ -102,7 +103,7 @@ export default async function DashboardPage() {
   }
 
   return (
-    <div className="p-6 max-w-[1600px] mx-auto space-y-6">
+    <div className="p-4 sm:p-6 max-w-[1600px] mx-auto space-y-6">
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <div>
           <h1 className="text-2xl font-semibold tracking-tight">
@@ -127,7 +128,7 @@ export default async function DashboardPage() {
                   All Projects
                 </h2>
               )}
-              <div className="grid grid-cols-[repeat(auto-fill,minmax(160px,1fr))] gap-4">
+              <div className={COVER_GRID_CLASS}>
                 {ungroupedProjects.map((project) => (
                   <ProjectCard
                     key={project.id}

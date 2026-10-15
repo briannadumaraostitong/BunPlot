@@ -12,6 +12,7 @@ import { usePanels } from '@/hooks/usePanels'
 import { useDndSensors } from '@/hooks/useDndSensors'
 import { reorderPanels } from '@/actions/panels'
 import { reportResult, settle } from '@/lib/notify'
+import { COVER_GRID_CLASS } from '@/lib/coverGrid'
 import type { PanelWithCover } from '@/actions/panels'
 
 interface PanelGridProps {
@@ -55,7 +56,7 @@ export function PanelGrid({ projectId, chapterId }: PanelGridProps) {
   if (loading) {
     return (
       <div className="h-full overflow-y-auto scrollbar-thin p-4">
-        <div className="grid grid-cols-[repeat(auto-fill,minmax(160px,1fr))] gap-4">
+        <div className={COVER_GRID_CLASS}>
           {Array.from({ length: 10 }).map((_, i) => (
             <div key={i} className="overflow-hidden rounded-lg border border-border bg-card">
               <Skeleton className="aspect-3/4 w-full rounded-none" />
@@ -83,7 +84,7 @@ export function PanelGrid({ projectId, chapterId }: PanelGridProps) {
 
       <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
         <SortableContext items={panels.map((p) => p.id)} strategy={rectSortingStrategy}>
-          <div className="grid grid-cols-[repeat(auto-fill,minmax(160px,1fr))] gap-4">
+          <div className={COVER_GRID_CLASS}>
             {panels.map((panel) => (
               <PanelCard
                 key={panel.id}
