@@ -135,7 +135,10 @@ function FamilyTreeTab({
       onClick={onSelect}
       onDoubleClick={startEditing}
       className={cn(
-        'group relative flex h-6 max-w-40 shrink-0 cursor-pointer items-center gap-1 rounded-md px-2 text-xs font-medium transition-colors select-none after:absolute after:-inset-y-1 after:-inset-x-0.5',
+        // isolate + after:-z-10 keeps the enlarged hit area behind the tab's
+        // own content, so it extends the tap target without covering the
+        // input or the delete ✕.
+        'group relative isolate flex h-6 max-w-40 shrink-0 cursor-pointer items-center gap-1 rounded-md px-2 text-xs font-medium transition-colors select-none after:absolute after:-inset-y-1 after:-inset-x-0.5 after:-z-10',
         active
           ? 'bg-secondary text-foreground'
           : 'text-muted-foreground hover:bg-secondary/50 hover:text-foreground'
