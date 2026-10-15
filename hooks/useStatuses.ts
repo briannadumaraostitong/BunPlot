@@ -2,19 +2,30 @@
 
 import { useEffect, useState, useCallback } from 'react'
 import { createClient } from '@/lib/supabase/client'
+import { dismissError, notifyError } from '@/lib/notify'
 import type { Status } from '@/types/database'
+
+// Background refresh (realtime and after edits elsewhere on the page): on
+// failure, keep what's showing and toast once (fixed id), cleared by the next
+// successful refresh.
+const REFRESH_TOAST_ID = 'statuses-refresh'
 
 export function useStatuses(projectId: string, initial: Status[] = []) {
   const [statuses, setStatuses] = useState<Status[]>(initial)
   const supabase = createClient()
 
   const refresh = useCallback(async () => {
-    const { data } = await supabase
+    const { data, error } = await supabase
       .from('statuses')
       .select('*')
       .eq('project_id', projectId)
       .order('position')
-    if (data) setStatuses(data as Status[])
+    if (error) {
+      notifyError("Couldn't refresh statuses. Reload to see the latest.", error, { id: REFRESH_TOAST_ID })
+      return
+    }
+    dismissError(REFRESH_TOAST_ID)
+    setStatuses(data as Status[])
   }, [projectId, supabase])
 
   useEffect(() => {

@@ -2,19 +2,30 @@
 
 import { useEffect, useState, useCallback } from 'react'
 import { createClient } from '@/lib/supabase/client'
+import { dismissError, notifyError } from '@/lib/notify'
 import type { Layer } from '@/types/database'
+
+// Background refresh (realtime and after edits elsewhere on the page): on
+// failure, keep what's showing and toast once (fixed id), cleared by the next
+// successful refresh.
+const REFRESH_TOAST_ID = 'layers-refresh'
 
 export function useLayers(projectId: string, initial: Layer[] = []) {
   const [layers, setLayers] = useState<Layer[]>(initial)
   const supabase = createClient()
 
   const refresh = useCallback(async () => {
-    const { data } = await supabase
+    const { data, error } = await supabase
       .from('layers')
       .select('*')
       .eq('project_id', projectId)
       .order('position')
-    if (data) setLayers(data as Layer[])
+    if (error) {
+      notifyError("Couldn't refresh layers. Reload to see the latest.", error, { id: REFRESH_TOAST_ID })
+      return
+    }
+    dismissError(REFRESH_TOAST_ID)
+    setLayers(data as Layer[])
   }, [projectId, supabase])
 
   useEffect(() => {

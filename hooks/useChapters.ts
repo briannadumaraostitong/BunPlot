@@ -2,19 +2,30 @@
 
 import { useEffect, useState, useCallback } from 'react'
 import { createClient } from '@/lib/supabase/client'
+import { dismissError, notifyError } from '@/lib/notify'
 import type { Chapter } from '@/types/database'
+
+// Background refresh (after edits elsewhere on the page): on failure, keep
+// what's showing and toast once (fixed id), cleared by the next successful
+// refresh.
+const REFRESH_TOAST_ID = 'chapters-refresh'
 
 export function useChapters(projectId: string, initial: Chapter[] = []) {
   const [chapters, setChapters] = useState<Chapter[]>(initial)
   const supabase = createClient()
 
   const refresh = useCallback(async () => {
-    const { data } = await supabase
+    const { data, error } = await supabase
       .from('chapters')
       .select('*')
       .eq('project_id', projectId)
       .order('position')
-    if (data) setChapters(data as Chapter[])
+    if (error) {
+      notifyError("Couldn't refresh chapters. Reload to see the latest.", error, { id: REFRESH_TOAST_ID })
+      return
+    }
+    dismissError(REFRESH_TOAST_ID)
+    setChapters(data as Chapter[])
   }, [projectId, supabase])
 
   useEffect(() => {
