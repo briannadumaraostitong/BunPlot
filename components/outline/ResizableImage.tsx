@@ -156,6 +156,7 @@ function ResizableImageView({ node, selected, updateAttributes, editor, getPos }
 
   const startResize = useCallback(
     (corner: Corner) => (e: React.PointerEvent) => {
+      if (e.button !== 0) return // primary button only (touch and pen report 0)
       e.preventDefault()
       e.stopPropagation()
       const img = wrapperRef.current?.querySelector('img')
@@ -176,13 +177,17 @@ function ResizableImageView({ node, selected, updateAttributes, editor, getPos }
         const next = Math.round(startWidth + (growsRight ? delta : -delta))
         updateAttributes({ width: Math.min(maxWidth, Math.max(MIN_WIDTH, next)) })
       }
+      // pointercancel too: if a touch is ever taken over by the browser, no
+      // pointerup follows, and resizing would stay on with listeners attached.
       function onUp() {
         setResizing(false)
         window.removeEventListener('pointermove', onMove)
         window.removeEventListener('pointerup', onUp)
+        window.removeEventListener('pointercancel', onUp)
       }
       window.addEventListener('pointermove', onMove)
       window.addEventListener('pointerup', onUp)
+      window.addEventListener('pointercancel', onUp)
     },
     [updateAttributes, editor]
   )
@@ -235,7 +240,7 @@ function ResizeHandle({
     <div
       onPointerDown={onPointerDown}
       className={cn(
-        'absolute z-10 h-2.5 w-2.5 rounded-full border border-border bg-card shadow-md after:absolute after:-inset-2.5',
+        'absolute z-10 h-2.5 w-2.5 touch-none rounded-full border border-border bg-card shadow-md after:absolute after:-inset-2.5',
         positionClass
       )}
     />
