@@ -170,17 +170,14 @@ export async function getEventPlaceLinks(
   }))
 }
 
-export async function getPlacesForEvent(eventId: string): Promise<Place[]> {
+export async function getPlacesForEvent(eventId: string): Promise<{ error: string } | Place[]> {
   const supabase = await createClient()
   const { data, error } = await supabase
     .from('event_places')
     .select('places(*)')
     .eq('event_id', eventId)
 
-  if (error) {
-    console.error('Get places for event error:', error)
-    return []
-  }
+  if (error) return { error: error.message }
 
   return ((data ?? []) as { places: Place | null }[])
     .map((row) => row.places)

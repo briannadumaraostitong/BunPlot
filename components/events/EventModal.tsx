@@ -277,6 +277,9 @@ function EventForm({
   const [places, setPlaces] = useState<Place[]>([]);
   const [characters, setCharacters] = useState<Character[]>([]);
   const [linkedDataLoading, setLinkedDataLoading] = useState(true);
+  const [linkedDataFailed, setLinkedDataFailed] = useState(false);
+  // Bumped by Retry to re-run the linked-data effect.
+  const [linkedDataAttempt, setLinkedDataAttempt] = useState(0);
   const [suggestedCharacters, setSuggestedCharacters] = useState<Character[]>([]);
 
   // Places/characters are each a single fast lookup by event id — fetched
@@ -290,19 +293,33 @@ function EventForm({
     // EventModal wrapper), so this only runs on mount, when
     // linkedDataLoading already starts as true.
     (async () => {
-      const [linkedPlaces, linkedCharacters] = await Promise.all([
-        getPlacesForEvent(event.id),
-        getCharactersForEvent(event.id),
+      const [placesResult, charactersResult] = await Promise.all([
+        settle(getPlacesForEvent(event.id)),
+        settle(getCharactersForEvent(event.id)),
       ]);
       if (cancelled) return;
-      setPlaces(linkedPlaces);
-      setCharacters(linkedCharacters);
+      // Both or neither, since they share one loading state. Showing them as
+      // empty would invite re-adding links that already exist.
+      if ("error" in placesResult || "error" in charactersResult) {
+        console.error("Load event links error:", placesResult, charactersResult);
+        setLinkedDataFailed(true);
+        setLinkedDataLoading(false);
+        return;
+      }
+      setPlaces(placesResult);
+      setCharacters(charactersResult);
       setLinkedDataLoading(false);
     })();
     return () => {
       cancelled = true;
     };
-  }, [event.id]);
+  }, [event.id, linkedDataAttempt]);
+
+  function retryLinkedData() {
+    setLinkedDataFailed(false);
+    setLinkedDataLoading(true);
+    setLinkedDataAttempt((n) => n + 1);
+  }
 
   useEffect(() => {
     const chapterId = event.chapter_id;
@@ -311,8 +328,10 @@ function EventForm({
     if (!chapterId) return;
     let cancelled = false;
     (async () => {
-      const suggested = await getSuggestedCharactersForChapter(chapterId);
-      if (!cancelled) setSuggestedCharacters(suggested);
+      // Optional extras: on failure there are simply no suggestions. Settled
+      // only so an offline request doesn't go unhandled.
+      const suggested = await settle(getSuggestedCharactersForChapter(chapterId));
+      if (!cancelled && !("error" in suggested)) setSuggestedCharacters(suggested);
     })();
     return () => {
       cancelled = true;
@@ -513,6 +532,8 @@ function EventForm({
             allCharacters={allCharacters}
             suggestedCharacters={visibleSuggestions}
             loading={linkedDataLoading}
+            loadFailed={linkedDataFailed}
+            onRetry={retryLinkedData}
             onAdd={handleAddCharacter}
             onRemove={handleRemoveCharacter}
           />
@@ -521,6 +542,8 @@ function EventForm({
             places={places}
             allPlaces={allPlaces}
             loading={linkedDataLoading}
+            loadFailed={linkedDataFailed}
+            onRetry={retryLinkedData}
             onAdd={handleAddPlace}
             onRemove={handleRemovePlace}
           />

@@ -203,17 +203,16 @@ export interface ChapterLinkWithSource {
   continues_from: Chapter
 }
 
-export async function getChapterLinks(chapterId: string): Promise<ChapterLinkWithSource[]> {
+export async function getChapterLinks(
+  chapterId: string
+): Promise<{ error: string } | ChapterLinkWithSource[]> {
   const supabase = await createClient()
   const { data, error } = await supabase
     .from('chapter_links')
     .select('id, continues_from:chapters!continues_from_chapter_id(*)')
     .eq('chapter_id', chapterId)
 
-  if (error) {
-    console.error('Get chapter links error:', error)
-    return []
-  }
+  if (error) return { error: error.message }
 
   return ((data ?? []) as { id: string; continues_from: Chapter | null }[])
     .filter((row): row is { id: string; continues_from: Chapter } => row.continues_from !== null)

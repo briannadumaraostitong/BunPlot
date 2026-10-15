@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react'
 import { Link2, Search, X } from 'lucide-react'
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover'
 import { Input } from '@/components/ui/input'
+import { LoadError } from '@/components/ui/load-error'
 import { cn } from '@/lib/utils'
 import { getChapterLinks, addChapterLink, removeChapterLink } from '@/actions/chapters'
 import { reportResult, settle } from '@/lib/notify'
@@ -18,19 +19,28 @@ interface ChapterLinkPickerProps {
 
 export function ChapterLinkPicker({ chapter, allChapters, projectId }: ChapterLinkPickerProps) {
   const [links, setLinks] = useState<ChapterLinkWithSource[]>([])
+  const [loadFailed, setLoadFailed] = useState(false)
+  // Bumped by Retry to re-run the load effect.
+  const [loadAttempt, setLoadAttempt] = useState(0)
   const [open, setOpen] = useState(false)
   const [search, setSearch] = useState('')
 
   useEffect(() => {
     let cancelled = false
     ;(async () => {
-      const data = await getChapterLinks(chapter.id)
-      if (!cancelled) setLinks(data)
+      const result = await settle(getChapterLinks(chapter.id))
+      if (cancelled) return
+      if ('error' in result) {
+        console.error('Load chapter links error:', result.error)
+        setLoadFailed(true)
+        return
+      }
+      setLinks(result)
     })()
     return () => {
       cancelled = true
     }
-  }, [chapter.id])
+  }, [chapter.id, loadAttempt])
 
   function handleOpenChange(next: boolean) {
     setOpen(next)
@@ -82,7 +92,16 @@ export function ChapterLinkPicker({ chapter, allChapters, projectId }: ChapterLi
           <p className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">
             Continues from
           </p>
-          {links.length === 0 ? (
+          {loadFailed ? (
+            <LoadError
+              compact
+              thing="links"
+              onRetry={() => {
+                setLoadFailed(false)
+                setLoadAttempt((n) => n + 1)
+              }}
+            />
+          ) : links.length === 0 ? (
             <p className="text-[11px] text-muted-foreground">No links yet</p>
           ) : (
             <div className="flex flex-wrap gap-1.5">
@@ -105,33 +124,39 @@ export function ChapterLinkPicker({ chapter, allChapters, projectId }: ChapterLi
           )}
         </div>
 
-        <div className="relative border-b border-border p-1.5">
-          <Search className="pointer-events-none absolute left-3.5 top-1/2 h-3 w-3 -translate-y-1/2 text-muted-foreground" />
-          <Input
-            autoFocus
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-            placeholder="Search chapters..."
-            className="h-7 bg-background pl-6 text-xs"
-          />
-        </div>
-        <div className="max-h-40 overflow-y-auto scrollbar-thin p-1">
-          {available.length === 0 ? (
-            <p className="px-2 py-3 text-center text-[11px] text-muted-foreground">
-              {allChapters.length <= 1 ? 'No other chapters yet' : 'No matches'}
-            </p>
-          ) : (
-            available.map((source) => (
-              <button
-                key={source.id}
-                onClick={() => handleAdd(source)}
-                className="flex w-full items-center gap-2 rounded-md px-2 py-1.5 text-left text-xs transition-colors hover:bg-secondary/50"
-              >
-                <span className="truncate">{source.title}</span>
-              </button>
-            ))
-          )}
-        </div>
+        {/* Hidden while links are unknown: every chapter would look unlinked,
+            and adding one that's already linked would just fail. */}
+        {!loadFailed && (
+          <>
+            <div className="relative border-b border-border p-1.5">
+              <Search className="pointer-events-none absolute left-3.5 top-1/2 h-3 w-3 -translate-y-1/2 text-muted-foreground" />
+              <Input
+                autoFocus
+                value={search}
+                onChange={(e) => setSearch(e.target.value)}
+                placeholder="Search chapters..."
+                className="h-7 bg-background pl-6 text-xs"
+              />
+            </div>
+            <div className="max-h-40 overflow-y-auto scrollbar-thin p-1">
+              {available.length === 0 ? (
+                <p className="px-2 py-3 text-center text-[11px] text-muted-foreground">
+                  {allChapters.length <= 1 ? 'No other chapters yet' : 'No matches'}
+                </p>
+              ) : (
+                available.map((source) => (
+                  <button
+                    key={source.id}
+                    onClick={() => handleAdd(source)}
+                    className="flex w-full items-center gap-2 rounded-md px-2 py-1.5 text-left text-xs transition-colors hover:bg-secondary/50"
+                  >
+                    <span className="truncate">{source.title}</span>
+                  </button>
+                ))
+              )}
+            </div>
+          </>
+        )}
       </PopoverContent>
     </Popover>
   )

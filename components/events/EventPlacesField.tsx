@@ -5,12 +5,15 @@ import { MapPin, Plus, Search, X } from 'lucide-react'
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover'
 import { Input } from '@/components/ui/input'
 import { Skeleton } from '@/components/ui/skeleton'
+import { LoadError } from '@/components/ui/load-error'
 import type { Place } from '@/types/database'
 
 interface EventPlacesFieldProps {
   places: Place[]
   allPlaces: Place[]
   loading: boolean
+  loadFailed: boolean
+  onRetry: () => void
   onAdd: (place: Place) => void
   onRemove: (placeId: string) => void
 }
@@ -19,6 +22,8 @@ export function EventPlacesField({
   places,
   allPlaces,
   loading,
+  loadFailed,
+  onRetry,
   onAdd,
   onRemove,
 }: EventPlacesFieldProps) {
@@ -53,6 +58,8 @@ export function EventPlacesField({
           <Skeleton className="h-6 w-20 rounded-full" />
           <Skeleton className="h-6 w-16 rounded-full" />
         </div>
+      ) : loadFailed ? (
+        <LoadError compact thing="linked places" onRetry={onRetry} />
       ) : (
         <div className="flex flex-wrap items-center gap-1.5">
           {places.map((place) => (

@@ -277,17 +277,14 @@ export async function getEventCharacterLinks(
   }))
 }
 
-export async function getCharactersForEvent(eventId: string): Promise<Character[]> {
+export async function getCharactersForEvent(eventId: string): Promise<{ error: string } | Character[]> {
   const supabase = await createClient()
   const { data, error } = await supabase
     .from('event_characters')
     .select('characters(*)')
     .eq('event_id', eventId)
 
-  if (error) {
-    console.error('Get characters for event error:', error)
-    return []
-  }
+  if (error) return { error: error.message }
 
   return ((data ?? []) as { characters: Character | null }[])
     .map((row) => row.characters)

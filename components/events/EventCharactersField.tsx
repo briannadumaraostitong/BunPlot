@@ -5,6 +5,7 @@ import { Sparkles, Users, Plus, Search, X } from 'lucide-react'
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover'
 import { Input } from '@/components/ui/input'
 import { Skeleton } from '@/components/ui/skeleton'
+import { LoadError } from '@/components/ui/load-error'
 import type { Character } from '@/types/database'
 
 interface EventCharactersFieldProps {
@@ -12,6 +13,8 @@ interface EventCharactersFieldProps {
   allCharacters: Character[]
   suggestedCharacters: Character[]
   loading: boolean
+  loadFailed: boolean
+  onRetry: () => void
   onAdd: (character: Character) => void
   onRemove: (characterId: string) => void
 }
@@ -21,6 +24,8 @@ export function EventCharactersField({
   allCharacters,
   suggestedCharacters,
   loading,
+  loadFailed,
+  onRetry,
   onAdd,
   onRemove,
 }: EventCharactersFieldProps) {
@@ -58,7 +63,7 @@ export function EventCharactersField({
           independent effects, and if suggestions land first, linkedIds is
           still empty and already-linked characters would flash up as
           suggestions before being filtered out. */}
-      {!loading && visibleSuggestions.length > 0 && (
+      {!loading && !loadFailed && visibleSuggestions.length > 0 && (
         <div className="space-y-1">
           <div className="flex items-center gap-1 text-[10px] text-muted-foreground">
             <Sparkles className="h-3 w-3" />
@@ -89,6 +94,8 @@ export function EventCharactersField({
           <Skeleton className="h-6 w-20 rounded-full" />
           <Skeleton className="h-6 w-16 rounded-full" />
         </div>
+      ) : loadFailed ? (
+        <LoadError compact thing="linked characters" onRetry={onRetry} />
       ) : (
         <div className="flex flex-wrap items-center gap-1.5">
           {characters.map((character) => (
