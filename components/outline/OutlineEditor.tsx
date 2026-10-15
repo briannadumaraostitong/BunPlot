@@ -57,6 +57,11 @@ import type { Outline } from '@/types/database'
 
 const AUTOSAVE_INTERVAL_MS = 30000
 
+// The document page's padding, shared by the real page and its loading
+// skeleton so the skeleton lines up at first paint. Phones get a narrower
+// margin; md and up keep the original px-16 py-12.
+const PAGE_PADDING = 'px-5 py-6 sm:px-10 md:px-16 md:py-12'
+
 // The three layouts offered in the image's bubble menu. "In line" is center —
 // the image on its own line; wrap left/right float it so text flows beside it.
 const IMAGE_LAYOUTS = [
@@ -215,7 +220,7 @@ export function OutlineEditor({ projectId }: OutlineEditorProps) {
           {/* Document page — reuses the real page wrapper's own classes so
               its width/position is already correct at first paint. */}
           <div className="flex-1 min-h-0 overflow-hidden bg-secondary/10">
-            <div className="mx-auto max-w-3xl bg-card px-16 py-12 space-y-3">
+            <div className={cn('mx-auto max-w-3xl bg-card space-y-3', PAGE_PADDING)}>
               <Skeleton className="h-5 w-2/3" />
               <Skeleton className="h-3 w-full" />
               <Skeleton className="h-3 w-full" />
@@ -626,7 +631,7 @@ function OutlineDocumentEditor({ outline, onExport }: { outline: Outline; onExpo
       />
 
       <div className="flex-1 min-h-0 overflow-y-auto scrollbar-thin bg-secondary/10">
-        <div className="mx-auto max-w-3xl bg-card px-16 py-12 min-h-full">
+        <div className={cn('mx-auto max-w-3xl bg-card min-h-full', PAGE_PADDING)}>
           <BubbleMenu
             editor={editor}
             shouldShow={({ editor }) => editor.isActive('image')}
