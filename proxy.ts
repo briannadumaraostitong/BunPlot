@@ -1,5 +1,6 @@
 import { createServerClient } from '@supabase/ssr'
 import { NextResponse, type NextRequest } from 'next/server'
+import { isAuthOutage } from '@/lib/supabase/authOutage'
 
 export async function proxy(request: NextRequest) {
   let supabaseResponse = NextResponse.next({ request })
@@ -25,7 +26,7 @@ export async function proxy(request: NextRequest) {
     }
   )
 
-  const { data: { user } } = await supabase.auth.getUser()
+  const { data: { user }, error } = await supabase.auth.getUser()
 
   // getUser() may have refreshed or cleared the session cookies via setAll
   // above, which writes them onto supabaseResponse. A redirect is a brand-new
@@ -42,7 +43,9 @@ export async function proxy(request: NextRequest) {
     request.nextUrl.pathname.startsWith('/dashboard') ||
     request.nextUrl.pathname.startsWith('/projects')
 
-  if (isProtected && !user) {
+  // Only a missing or rejected session means signed out. On an outage, let the
+  // request through so the page's own error handling shows.
+  if (isProtected && !user && !isAuthOutage(error)) {
     const url = request.nextUrl.clone()
     url.pathname = '/login'
     url.searchParams.set('redirectTo', request.nextUrl.pathname)

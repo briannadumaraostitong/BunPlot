@@ -1,5 +1,6 @@
 import { redirect } from 'next/navigation'
 import { createClient } from '@/lib/supabase/server'
+import { requireUser } from '@/lib/supabase/requireUser'
 import { ProfileForm } from '@/components/settings/ProfileForm'
 import { SoundSettings } from '@/components/settings/SoundSettings'
 import { ThemeToggle } from '@/components/theme/ThemeToggle'
@@ -10,9 +11,7 @@ export const metadata: Metadata = { title: 'Settings' }
 
 export default async function SettingsPage() {
   const supabase = await createClient()
-  const { data: { user } } = await supabase.auth.getUser()
-
-  if (!user) redirect('/login')
+  const user = await requireUser(supabase)
 
   const { data, error } = await supabase
     .from('profiles')

@@ -1,5 +1,6 @@
 import Link from 'next/link'
 import { createClient } from '@/lib/supabase/server'
+import { requireUser } from '@/lib/supabase/requireUser'
 import { withProjectCoverUrls } from '@/actions/projects'
 import { ProjectCard } from '@/components/projects/ProjectCard'
 import { NewProjectDialog } from '@/components/projects/NewProjectDialog'
@@ -38,12 +39,12 @@ export default async function ProjectsPage({ searchParams }: Props) {
   const showArchived = view === 'archived'
 
   const supabase = await createClient()
-  const { data: { user } } = await supabase.auth.getUser()
+  const user = await requireUser(supabase)
 
   const { data, error } = await supabase
     .from('projects')
     .select('*')
-    .eq('owner_id', user!.id)
+    .eq('owner_id', user.id)
     .eq('archived', showArchived)
     .order('updated_at', { ascending: false })
 

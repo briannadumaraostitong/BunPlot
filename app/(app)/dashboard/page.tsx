@@ -1,4 +1,5 @@
 import { createClient } from '@/lib/supabase/server'
+import { requireUser } from '@/lib/supabase/requireUser'
 import { withProjectCoverUrls } from '@/actions/projects'
 import { ProjectCard } from '@/components/projects/ProjectCard'
 import { NewProjectDialog } from '@/components/projects/NewProjectDialog'
@@ -31,7 +32,7 @@ function countWords(content: Record<string, unknown> | null | undefined): number
 
 export default async function DashboardPage() {
   const supabase = await createClient()
-  const { data: { user } } = await supabase.auth.getUser()
+  const user = await requireUser(supabase)
 
   const [
     { data: projectsData, error: projectsError },
@@ -40,13 +41,13 @@ export default async function DashboardPage() {
     supabase
       .from('projects')
       .select('*')
-      .eq('owner_id', user!.id)
+      .eq('owner_id', user.id)
       .eq('archived', false)
       .order('updated_at', { ascending: false }),
     supabase
       .from('project_folders')
       .select('*')
-      .eq('owner_id', user!.id)
+      .eq('owner_id', user.id)
       .order('position'),
   ])
 

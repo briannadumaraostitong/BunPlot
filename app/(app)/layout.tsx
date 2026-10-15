@@ -1,5 +1,6 @@
 import { redirect } from 'next/navigation'
 import { createClient } from '@/lib/supabase/server'
+import { isAuthOutage } from '@/lib/supabase/authOutage'
 import { AppShell } from '@/components/layout/AppShell'
 
 export default async function AppLayout({
@@ -8,15 +9,16 @@ export default async function AppLayout({
   children: React.ReactNode
 }) {
   const supabase = await createClient()
-  const { data: { user } } = await supabase.auth.getUser()
+  const { data: { user }, error } = await supabase.auth.getUser()
 
-  if (!user) redirect('/login')
+  // On an outage, render the shell without a profile and let each page show
+  // its own error.tsx inside it. Throwing here would skip (app)/error.tsx,
+  // since a layout's errors go to the boundary above it, and there isn't one.
+  if (!user && !isAuthOutage(error)) redirect('/login')
 
-  const { data: profile } = await supabase
-    .from('profiles')
-    .select('*')
-    .eq('id', user.id)
-    .single()
+  const { data: profile } = user
+    ? await supabase.from('profiles').select('*').eq('id', user.id).single()
+    : { data: null }
 
   return <AppShell profile={profile}>{children}</AppShell>
 }
