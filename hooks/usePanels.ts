@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useState, useCallback, useRef } from 'react'
+import { useEffect, useState, useRef } from 'react'
 import { createClient } from '@/lib/supabase/client'
 import {
   getPanelsForChapter,
@@ -20,6 +20,9 @@ export function usePanels(projectId: string, chapterId: string, initial: PanelWi
   // place below, so they must never flip this back on — doing so unmounts the
   // whole grid behind PanelGrid's spinner, which reads as a page reload.
   const [loading, setLoading] = useState(true)
+  const [loadFailed, setLoadFailed] = useState(false)
+  // Bumped by retryLoad to re-run the first-load effect.
+  const [loadAttempt, setLoadAttempt] = useState(0)
   const supabase = createClient()
 
   // Lets the realtime handler compare an incoming row against what we already
@@ -30,25 +33,29 @@ export function usePanels(projectId: string, chapterId: string, initial: PanelWi
     panelsRef.current = panels
   }, [panels])
 
-  // Background refetch — deliberately leaves `loading` alone.
-  const refresh = useCallback(async () => {
-    const data = await getPanelsForChapter(chapterId)
-    setPanels(data)
-  }, [chapterId])
-
   useEffect(() => {
     let cancelled = false
     ;(async () => {
       setLoading(true)
-      const data = await getPanelsForChapter(chapterId)
+      setLoadFailed(false)
+      const result = await settle(getPanelsForChapter(chapterId))
       if (cancelled) return
-      setPanels(data)
+      if ('error' in result) {
+        console.error('Load panels error:', result.error)
+        setLoadFailed(true)
+      } else {
+        setPanels(result)
+      }
       setLoading(false)
     })()
     return () => {
       cancelled = true
     }
-  }, [chapterId])
+  }, [chapterId, loadAttempt])
+
+  function retryLoad() {
+    setLoadAttempt((n) => n + 1)
+  }
 
   useEffect(() => {
     const channel = supabase
@@ -166,5 +173,5 @@ export function usePanels(projectId: string, chapterId: string, initial: PanelWi
     })
   }
 
-  return { panels, setPanels, loading, refresh, addPanel, editPanel, removePanel, setPanelImage, reorder }
+  return { panels, setPanels, loading, loadFailed, retryLoad, addPanel, editPanel, removePanel, setPanelImage, reorder }
 }

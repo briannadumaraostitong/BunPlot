@@ -5,6 +5,7 @@ import { DndContext, closestCenter, type DragEndEvent } from '@dnd-kit/core'
 import { SortableContext, rectSortingStrategy } from '@dnd-kit/sortable'
 import { Plus, Loader2 } from 'lucide-react'
 import { Skeleton } from '@/components/ui/skeleton'
+import { LoadError } from '@/components/ui/load-error'
 import { PanelCard } from './PanelCard'
 import { SketchModal } from './sketch/SketchModal'
 import { usePanels } from '@/hooks/usePanels'
@@ -18,7 +19,7 @@ interface PanelGridProps {
 }
 
 export function PanelGrid({ projectId, chapterId }: PanelGridProps) {
-  const { panels, loading, addPanel, editPanel, removePanel, setPanelImage, reorder } = usePanels(
+  const { panels, loading, loadFailed, retryLoad, addPanel, editPanel, removePanel, setPanelImage, reorder } = usePanels(
     projectId,
     chapterId
   )
@@ -62,6 +63,14 @@ export function PanelGrid({ projectId, chapterId }: PanelGridProps) {
             </div>
           ))}
         </div>
+      </div>
+    )
+  }
+
+  if (loadFailed) {
+    return (
+      <div className="flex h-full items-center justify-center p-4">
+        <LoadError thing="this chapter's panels" onRetry={retryLoad} />
       </div>
     )
   }

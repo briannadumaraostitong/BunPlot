@@ -41,7 +41,9 @@ async function withPanelCoverUrls(
 
 // ── Panels ──────────────────────────────────────────────────
 
-export async function getPanelsForChapter(chapterId: string): Promise<PanelWithCover[]> {
+export async function getPanelsForChapter(
+  chapterId: string
+): Promise<{ error: string } | PanelWithCover[]> {
   const supabase = await createClient()
   const { data, error } = await supabase
     .from('panels')
@@ -49,10 +51,7 @@ export async function getPanelsForChapter(chapterId: string): Promise<PanelWithC
     .eq('chapter_id', chapterId)
     .order('position', { ascending: true })
 
-  if (error) {
-    console.error('Get panels error:', error)
-    return []
-  }
+  if (error) return { error: error.message }
   return withPanelCoverUrls(supabase, (data ?? []) as Panel[])
 }
 
