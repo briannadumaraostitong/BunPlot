@@ -3,6 +3,7 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { Skeleton } from '@/components/ui/skeleton'
 import { SidebarRowSkeleton } from '@/components/ui/sidebar-skeleton-row'
+import { LoadError } from '@/components/ui/load-error'
 import { CharacterSidebar } from './CharacterSidebar'
 import { FamilyTreeTabBar } from './FamilyTreeTabBar'
 import { RelationshipCanvas, type RelationshipCanvasHandle } from './RelationshipCanvas'
@@ -26,6 +27,9 @@ interface CharactersPanelProps {
 
 export function CharactersPanel({ projectId, initialSelectedCharacterId }: CharactersPanelProps) {
   const [loading, setLoading] = useState(true)
+  const [loadFailed, setLoadFailed] = useState(false)
+  // Bumped by Retry to re-run the load effect.
+  const [loadAttempt, setLoadAttempt] = useState(0)
   const [characters, setCharacters] = useState<Character[]>([])
   const [relationships, setRelationships] = useState<CharacterRelationship[]>([])
   const [trees, setTrees] = useState<FamilyTree[]>([])
@@ -52,14 +56,25 @@ export function CharactersPanel({ projectId, initialSelectedCharacterId }: Chara
   useEffect(() => {
     let cancelled = false
     ;(async () => {
-      const [charactersData, relationshipsData, treesData] = await Promise.all([
-        getCharacters(projectId),
-        getRelationships(projectId),
-        getFamilyTrees(projectId),
+      const [charactersResult, relationshipsResult, treesResult] = await Promise.all([
+        settle(getCharacters(projectId)),
+        settle(getRelationships(projectId)),
+        settle(getFamilyTrees(projectId)),
       ])
       if (cancelled) return
+      // All or nothing: a canvas without its relationships or trees would look
+      // like real data. Bail before clearing the selection, so a deep-linked
+      // character is still selected when Retry succeeds.
+      if ('error' in charactersResult || 'error' in relationshipsResult || 'error' in treesResult) {
+        console.error('Load characters error:', charactersResult, relationshipsResult, treesResult)
+        setLoadFailed(true)
+        setLoading(false)
+        return
+      }
+      const charactersData = charactersResult
+      const treesData = treesResult
       setCharacters(charactersData)
-      setRelationships(relationshipsData)
+      setRelationships(relationshipsResult)
       setTrees(treesData)
       setActiveTreeId(treesData[0]?.id ?? null)
       setSelectedCharacterId((current) =>
@@ -70,7 +85,13 @@ export function CharactersPanel({ projectId, initialSelectedCharacterId }: Chara
     return () => {
       cancelled = true
     }
-  }, [projectId])
+  }, [projectId, loadAttempt])
+
+  function retryLoad() {
+    setLoadFailed(false)
+    setLoading(true)
+    setLoadAttempt((n) => n + 1)
+  }
 
   useEffect(() => {
     function handleKey(e: KeyboardEvent) {
@@ -113,10 +134,11 @@ export function CharactersPanel({ projectId, initialSelectedCharacterId }: Chara
     canvasRef.current?.addCharacterToCanvas(characterId)
   }
 
-  async function handleRelationshipCreated() {
+  // Appends the row createRelationship returned rather than refetching, which
+  // used to replace every line on the canvas with [] when the refetch failed.
+  function handleRelationshipCreated(created: CharacterRelationship) {
     setModalState({ open: false, source: null, target: null })
-    const data = await getRelationships(projectId)
-    setRelationships(data)
+    setRelationships((prev) => [...prev, created])
   }
 
   function handleRelationshipDeleted(id: string) {
@@ -181,6 +203,14 @@ export function CharactersPanel({ projectId, initialSelectedCharacterId }: Chara
             <Skeleton className="absolute left-[25%] top-[60%] h-16 w-32 rounded-lg" />
           </div>
         </div>
+      </div>
+    )
+  }
+
+  if (loadFailed) {
+    return (
+      <div className="flex h-full items-center justify-center p-4">
+        <LoadError thing="characters" onRetry={retryLoad} />
       </div>
     )
   }

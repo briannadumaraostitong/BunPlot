@@ -11,6 +11,7 @@ import {
   deleteRelationship,
 } from '@/actions/characters'
 import { reportResult, settle } from '@/lib/notify'
+import { LoadError } from '@/components/ui/load-error'
 import type { Character, CharacterRelationship, FamilyTreeMember } from '@/types/database'
 
 const CANVAS_WIDTH = 2400
@@ -62,6 +63,9 @@ export const RelationshipCanvas = forwardRef<RelationshipCanvasHandle, Relations
     // This component is remounted via `key={treeId}` by the parent, so member
     // state naturally resets when switching trees.
     const [members, setMembers] = useState<FamilyTreeMember[]>([])
+    const [loadFailed, setLoadFailed] = useState(false)
+    // Bumped by Retry to re-run the load effect.
+    const [loadAttempt, setLoadAttempt] = useState(0)
     const [dragOver, setDragOver] = useState(false)
     const scrollRef = useRef<HTMLDivElement>(null)
     const contentRef = useRef<HTMLDivElement>(null)
@@ -69,13 +73,19 @@ export const RelationshipCanvas = forwardRef<RelationshipCanvasHandle, Relations
     useEffect(() => {
       let cancelled = false
       ;(async () => {
-        const data = await getFamilyTreeMembers(treeId)
-        if (!cancelled) setMembers(data)
+        const result = await settle(getFamilyTreeMembers(treeId))
+        if (cancelled) return
+        if ('error' in result) {
+          console.error('Load family tree members error:', result.error)
+          setLoadFailed(true)
+          return
+        }
+        setMembers(result)
       })()
       return () => {
         cancelled = true
       }
-    }, [treeId])
+    }, [treeId, loadAttempt])
 
     function addOrUpdateMember(characterId: string, x: number, y: number) {
       const isNew = !members.some((m) => m.character_id === characterId)
@@ -100,6 +110,9 @@ export const RelationshipCanvas = forwardRef<RelationshipCanvasHandle, Relations
       ref,
       () => ({
         addCharacterToCanvas(characterId: string) {
+          // The tree's real members are unknown, so adding would place a
+          // character onto what only looks like an empty tree.
+          if (loadFailed) return
           // Already placed — leave it where it is rather than surprise-move it.
           if (members.some((m) => m.character_id === characterId)) return
 
@@ -116,7 +129,7 @@ export const RelationshipCanvas = forwardRef<RelationshipCanvasHandle, Relations
           addOrUpdateMember(characterId, x, y)
         },
       }),
-      [members]
+      [members, loadFailed]
     )
 
     function handleDragMove(characterId: string, x: number, y: number) {
@@ -168,6 +181,21 @@ export const RelationshipCanvas = forwardRef<RelationshipCanvasHandle, Relations
     // line — they still show up in the character detail panel either way, since
     // that view isn't scoped to a single tree.
     const positions = new Map(members.map((m) => [m.character_id, { x: m.x, y: m.y }]))
+
+    // After every hook, so the early return can't change their order.
+    if (loadFailed) {
+      return (
+        <div className="flex h-full items-center justify-center bg-secondary/10 p-4">
+          <LoadError
+            thing="this family tree"
+            onRetry={() => {
+              setLoadFailed(false)
+              setLoadAttempt((n) => n + 1)
+            }}
+          />
+        </div>
+      )
+    }
 
     return (
       <div className="relative h-full">

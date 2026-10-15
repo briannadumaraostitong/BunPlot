@@ -13,7 +13,7 @@ import type {
 
 // ── Characters ──────────────────────────────────────────────
 
-export async function getCharacters(projectId: string): Promise<Character[]> {
+export async function getCharacters(projectId: string): Promise<{ error: string } | Character[]> {
   const supabase = await createClient()
   const { data, error } = await supabase
     .from('characters')
@@ -21,10 +21,7 @@ export async function getCharacters(projectId: string): Promise<Character[]> {
     .eq('project_id', projectId)
     .order('created_at', { ascending: true })
 
-  if (error) {
-    console.error('Get characters error:', error)
-    return []
-  }
+  if (error) return { error: error.message }
   return (data ?? []) as Character[]
 }
 
@@ -95,17 +92,16 @@ export async function deleteCharacter(
 
 // ── Relationships ───────────────────────────────────────────
 
-export async function getRelationships(projectId: string): Promise<CharacterRelationship[]> {
+export async function getRelationships(
+  projectId: string
+): Promise<{ error: string } | CharacterRelationship[]> {
   const supabase = await createClient()
   const { data, error } = await supabase
     .from('character_relationships')
     .select('*')
     .eq('project_id', projectId)
 
-  if (error) {
-    console.error('Get relationships error:', error)
-    return []
-  }
+  if (error) return { error: error.message }
   return (data ?? []) as CharacterRelationship[]
 }
 
@@ -148,7 +144,7 @@ export async function deleteRelationship(id: string, projectId: string) {
 
 // ── Family Trees ────────────────────────────────────────────
 
-export async function getFamilyTrees(projectId: string): Promise<FamilyTree[]> {
+export async function getFamilyTrees(projectId: string): Promise<{ error: string } | FamilyTree[]> {
   const supabase = await createClient()
 
   const { data, error } = await supabase
@@ -157,10 +153,7 @@ export async function getFamilyTrees(projectId: string): Promise<FamilyTree[]> {
     .eq('project_id', projectId)
     .order('position', { ascending: true })
 
-  if (error) {
-    console.error('Get family trees error:', error)
-    return []
-  }
+  if (error) return { error: error.message }
 
   const trees = (data ?? []) as FamilyTree[]
   if (trees.length > 0) return trees
@@ -171,10 +164,7 @@ export async function getFamilyTrees(projectId: string): Promise<FamilyTree[]> {
     .select()
     .single()
 
-  if (createError) {
-    console.error('Create default family tree error:', createError)
-    return []
-  }
+  if (createError) return { error: createError.message }
 
   return [created as FamilyTree]
 }
@@ -221,17 +211,16 @@ export async function deleteFamilyTree(id: string, projectId: string) {
 
 // ── Family Tree Members ─────────────────────────────────────
 
-export async function getFamilyTreeMembers(treeId: string): Promise<FamilyTreeMember[]> {
+export async function getFamilyTreeMembers(
+  treeId: string
+): Promise<{ error: string } | FamilyTreeMember[]> {
   const supabase = await createClient()
   const { data, error } = await supabase
     .from('family_tree_members')
     .select('*')
     .eq('tree_id', treeId)
 
-  if (error) {
-    console.error('Get family tree members error:', error)
-    return []
-  }
+  if (error) return { error: error.message }
   return (data ?? []) as FamilyTreeMember[]
 }
 
@@ -271,17 +260,16 @@ export interface EventCharacterLink {
   character_id: string
 }
 
-export async function getEventCharacterLinks(projectId: string): Promise<EventCharacterLink[]> {
+export async function getEventCharacterLinks(
+  projectId: string
+): Promise<{ error: string } | EventCharacterLink[]> {
   const supabase = await createClient()
   const { data, error } = await supabase
     .from('event_characters')
     .select('event_id, character_id, events!inner(project_id)')
     .eq('events.project_id', projectId)
 
-  if (error) {
-    console.error('Get event character links error:', error)
-    return []
-  }
+  if (error) return { error: error.message }
 
   return ((data ?? []) as { event_id: string; character_id: string }[]).map((row) => ({
     event_id: row.event_id,

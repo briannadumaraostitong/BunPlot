@@ -40,7 +40,7 @@ const EVENT_ORDER_TOAST_ID = 'event-order'
 
 // Places and characters here only feed the filters and the event modal's
 // pickers, so a failed load toasts once (shared id) instead of blocking the
-// timeline. Commit 2 adds the character loads to the same toast.
+// timeline.
 const PROJECT_LISTS_TOAST_ID = 'timeline-project-lists'
 const PROJECT_LISTS_MESSAGE =
   "Couldn't load all of this project's places and characters. Reload to try again."
@@ -137,8 +137,9 @@ export function TimelineCanvas({
   useEffect(() => {
     let cancelled = false
     ;(async () => {
-      const data = await getCharacters(project.id)
-      if (!cancelled) setAllCharacters(data)
+      const result = await settle(getCharacters(project.id))
+      if (cancelled) return
+      if (reportResult(result, PROJECT_LISTS_MESSAGE, { id: PROJECT_LISTS_TOAST_ID })) setAllCharacters(result)
     })()
     return () => {
       cancelled = true
@@ -160,8 +161,9 @@ export function TimelineCanvas({
   useEffect(() => {
     let cancelled = false
     ;(async () => {
-      const data = await getEventCharacterLinks(project.id)
-      if (!cancelled) setEventCharacterLinks(data)
+      const result = await settle(getEventCharacterLinks(project.id))
+      if (cancelled) return
+      if (reportResult(result, PROJECT_LISTS_MESSAGE, { id: PROJECT_LISTS_TOAST_ID })) setEventCharacterLinks(result)
     })()
     return () => {
       cancelled = true

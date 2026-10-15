@@ -16,7 +16,7 @@ import { useStatuses } from '@/hooks/useStatuses'
 import { getPlaces, getEventPlaceLinks } from '@/actions/places'
 import { waitForPendingPlaceSaves } from './pendingPlaceSaves'
 import { getCharacters } from '@/actions/characters'
-import { settle } from '@/lib/notify'
+import { reportResult, settle } from '@/lib/notify'
 import type { Layer, Event, Chapter, PlaceType, Character, Status } from '@/types/database'
 import type { PlaceWithCover, EventPlaceLink } from '@/actions/places'
 
@@ -113,8 +113,11 @@ export function PlacesPanel({
   useEffect(() => {
     let cancelled = false
     ;(async () => {
-      const data = await getCharacters(projectId)
-      if (!cancelled) setAllCharacters(data)
+      const result = await settle(getCharacters(projectId))
+      if (cancelled) return
+      if (reportResult(result, "Couldn't load this project's characters. Reload to try again.", { id: 'places-characters' })) {
+        setAllCharacters(result)
+      }
     })()
     return () => {
       cancelled = true

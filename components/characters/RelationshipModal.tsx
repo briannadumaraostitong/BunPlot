@@ -20,7 +20,7 @@ import {
 } from '@/components/ui/select'
 import { createRelationship } from '@/actions/characters'
 import { settle } from '@/lib/notify'
-import type { Character, RelationshipType } from '@/types/database'
+import type { Character, CharacterRelationship, RelationshipType } from '@/types/database'
 
 const RELATIONSHIP_TYPES: { value: RelationshipType; label: string; symmetric: boolean }[] = [
   { value: 'parent', label: 'Parent', symmetric: false },
@@ -39,7 +39,7 @@ interface RelationshipModalProps {
   target: Character | null
   open: boolean
   onClose: () => void
-  onCreated: () => void
+  onCreated: (relationship: CharacterRelationship) => void
 }
 
 export function RelationshipModal({
@@ -76,7 +76,7 @@ export function RelationshipModal({
     }
     setType('friend')
     setLabel('')
-    onCreated()
+    onCreated(result)
   }
 
   const selected = RELATIONSHIP_TYPES.find((t) => t.value === type)!
