@@ -5,6 +5,7 @@ import Link from 'next/link'
 import { useSearchParams } from 'next/navigation'
 import { CloudOff, Search, SearchX } from 'lucide-react'
 import { Skeleton } from '@/components/ui/skeleton'
+import { Button } from '@/components/ui/button'
 import { EmptyState } from '@/components/ui/empty-state'
 import { Input } from '@/components/ui/input'
 import { cn } from '@/lib/utils'
@@ -41,7 +42,7 @@ export default function SearchPage() {
   const [query, setQuery] = useState('')
   const [scope, setScope] = useState<'project' | 'all'>(projectParam ? 'project' : 'all')
 
-  const { results, status, error } = useSearch(query, scope === 'project' ? projectParam : null)
+  const { results, status, error, retry } = useSearch(query, scope === 'project' ? projectParam : null)
 
   if (error) console.error('Search failed:', error)
 
@@ -119,6 +120,11 @@ export default function SearchPage() {
           icon={CloudOff}
           title="Couldn't search."
           hint="Check your connection and try again."
+          action={
+            <Button size="sm" variant="outline" onClick={retry}>
+              Retry
+            </Button>
+          }
           className="h-64"
         />
       )}

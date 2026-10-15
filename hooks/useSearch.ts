@@ -21,10 +21,14 @@ interface SettledSearch {
 
 export function useSearch(query: string, projectId: string | null) {
   const [settled, setSettled] = useState<SettledSearch | null>(null)
+  // Bumped by retry(). Part of the key, so a retry counts as a new search:
+  // the effect re-runs, and the status shows 'loading' until it settles,
+  // instead of staying on the old error.
+  const [attempt, setAttempt] = useState(0)
 
   const trimmed = query.trim()
   const active = trimmed.length >= MIN_QUERY_LENGTH
-  const key = JSON.stringify([projectId, trimmed])
+  const key = JSON.stringify([projectId, trimmed, attempt])
 
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null)
   // Guards against an earlier, slower request's response arriving after a
@@ -64,12 +68,16 @@ export function useSearch(query: string, projectId: string | null) {
     }
   }, [active, key, trimmed, projectId])
 
-  if (!active) return { results: [], isLoading: false, error: null, status: 'idle' as SearchStatus }
+  function retry() {
+    setAttempt((n) => n + 1)
+  }
+
+  if (!active) return { results: [], isLoading: false, error: null, status: 'idle' as SearchStatus, retry }
   // A different query than the last finished one: still waiting for it.
   // The previous results are kept, as before; the page only shows them
   // once the status is 'results'.
   if (settled?.key !== key) {
-    return { results: settled?.results ?? [], isLoading: true, error: null, status: 'loading' as SearchStatus }
+    return { results: settled?.results ?? [], isLoading: true, error: null, status: 'loading' as SearchStatus, retry }
   }
-  return { results: settled.results, isLoading: false, error: settled.error, status: settled.status as SearchStatus }
+  return { results: settled.results, isLoading: false, error: settled.error, status: settled.status as SearchStatus, retry }
 }
