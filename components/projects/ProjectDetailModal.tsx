@@ -406,7 +406,7 @@ function ProjectCoverImage({
 
   return (
     <div
-      className="group/cover relative aspect-2/3 w-[150px] shrink-0 cursor-pointer overflow-hidden rounded-lg bg-primary"
+      className="group/cover relative aspect-2/3 w-37.5 shrink-0 cursor-pointer overflow-hidden rounded-lg bg-primary"
       onClick={() => !uploading && fileInputRef.current?.click()}
       onDragOver={(e) => e.preventDefault()}
       onDrop={(e) => {
