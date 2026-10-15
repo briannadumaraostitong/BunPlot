@@ -87,7 +87,7 @@ export function PanelGrid({ projectId, chapterId }: PanelGridProps) {
             <button
               onClick={handleAddPanel}
               disabled={adding}
-              className="flex aspect-3/4 flex-col items-center justify-center gap-1.5 rounded-lg border border-dashed border-border text-muted-foreground transition-colors hover:border-primary hover:text-foreground"
+              className="flex aspect-3/4 flex-col items-center justify-center gap-1.5 rounded-lg bg-secondary/20 text-muted-foreground transition-colors hover:bg-secondary/40 hover:text-foreground"
             >
               {adding ? (
                 <Loader2 className="h-4 w-4 animate-spin" />

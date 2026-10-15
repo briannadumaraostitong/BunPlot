@@ -17,6 +17,10 @@ import { Textarea } from '@/components/ui/textarea'
 import { createClient } from '@/lib/supabase/client'
 import { createProject, updateProject } from '@/actions/projects'
 import { notifyError, reportResult, settle } from '@/lib/notify'
+import { cn } from '@/lib/utils'
+
+// Same list as the file input's accept, which a drop bypasses.
+const COVER_TYPES = ['image/jpeg', 'image/png', 'image/gif', 'image/webp']
 
 interface NewProjectDialogProps {
   trigger?: string
@@ -30,6 +34,7 @@ export function NewProjectDialog({ trigger }: NewProjectDialogProps) {
   const [coverFile, setCoverFile] = useState<File | null>(null)
   const [coverPreviewUrl, setCoverPreviewUrl] = useState<string | null>(null)
   const fileInputRef = useRef<HTMLInputElement>(null)
+  const [draggingOver, setDraggingOver] = useState(false)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
@@ -155,17 +160,36 @@ export function NewProjectDialog({ trigger }: NewProjectDialogProps) {
               <button
                 type="button"
                 onClick={() => fileInputRef.current?.click()}
-                className="flex h-20 w-full items-center justify-center gap-1.5 rounded-md border border-dashed border-border text-xs text-muted-foreground transition-colors hover:border-primary hover:text-foreground"
+                onDragOver={(e) => {
+                  e.preventDefault()
+                  setDraggingOver(true)
+                }}
+                onDragLeave={() => setDraggingOver(false)}
+                onDrop={(e) => {
+                  e.preventDefault()
+                  setDraggingOver(false)
+                  const file = e.dataTransfer.files?.[0]
+                  if (!file) return
+                  if (!COVER_TYPES.includes(file.type)) {
+                    notifyError("Couldn't add that file. Use a JPG, PNG, GIF or WebP image.")
+                    return
+                  }
+                  handleCoverPick(file)
+                }}
+                className={cn(
+                  'flex h-20 w-full items-center justify-center gap-1.5 rounded-md border border-dashed border-border text-xs text-muted-foreground transition-colors hover:border-primary hover:text-foreground',
+                  draggingOver && 'border-primary bg-secondary/30 text-foreground'
+                )}
               >
                 <ImagePlus className="h-4 w-4" />
-                Add a cover image
+                Click or drag to add a cover
               </button>
             )}
             <input
               ref={fileInputRef}
               id="proj-cover"
               type="file"
-              accept="image/jpeg,image/png,image/gif,image/webp"
+              accept={COVER_TYPES.join(',')}
               className="hidden"
               onChange={(e) => {
                 const file = e.target.files?.[0]

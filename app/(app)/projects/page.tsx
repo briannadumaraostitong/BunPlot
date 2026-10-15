@@ -1,9 +1,11 @@
 import Link from 'next/link'
+import { Archive, BookOpen } from 'lucide-react'
 import { createClient } from '@/lib/supabase/server'
 import { requireUser } from '@/lib/supabase/requireUser'
 import { withProjectCoverUrls } from '@/actions/projects'
 import { ProjectCard } from '@/components/projects/ProjectCard'
 import { NewProjectDialog } from '@/components/projects/NewProjectDialog'
+import { EmptyState } from '@/components/ui/empty-state'
 import { cn } from '@/lib/utils'
 import type { Metadata } from 'next'
 import type { Project } from '@/types/database'
@@ -136,14 +138,14 @@ export default async function ProjectsPage({ searchParams }: Props) {
           ))}
         </div>
       ) : showArchived ? (
-        <div className="flex flex-col items-center justify-center h-64 text-center space-y-3 rounded-xl border border-dashed border-border">
-          <p className="text-muted-foreground text-sm">No archived projects</p>
-        </div>
+        <EmptyState icon={Archive} title="No archived projects" className="h-64" />
       ) : (
-        <div className="flex flex-col items-center justify-center h-64 text-center space-y-3 rounded-xl border border-dashed border-border">
-          <p className="text-muted-foreground text-sm">No projects yet</p>
-          <NewProjectDialog trigger="Create your first project" />
-        </div>
+        <EmptyState
+          icon={BookOpen}
+          title="No projects yet"
+          action={<NewProjectDialog trigger="Create your first project" />}
+          className="h-64"
+        />
       )}
     </div>
   )

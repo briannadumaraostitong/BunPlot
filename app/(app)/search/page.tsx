@@ -3,8 +3,9 @@
 import { useState } from 'react'
 import Link from 'next/link'
 import { useSearchParams } from 'next/navigation'
-import { Search } from 'lucide-react'
+import { CloudOff, Search, SearchX } from 'lucide-react'
 import { Skeleton } from '@/components/ui/skeleton'
+import { EmptyState } from '@/components/ui/empty-state'
 import { Input } from '@/components/ui/input'
 import { cn } from '@/lib/utils'
 import { useSearch } from '@/hooks/useSearch'
@@ -91,12 +92,12 @@ export default function SearchPage() {
       </div>
 
       {status === 'idle' && (
-        <div className="flex flex-col items-center justify-center h-64 text-center space-y-2 rounded-xl border border-dashed border-border">
-          <p className="text-muted-foreground text-sm">Type to search</p>
-          <p className="text-xs text-muted-foreground">
-            Searches characters, events, places, and chapters
-          </p>
-        </div>
+        <EmptyState
+          icon={Search}
+          title="Type to search"
+          hint="Searches characters, events, places, and chapters"
+          className="h-64"
+        />
       )}
 
       {status === 'loading' && (
@@ -114,17 +115,16 @@ export default function SearchPage() {
       )}
 
       {status === 'error' && (
-        <div className="flex flex-col items-center justify-center h-64 text-center space-y-2 rounded-xl border border-dashed border-border">
-          <p className="text-sm text-destructive">
-            Something went wrong with your search. Try again.
-          </p>
-        </div>
+        <EmptyState
+          icon={CloudOff}
+          title="Couldn't search."
+          hint="Check your connection and try again."
+          className="h-64"
+        />
       )}
 
       {status === 'empty' && (
-        <div className="flex flex-col items-center justify-center h-64 text-center space-y-2 rounded-xl border border-dashed border-border">
-          <p className="text-muted-foreground text-sm">No results found</p>
-        </div>
+        <EmptyState icon={SearchX} title="No results found" className="h-64" />
       )}
 
       {status === 'results' && (

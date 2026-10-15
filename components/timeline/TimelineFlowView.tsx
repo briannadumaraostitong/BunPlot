@@ -165,7 +165,7 @@ export function TimelineFlowView({
             <button
               onClick={handleAddEvent}
               disabled={!canAdd || creating}
-              className="flex h-17 w-36 shrink-0 flex-col items-center justify-center gap-1 rounded-lg border border-dashed border-border text-muted-foreground transition-colors hover:border-primary hover:text-foreground disabled:cursor-not-allowed disabled:opacity-40"
+              className="flex h-17 w-36 shrink-0 flex-col items-center justify-center gap-1 rounded-lg bg-secondary/20 text-muted-foreground transition-colors hover:bg-secondary/40 hover:text-foreground disabled:cursor-not-allowed disabled:opacity-40"
             >
               {creating ? <Loader2 className="h-4 w-4 animate-spin" /> : <Plus className="h-4 w-4" />}
               <span className="text-xs">Add event</span>

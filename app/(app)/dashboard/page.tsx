@@ -1,3 +1,4 @@
+import { BookOpen } from 'lucide-react'
 import { createClient } from '@/lib/supabase/server'
 import { requireUser } from '@/lib/supabase/requireUser'
 import { withProjectCoverUrls } from '@/actions/projects'
@@ -5,6 +6,7 @@ import { ProjectCard } from '@/components/projects/ProjectCard'
 import { NewProjectDialog } from '@/components/projects/NewProjectDialog'
 import { NewFolderDialog } from '@/components/projects/NewFolderDialog'
 import { FolderSection } from '@/components/projects/FolderSection'
+import { EmptyState } from '@/components/ui/empty-state'
 import type { Metadata } from 'next'
 import type { Project, ProjectFolder } from '@/types/database'
 import type { ProjectStats } from '@/components/projects/ProjectCard'
@@ -149,10 +151,12 @@ export default async function DashboardPage() {
           ))}
         </>
       ) : (
-        <div className="flex flex-col items-center justify-center h-64 text-center space-y-3 rounded-xl border border-dashed border-border">
-          <p className="text-muted-foreground text-sm">No projects yet</p>
-          <NewProjectDialog trigger="Create your first project" />
-        </div>
+        <EmptyState
+          icon={BookOpen}
+          title="No projects yet"
+          action={<NewProjectDialog trigger="Create your first project" />}
+          className="h-64"
+        />
       )}
     </div>
   )

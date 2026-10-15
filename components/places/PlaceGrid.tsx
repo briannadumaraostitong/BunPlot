@@ -1,6 +1,7 @@
 'use client'
 
 import { MapPin } from 'lucide-react'
+import { EmptyState } from '@/components/ui/empty-state'
 import { PlaceCard } from './PlaceCard'
 import type { Chapter } from '@/types/database'
 import type { PlaceWithCover } from '@/actions/places'
@@ -22,19 +23,16 @@ export function PlaceGrid({
 }: PlaceGridProps) {
   if (places.length === 0) {
     return (
-      <div className="flex h-full flex-col items-center justify-center text-center space-y-3 px-4">
-        <div className="flex h-12 w-12 items-center justify-center rounded-full bg-secondary/30">
-          <MapPin className="h-5 w-5 text-muted-foreground" />
-        </div>
-        <div className="space-y-1">
-          <p className="text-sm font-medium">{hasAnyPlaces ? 'No places match' : 'No places yet'}</p>
-          <p className="text-xs text-muted-foreground max-w-xs">
-            {hasAnyPlaces
-              ? 'Try a different search or type filter.'
-              : 'Keep track of the settings and locations your story visits.'}
-          </p>
-        </div>
-      </div>
+      <EmptyState
+        icon={MapPin}
+        title={hasAnyPlaces ? 'No places match' : 'No places yet'}
+        hint={
+          hasAnyPlaces
+            ? 'Try a different search or type filter.'
+            : 'Keep track of the settings and locations your story visits.'
+        }
+        className="h-full"
+      />
     )
   }
 
