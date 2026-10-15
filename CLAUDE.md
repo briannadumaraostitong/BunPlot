@@ -2,7 +2,7 @@
 
 ## Project Overview
 BunPlot is a visual story timeline planner for writers. Think Plottr meets Notion.
-Built with: Next.js 15 (App Router), TypeScript, Tailwind CSS v4, shadcn/ui (Nova preset, Radix), Supabase.
+Built with: Next.js 16 (16.2.6, App Router), TypeScript, Tailwind CSS v4, shadcn/ui (Nova preset, Radix), Supabase.
 
 ## Folder Structure
 - `app/` — Next.js App Router pages
@@ -112,6 +112,7 @@ Inspired by: Plottr, Notion, Linear, iA Writer.
 - No bullet point lists in UI copy — use prose
 - No excessive bold/headers — use weight hierarchy instead
 - No `backdrop-blur` on overlays — use solid `bg-background`
+- No dashed borders (`border-dashed`, `borderStyle: 'dashed'`) except on areas where you drag and drop files, and on selection outlines in the sketch tool. Empty and error states use the icon-circle layout with no box (see `PlaceGrid` / `LoadError`)
 - No `border` shorthand in inline styles — use individual borderWidth/Color properties
 - No `h-[600px]` arbitrary values — use Tailwind scale (`h-160`)
 - No `flex-shrink-0` — use `shrink-0`
