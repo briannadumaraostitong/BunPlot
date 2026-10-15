@@ -4,6 +4,7 @@ import { useEffect, useMemo, useState } from 'react'
 import { pruneBackups } from '@/lib/editorBackup'
 import { Skeleton } from '@/components/ui/skeleton'
 import { SidebarRowSkeleton } from '@/components/ui/sidebar-skeleton-row'
+import { LoadError } from '@/components/ui/load-error'
 import { PlaceSidebar } from './PlaceSidebar'
 import { PlaceGrid } from './PlaceGrid'
 import { PlaceDetailPanel } from './PlaceDetailPanel'
@@ -15,6 +16,7 @@ import { useStatuses } from '@/hooks/useStatuses'
 import { getPlaces, getEventPlaceLinks } from '@/actions/places'
 import { waitForPendingPlaceSaves } from './pendingPlaceSaves'
 import { getCharacters } from '@/actions/characters'
+import { settle } from '@/lib/notify'
 import type { Layer, Event, Chapter, PlaceType, Character, Status } from '@/types/database'
 import type { PlaceWithCover, EventPlaceLink } from '@/actions/places'
 
@@ -36,6 +38,9 @@ export function PlacesPanel({
   initialSelectedPlaceId,
 }: PlacesPanelProps) {
   const [loading, setLoading] = useState(true)
+  const [loadFailed, setLoadFailed] = useState(false)
+  // Bumped by Retry to re-run the load effect.
+  const [loadAttempt, setLoadAttempt] = useState(0)
   const [places, setPlaces] = useState<PlaceWithCover[]>([])
   const [eventPlaceLinks, setEventPlaceLinks] = useState<EventPlaceLink[]>([])
   const [allCharacters, setAllCharacters] = useState<Character[]>([])
@@ -64,15 +69,24 @@ export function PlacesPanel({
       // tab before trusting a fresh fetch — otherwise this can race an unmount
       // save and load stale (pre-save) content.
       await waitForPendingPlaceSaves()
-      const [placesData, linksData] = await Promise.all([
-        getPlaces(projectId),
-        getEventPlaceLinks(projectId),
+      const [placesResult, linksResult] = await Promise.all([
+        settle(getPlaces(projectId)),
+        settle(getEventPlaceLinks(projectId)),
       ])
       if (cancelled) return
-      // Only when places came back: getPlaces returns [] on error, and pruning
-      // against an empty list would wipe this project's backups exactly when
-      // they're needed. (A project with no places keeps any orphans until
-      // they reach 30 days.)
+      // Both or neither: without the links, every place would look unused in
+      // any chapter. Bail before pruning and selection-clearing, which would
+      // otherwise act on lists that aren't real.
+      if ('error' in placesResult || 'error' in linksResult) {
+        console.error('Load places error:', 'error' in placesResult ? placesResult.error : linksResult)
+        setLoadFailed(true)
+        setLoading(false)
+        return
+      }
+      const placesData = placesResult
+      const linksData = linksResult
+      // Skipped for a project with no places, which keeps any orphaned
+      // backups until they reach 30 days.
       if (placesData.length > 0) {
         const ids = placesData.map((p) => p.id)
         pruneBackups('place-description', projectId, ids)
@@ -88,7 +102,13 @@ export function PlacesPanel({
     return () => {
       cancelled = true
     }
-  }, [projectId])
+  }, [projectId, loadAttempt])
+
+  function retryLoad() {
+    setLoadFailed(false)
+    setLoading(true)
+    setLoadAttempt((n) => n + 1)
+  }
 
   useEffect(() => {
     let cancelled = false
@@ -194,6 +214,14 @@ export function PlacesPanel({
             ))}
           </div>
         </div>
+      </div>
+    )
+  }
+
+  if (loadFailed) {
+    return (
+      <div className="flex h-full items-center justify-center p-4">
+        <LoadError thing="places" onRetry={retryLoad} />
       </div>
     )
   }

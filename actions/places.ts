@@ -34,7 +34,7 @@ async function withCoverUrls(
 
 // ── Places ──────────────────────────────────────────────────
 
-export async function getPlaces(projectId: string): Promise<PlaceWithCover[]> {
+export async function getPlaces(projectId: string): Promise<{ error: string } | PlaceWithCover[]> {
   const supabase = await createClient()
   const { data, error } = await supabase
     .from('places')
@@ -42,10 +42,7 @@ export async function getPlaces(projectId: string): Promise<PlaceWithCover[]> {
     .eq('project_id', projectId)
     .order('created_at', { ascending: true })
 
-  if (error) {
-    console.error('Get places error:', error)
-    return []
-  }
+  if (error) return { error: error.message }
   return withCoverUrls(supabase, (data ?? []) as Place[])
 }
 
@@ -156,17 +153,16 @@ export interface EventPlaceLink {
   place_id: string
 }
 
-export async function getEventPlaceLinks(projectId: string): Promise<EventPlaceLink[]> {
+export async function getEventPlaceLinks(
+  projectId: string
+): Promise<{ error: string } | EventPlaceLink[]> {
   const supabase = await createClient()
   const { data, error } = await supabase
     .from('event_places')
     .select('event_id, place_id, events!inner(project_id)')
     .eq('events.project_id', projectId)
 
-  if (error) {
-    console.error('Get event place links error:', error)
-    return []
-  }
+  if (error) return { error: error.message }
 
   return ((data ?? []) as { event_id: string; place_id: string }[]).map((row) => ({
     event_id: row.event_id,

@@ -38,6 +38,13 @@ import type { EventCharacterLink } from '@/actions/characters'
 // offline don't stack.
 const EVENT_ORDER_TOAST_ID = 'event-order'
 
+// Places and characters here only feed the filters and the event modal's
+// pickers, so a failed load toasts once (shared id) instead of blocking the
+// timeline. Commit 2 adds the character loads to the same toast.
+const PROJECT_LISTS_TOAST_ID = 'timeline-project-lists'
+const PROJECT_LISTS_MESSAGE =
+  "Couldn't load all of this project's places and characters. Reload to try again."
+
 // Mirrors stripHtml in LayerRow.tsx/ProjectCard.tsx — events store description
 // as an HTML string, so search needs the same tag-stripping before matching.
 function stripHtml(html: string) {
@@ -118,8 +125,9 @@ export function TimelineCanvas({
   useEffect(() => {
     let cancelled = false
     ;(async () => {
-      const data = await getPlaces(project.id)
-      if (!cancelled) setAllPlaces(data)
+      const result = await settle(getPlaces(project.id))
+      if (cancelled) return
+      if (reportResult(result, PROJECT_LISTS_MESSAGE, { id: PROJECT_LISTS_TOAST_ID })) setAllPlaces(result)
     })()
     return () => {
       cancelled = true
@@ -140,8 +148,9 @@ export function TimelineCanvas({
   useEffect(() => {
     let cancelled = false
     ;(async () => {
-      const data = await getEventPlaceLinks(project.id)
-      if (!cancelled) setEventPlaceLinks(data)
+      const result = await settle(getEventPlaceLinks(project.id))
+      if (cancelled) return
+      if (reportResult(result, PROJECT_LISTS_MESSAGE, { id: PROJECT_LISTS_TOAST_ID })) setEventPlaceLinks(result)
     })()
     return () => {
       cancelled = true
