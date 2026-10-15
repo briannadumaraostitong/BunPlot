@@ -211,29 +211,39 @@ function ResizableCell({
   className?: string
   children: React.ReactNode
 }) {
-  function onMouseDown(e: React.MouseEvent) {
+  // Pointer events with capture, so the same code handles mouse, touch and
+  // pen: once captured, moves keep coming to the handle even when the finger
+  // or cursor leaves it, so nothing is registered on document. The handle's
+  // touch-none stops the browser from claiming the touch as a scroll.
+  function onPointerDown(e: React.PointerEvent<HTMLDivElement>) {
+    if (e.button !== 0) return // primary button only (touch and pen report 0)
     e.preventDefault()
+    const handle = e.currentTarget
+    handle.setPointerCapture(e.pointerId)
     const startX = e.clientX
     const startWidth = width
 
-    function handleMouseMove(ev: MouseEvent) {
+    function handlePointerMove(ev: PointerEvent) {
       const delta = ev.clientX - startX
       onWidthChange(Math.min(maxWidth, Math.max(minWidth, startWidth + delta)))
     }
 
-    // Declared alongside handleMouseMove so both identities are fixed for the
-    // life of one drag — exactly the pair registered here is the pair removed.
-    function handleMouseUp() {
-      document.removeEventListener('mousemove', handleMouseMove)
-      document.removeEventListener('mouseup', handleMouseUp)
+    // Declared alongside handlePointerMove so the identities are fixed for the
+    // life of one drag — exactly the listeners registered here are removed.
+    // pointercancel covers the browser or OS interrupting a touch.
+    function handlePointerEnd() {
+      handle.removeEventListener('pointermove', handlePointerMove)
+      handle.removeEventListener('pointerup', handlePointerEnd)
+      handle.removeEventListener('pointercancel', handlePointerEnd)
       document.body.style.cursor = ''
       document.body.style.userSelect = ''
     }
 
     document.body.style.cursor = 'col-resize'
     document.body.style.userSelect = 'none'
-    document.addEventListener('mousemove', handleMouseMove)
-    document.addEventListener('mouseup', handleMouseUp)
+    handle.addEventListener('pointermove', handlePointerMove)
+    handle.addEventListener('pointerup', handlePointerEnd)
+    handle.addEventListener('pointercancel', handlePointerEnd)
   }
 
   return (
@@ -245,11 +255,11 @@ function ResizableCell({
 
       {/* Drag handle */}
       <div
-        onMouseDown={onMouseDown}
-        className="absolute right-0 top-0 bottom-0 w-1 cursor-col-resize z-10 group"
+        onPointerDown={onPointerDown}
+        className="absolute right-0 top-0 bottom-0 w-1 touch-none cursor-col-resize z-10 group pointer-coarse:after:absolute pointer-coarse:after:inset-y-0 pointer-coarse:after:left-0 pointer-coarse:after:-right-2"
         title="Drag to resize"
       >
-        <div className="absolute right-0 top-0 bottom-0 w-px bg-primary/0 group-hover:bg-primary/60 transition-colors" />
+        <div className="absolute right-0 top-0 bottom-0 w-px bg-primary/0 group-hover:bg-primary/60 group-active:bg-primary/60 transition-colors" />
       </div>
     </div>
   )
