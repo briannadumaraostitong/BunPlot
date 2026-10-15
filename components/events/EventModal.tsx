@@ -476,12 +476,23 @@ function EventForm({
 
         <Field label="Color">
           <div className="flex items-center gap-2">
-            <input
-              type="color"
-              value={color}
-              onChange={(e) => setColor(e.target.value)}
-              className="h-8 w-10 rounded border border-border cursor-pointer bg-background p-0.5"
-            />
+            {/* A swatch with the real color input stretched invisibly over it,
+                so a tap lands on the input itself (same as StatusPicker). The
+                native input isn't shown: its look varies by browser, and
+                ::after hit-slop doesn't render on it. */}
+            <label
+              className="relative h-7 w-7 shrink-0 cursor-pointer rounded-full ring-1 ring-inset ring-black/15 dark:ring-white/15 has-focus-visible:ring-2 has-focus-visible:ring-ring after:absolute after:-inset-2"
+              style={{ backgroundColor: color }}
+              title="Change color"
+            >
+              <input
+                type="color"
+                value={color}
+                onChange={(e) => setColor(e.target.value)}
+                aria-label="Event color"
+                className="absolute inset-0 h-full w-full cursor-pointer opacity-0"
+              />
+            </label>
             <span className="text-xs text-muted-foreground font-mono">
               {color}
             </span>
