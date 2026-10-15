@@ -330,8 +330,8 @@ function StatRow({ label, value }: { label: string; value: number }) {
 
 // Ported from the old ProjectCard.tsx (pre-redesign) — same upload/drag-drop/
 // remove logic, resized from a landscape card-top strip to a portrait
-// 150px-wide 2:3 thumbnail rounded on all corners, since it no longer sits
-// flush against a card edge.
+// 150px-wide (96px on phones) 2:3 thumbnail rounded on all corners, since it
+// no longer sits flush against a card edge.
 function ProjectCoverImage({
   projectId,
   imagePath,
@@ -406,7 +406,7 @@ function ProjectCoverImage({
 
   return (
     <div
-      className="group/cover relative aspect-2/3 w-37.5 shrink-0 cursor-pointer overflow-hidden rounded-lg bg-primary"
+      className="group/cover relative aspect-2/3 w-24 sm:w-37.5 shrink-0 cursor-pointer overflow-hidden rounded-lg bg-primary"
       onClick={() => !uploading && fileInputRef.current?.click()}
       onDragOver={(e) => e.preventDefault()}
       onDrop={(e) => {
