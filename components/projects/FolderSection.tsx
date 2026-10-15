@@ -4,6 +4,7 @@ import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { ChevronRight, ChevronDown, Trash2, Check, X } from 'lucide-react'
 import { Button } from '@/components/ui/button'
+import { RenameHint } from '@/components/ui/rename-hint'
 import {
   Dialog,
   DialogContent,
@@ -111,13 +112,14 @@ export function FolderSection({ folder, projects, allFolders, statsByProject }: 
             </button>
           </div>
         ) : (
-          <h2
-            className="text-sm font-semibold cursor-pointer"
-            title="Double-click to rename"
-            onDoubleClick={() => setEditing(true)}
-          >
-            {folder.name}
-          </h2>
+          <RenameHint name={folder.name}>
+            <h2
+              className="text-sm font-semibold cursor-default"
+              onDoubleClick={() => setEditing(true)}
+            >
+              {folder.name}
+            </h2>
+          </RenameHint>
         )}
 
         <span className="text-xs text-muted-foreground">

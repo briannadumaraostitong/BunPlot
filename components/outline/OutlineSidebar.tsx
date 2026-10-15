@@ -4,6 +4,7 @@ import { useRef, useState } from 'react'
 import { ChevronDown, ChevronLeft, ChevronRight, Download, FileText, Plus, X } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { Button } from '@/components/ui/button'
+import { RenameHint } from '@/components/ui/rename-hint'
 import {
   Dialog,
   DialogContent,
@@ -201,7 +202,6 @@ function OutlineRow({
     <div
       onClick={onSelect}
       onDoubleClick={startEditing}
-      title={editing ? undefined : `${outline.name} — double-click to rename`}
       className={cn(
         'group flex items-center gap-2 mx-1 px-2 py-1.5 rounded-md cursor-pointer transition-colors',
         active ? 'bg-secondary' : 'hover:bg-secondary/50'
@@ -221,7 +221,9 @@ function OutlineRow({
           className="min-w-0 flex-1 rounded border border-border bg-background px-1 py-0 text-sm md:text-xs outline-none focus:border-primary"
         />
       ) : (
-        <span className="flex-1 min-w-0 truncate text-xs">{outline.name}</span>
+        <RenameHint name={outline.name}>
+          <span className="flex-1 min-w-0 truncate text-xs">{outline.name}</span>
+        </RenameHint>
       )}
 
       {!editing && (

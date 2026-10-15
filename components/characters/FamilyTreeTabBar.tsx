@@ -3,6 +3,7 @@
 import { useRef, useState } from 'react'
 import { Plus, X } from 'lucide-react'
 import { cn } from '@/lib/utils'
+import { RenameHint } from '@/components/ui/rename-hint'
 import type { FamilyTree } from '@/types/database'
 
 interface FamilyTreeTabBarProps {
@@ -93,7 +94,6 @@ function FamilyTreeTab({
     <div
       onClick={onSelect}
       onDoubleClick={startEditing}
-      title={editing ? undefined : `${tree.name} — double-click to rename`}
       className={cn(
         'group relative flex h-6 max-w-40 shrink-0 cursor-pointer items-center gap-1 rounded-md px-2 text-xs font-medium transition-colors select-none after:absolute after:-inset-y-1 after:-inset-x-0.5',
         active
@@ -113,7 +113,9 @@ function FamilyTreeTab({
           className="w-28 rounded border border-border bg-background px-1 py-0 text-base md:text-xs outline-none focus:border-primary"
         />
       ) : (
-        <span className="truncate">{tree.name}</span>
+        <RenameHint name={tree.name}>
+          <span className="truncate">{tree.name}</span>
+        </RenameHint>
       )}
 
       {!editing && canDelete && (
