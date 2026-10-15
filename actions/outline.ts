@@ -4,7 +4,7 @@ import { createClient } from '@/lib/supabase/server'
 import { revalidatePath } from 'next/cache'
 import type { Outline } from '@/types/database'
 
-export async function getOutlines(projectId: string): Promise<Outline[]> {
+export async function getOutlines(projectId: string): Promise<{ error: string } | Outline[]> {
   const supabase = await createClient()
 
   const { data, error } = await supabase
@@ -13,10 +13,7 @@ export async function getOutlines(projectId: string): Promise<Outline[]> {
     .eq('project_id', projectId)
     .order('position', { ascending: true })
 
-  if (error) {
-    console.error('Get outlines error:', error)
-    return []
-  }
+  if (error) return { error: error.message }
 
   const outlines = (data ?? []) as Outline[]
   if (outlines.length > 0) return outlines
@@ -27,10 +24,7 @@ export async function getOutlines(projectId: string): Promise<Outline[]> {
     .select()
     .single()
 
-  if (createError) {
-    console.error('Create default outline error:', createError)
-    return []
-  }
+  if (createError) return { error: createError.message }
 
   return [created as Outline]
 }

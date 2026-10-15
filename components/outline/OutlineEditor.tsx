@@ -34,6 +34,7 @@ import {
 import { Separator } from '@/components/ui/separator'
 import { Skeleton } from '@/components/ui/skeleton'
 import { SidebarRowSkeleton } from '@/components/ui/sidebar-skeleton-row'
+import { LoadError } from '@/components/ui/load-error'
 import { createClient } from '@/lib/supabase/client'
 import { getEditorJson } from '@/lib/editorJson'
 import { dismissError, notifyError, reportResult, settle } from '@/lib/notify'
@@ -103,6 +104,9 @@ interface OutlineEditorProps {
 
 export function OutlineEditor({ projectId }: OutlineEditorProps) {
   const [loading, setLoading] = useState(true)
+  const [loadFailed, setLoadFailed] = useState(false)
+  // Bumped by Retry to re-run the load effect.
+  const [loadAttempt, setLoadAttempt] = useState(0)
   const [outlines, setOutlines] = useState<Outline[]>([])
   const [activeId, setActiveId] = useState<string | null>(null)
   // Lives here rather than in OutlineSidebar so both the sidebar's File menu
@@ -119,11 +123,19 @@ export function OutlineEditor({ projectId }: OutlineEditorProps) {
       if (pendingOutlineSaves.size > 0) {
         await Promise.allSettled(pendingOutlineSaves.values())
       }
-      const data = await getOutlines(projectId)
+      const result = await settle(getOutlines(projectId))
       if (cancelled) return
-      // Only after a successful load: getOutlines returns [] on error (and a
-      // successful load always has at least one outline), and pruning against
-      // an empty list would wipe this project's backups exactly when they're needed.
+      // Bail before pruning: against a list that isn't real, it would wipe
+      // this project's backups exactly when they're needed.
+      if ('error' in result) {
+        console.error('Load outlines error:', result.error)
+        setLoadFailed(true)
+        setLoading(false)
+        return
+      }
+      const data = result
+      // A successful load always has at least one outline (getOutlines
+      // creates a default), so this guard never skips a real load.
       if (data.length > 0) pruneBackups('outline', projectId, data.map((o) => o.id))
       setOutlines(data)
       setActiveId(data[0]?.id ?? null)
@@ -132,7 +144,13 @@ export function OutlineEditor({ projectId }: OutlineEditorProps) {
     return () => {
       cancelled = true
     }
-  }, [projectId])
+  }, [projectId, loadAttempt])
+
+  function retryLoad() {
+    setLoadFailed(false)
+    setLoading(true)
+    setLoadAttempt((n) => n + 1)
+  }
 
   async function handleAdd() {
     const created = await settle(createOutline(projectId, 'Untitled'))
@@ -207,6 +225,14 @@ export function OutlineEditor({ projectId }: OutlineEditorProps) {
             </div>
           </div>
         </div>
+      </div>
+    )
+  }
+
+  if (loadFailed) {
+    return (
+      <div className="flex h-full items-center justify-center p-4">
+        <LoadError thing="the outline" onRetry={retryLoad} />
       </div>
     )
   }
