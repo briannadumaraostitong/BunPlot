@@ -6,6 +6,14 @@ import { SortableContext, useSortable, verticalListSortingStrategy } from '@dnd-
 import { CSS } from '@dnd-kit/utilities'
 import { Eye, EyeOff, GripVertical, Trash2, Check, X, Plus } from 'lucide-react'
 import { cn } from '@/lib/utils'
+import { Button } from '@/components/ui/button'
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog'
 import { RenameHint } from '@/components/ui/rename-hint'
 import { deleteLayer, updateLayer } from '@/actions/layers'
 import { playClickSound } from '@/lib/sound'
@@ -64,6 +72,7 @@ export function LayerRow({
   chapterWidth = 220,
 }: LayerRowProps) {
   const [deleting, setDeleting] = useState(false)
+  const [confirmDelete, setConfirmDelete] = useState(false)
   const [editing, setEditing] = useState(false)
   const [name, setName] = useState(layer.name)
   const colorInputRef = useRef<HTMLInputElement>(null)
@@ -86,13 +95,18 @@ export function LayerRow({
         }
       : {}
 
-  async function handleDelete(e: React.MouseEvent) {
-    e.stopPropagation()
+  async function handleDelete() {
     if (layer.type === 'main') return
     setDeleting(true)
     const result = await settle(deleteLayer(layer.id, projectId))
-    if (reportResult(result, "Couldn't delete the layer.")) onDeleted?.()
+    // Leave the confirm dialog open on failure, so it can be retried or cancelled.
+    if (!reportResult(result, "Couldn't delete the layer.")) {
+      setDeleting(false)
+      return
+    }
+    setConfirmDelete(false)
     setDeleting(false)
+    onDeleted?.()
   }
 
   async function handleRename() {
@@ -200,8 +214,12 @@ export function LayerRow({
 
             {layer.type !== 'main' && (
               <button
-                onClick={handleDelete}
+                onClick={(e) => {
+                  e.stopPropagation()
+                  setConfirmDelete(true)
+                }}
                 disabled={deleting}
+                title="Delete layer"
                 className="relative text-muted-foreground hover:text-destructive p-0.5 transition-colors after:absolute after:-inset-y-1.5"
               >
                 <Trash2 className="h-3.5 w-3.5" />
@@ -209,6 +227,26 @@ export function LayerRow({
             )}
           </div>
         )}
+
+        <Dialog open={confirmDelete} onOpenChange={(open) => !deleting && setConfirmDelete(open)}>
+          <DialogContent className="sm:max-w-sm">
+            <DialogHeader>
+              <DialogTitle>Delete layer?</DialogTitle>
+              <DialogDescription>
+                <strong className="text-foreground">{layer.name}</strong>{' '}
+                and every event on it will be deleted. This can&apos;t be undone.
+              </DialogDescription>
+            </DialogHeader>
+            <div className="flex justify-end gap-2 mt-2">
+              <Button variant="outline" size="sm" onClick={() => setConfirmDelete(false)} disabled={deleting}>
+                Cancel
+              </Button>
+              <Button variant="destructive" size="sm" onClick={handleDelete} disabled={deleting}>
+                {deleting ? 'Deleting...' : 'Delete'}
+              </Button>
+            </div>
+          </DialogContent>
+        </Dialog>
       </div>
     )
   }

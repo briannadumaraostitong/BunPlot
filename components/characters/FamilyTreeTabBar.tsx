@@ -3,6 +3,14 @@
 import { useRef, useState } from 'react'
 import { Plus, X } from 'lucide-react'
 import { cn } from '@/lib/utils'
+import { Button } from '@/components/ui/button'
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog'
 import { RenameHint } from '@/components/ui/rename-hint'
 import type { FamilyTree } from '@/types/database'
 
@@ -23,28 +31,60 @@ export function FamilyTreeTabBar({
   onRename,
   onDelete,
 }: FamilyTreeTabBarProps) {
+  const [pendingDeleteId, setPendingDeleteId] = useState<string | null>(null)
+  const pendingDeleteTree = trees.find((t) => t.id === pendingDeleteId) ?? null
+
   return (
-    <div className="flex h-8 shrink-0 items-center gap-0.5 border-b border-border bg-background px-2 overflow-x-auto scrollbar-thin">
-      {trees.map((tree) => (
-        <FamilyTreeTab
-          key={tree.id}
-          tree={tree}
-          active={tree.id === activeId}
-          canDelete={trees.length > 1}
-          onSelect={() => onSelect(tree.id)}
-          onRename={(name) => onRename(tree.id, name)}
-          onDelete={() => onDelete(tree.id)}
-        />
-      ))}
-      <button
-        type="button"
-        onClick={onAdd}
-        title="New family tree"
-        className="relative flex h-6 w-6 shrink-0 items-center justify-center rounded-md text-muted-foreground transition-colors hover:bg-secondary hover:text-foreground after:absolute after:-inset-y-1 after:-inset-x-0.5"
-      >
-        <Plus className="h-3.5 w-3.5" />
-      </button>
-    </div>
+    <>
+      <div className="flex h-8 shrink-0 items-center gap-0.5 border-b border-border bg-background px-2 overflow-x-auto scrollbar-thin">
+        {trees.map((tree) => (
+          <FamilyTreeTab
+            key={tree.id}
+            tree={tree}
+            active={tree.id === activeId}
+            canDelete={trees.length > 1}
+            onSelect={() => onSelect(tree.id)}
+            onRename={(name) => onRename(tree.id, name)}
+            onDelete={() => setPendingDeleteId(tree.id)}
+          />
+        ))}
+        <button
+          type="button"
+          onClick={onAdd}
+          title="New family tree"
+          className="relative flex h-6 w-6 shrink-0 items-center justify-center rounded-md text-muted-foreground transition-colors hover:bg-secondary hover:text-foreground after:absolute after:-inset-y-1 after:-inset-x-0.5"
+        >
+          <Plus className="h-3.5 w-3.5" />
+        </button>
+      </div>
+
+      <Dialog open={pendingDeleteTree !== null} onOpenChange={(open) => !open && setPendingDeleteId(null)}>
+        <DialogContent className="sm:max-w-sm">
+          <DialogHeader>
+            <DialogTitle>Delete family tree?</DialogTitle>
+            <DialogDescription>
+              <strong className="text-foreground">{pendingDeleteTree?.name}</strong>{' '}
+              and its layout will be deleted. The characters and their relationships stay.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="flex justify-end gap-2 mt-2">
+            <Button variant="outline" size="sm" onClick={() => setPendingDeleteId(null)}>
+              Cancel
+            </Button>
+            <Button
+              variant="destructive"
+              size="sm"
+              onClick={() => {
+                if (pendingDeleteId) onDelete(pendingDeleteId)
+                setPendingDeleteId(null)
+              }}
+            >
+              Delete
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
+    </>
   )
 }
 
