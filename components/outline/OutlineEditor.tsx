@@ -36,7 +36,8 @@ import { Skeleton } from '@/components/ui/skeleton'
 import { SidebarRowSkeleton } from '@/components/ui/sidebar-skeleton-row'
 import { createClient } from '@/lib/supabase/client'
 import { getEditorJson } from '@/lib/editorJson'
-import { dismissError, reportResult, settle } from '@/lib/notify'
+import { dismissError, notifyError, reportResult, settle } from '@/lib/notify'
+import { ACCEPTED_IMAGE_ACCEPT, isAcceptedImage } from '@/lib/imageTypes'
 import { clearBackup, pruneBackups } from '@/lib/editorBackup'
 import { isSigningOut, registerFlusher, trackSave } from '@/lib/saveRegistry'
 import { useEditorBackup } from '@/hooks/useEditorBackup'
@@ -387,6 +388,10 @@ function OutlineDocumentEditor({ outline, onExport }: { outline: Outline; onExpo
     if (!file || !editor) return
 
     setImageError(null)
+    if (!isAcceptedImage(file)) {
+      notifyError("Couldn't add that file. Use a JPG, PNG, GIF or WebP image.")
+      return
+    }
     setUploadingImage(true)
 
     try {
@@ -554,7 +559,7 @@ function OutlineDocumentEditor({ outline, onExport }: { outline: Outline; onExpo
           <input
             ref={fileInputRef}
             type="file"
-            accept="image/jpeg,image/png,image/gif,image/webp"
+            accept={ACCEPTED_IMAGE_ACCEPT}
             className="hidden"
             onChange={handleImageUpload}
           />

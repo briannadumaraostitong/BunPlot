@@ -18,9 +18,7 @@ import { createClient } from '@/lib/supabase/client'
 import { createProject, updateProject } from '@/actions/projects'
 import { notifyError, reportResult, settle } from '@/lib/notify'
 import { cn } from '@/lib/utils'
-
-// Same list as the file input's accept, which a drop bypasses.
-const COVER_TYPES = ['image/jpeg', 'image/png', 'image/gif', 'image/webp']
+import { ACCEPTED_IMAGE_ACCEPT, isAcceptedImage } from '@/lib/imageTypes'
 
 interface NewProjectDialogProps {
   trigger?: string
@@ -47,6 +45,10 @@ export function NewProjectDialog({ trigger }: NewProjectDialogProps) {
   }, [coverPreviewUrl])
 
   function handleCoverPick(file: File) {
+    if (!isAcceptedImage(file)) {
+      notifyError("Couldn't add that file. Use a JPG, PNG, GIF or WebP image.")
+      return
+    }
     setCoverFile(file)
     setCoverPreviewUrl(URL.createObjectURL(file))
   }
@@ -169,12 +171,7 @@ export function NewProjectDialog({ trigger }: NewProjectDialogProps) {
                   e.preventDefault()
                   setDraggingOver(false)
                   const file = e.dataTransfer.files?.[0]
-                  if (!file) return
-                  if (!COVER_TYPES.includes(file.type)) {
-                    notifyError("Couldn't add that file. Use a JPG, PNG, GIF or WebP image.")
-                    return
-                  }
-                  handleCoverPick(file)
+                  if (file) handleCoverPick(file)
                 }}
                 className={cn(
                   'flex h-20 w-full items-center justify-center gap-1.5 rounded-md border border-dashed border-border text-xs text-muted-foreground transition-colors hover:border-primary hover:text-foreground',
@@ -189,7 +186,7 @@ export function NewProjectDialog({ trigger }: NewProjectDialogProps) {
               ref={fileInputRef}
               id="proj-cover"
               type="file"
-              accept={COVER_TYPES.join(',')}
+              accept={ACCEPTED_IMAGE_ACCEPT}
               className="hidden"
               onChange={(e) => {
                 const file = e.target.files?.[0]

@@ -18,6 +18,7 @@ import { updatePlace } from '@/actions/places'
 import { savePlaceFields } from './pendingPlaceSaves'
 import { dismissError, reportResult, settle } from '@/lib/notify'
 import { PLACE_TYPES } from '@/lib/places.config'
+import { ACCEPTED_IMAGE_ACCEPT, isAcceptedImage } from '@/lib/imageTypes'
 import { PlaceRichTextEditor } from './PlaceRichTextEditor'
 import type { Chapter, Event, PlaceType } from '@/types/database'
 import type { PlaceWithCover } from '@/actions/places'
@@ -264,6 +265,10 @@ function CoverImageField({
 
   async function uploadFile(file: File) {
     setError(null)
+    if (!isAcceptedImage(file)) {
+      setError('Use a JPG, PNG, GIF or WebP image.')
+      return
+    }
     setUploading(true)
     try {
       const supabase = createClient()
@@ -373,7 +378,7 @@ function CoverImageField({
       <input
         ref={fileInputRef}
         type="file"
-        accept="image/jpeg,image/png,image/gif,image/webp"
+        accept={ACCEPTED_IMAGE_ACCEPT}
         className="hidden"
         onChange={(e) => {
           const file = e.target.files?.[0]
