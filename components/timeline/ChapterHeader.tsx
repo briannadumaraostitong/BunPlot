@@ -13,10 +13,14 @@ import { reportResult, settle } from '@/lib/notify'
 import type { Chapter, Event } from '@/types/database'
 
 const DEFAULT_CHAPTER_WIDTH = 220
+// Below md, so the label column doesn't take a third of the screen and a
+// whole chapter fits beside it. Still within the MIN_* limits below.
+const MOBILE_CHAPTER_WIDTH = 180
 const MIN_CHAPTER_WIDTH = 120
 const MAX_CHAPTER_WIDTH = 500
 
 const DEFAULT_LABEL_WIDTH = 120
+const MOBILE_LABEL_WIDTH = 88
 const MIN_LABEL_WIDTH = 80
 const MAX_LABEL_WIDTH = 300
 
@@ -399,4 +403,4 @@ function ChapterCell({
   )
 }
 
-export { DEFAULT_CHAPTER_WIDTH, DEFAULT_LABEL_WIDTH }
+export { DEFAULT_CHAPTER_WIDTH, DEFAULT_LABEL_WIDTH, MOBILE_CHAPTER_WIDTH, MOBILE_LABEL_WIDTH }

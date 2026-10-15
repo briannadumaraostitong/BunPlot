@@ -11,7 +11,13 @@ import {
 import { Download } from 'lucide-react'
 import { LayerPanel } from '@/components/layers/LayerPanel'
 import { LayerRow, EventCardPreview } from '@/components/layers/LayerRow'
-import { ChapterHeader, DEFAULT_CHAPTER_WIDTH, DEFAULT_LABEL_WIDTH } from './ChapterHeader'
+import {
+  ChapterHeader,
+  DEFAULT_CHAPTER_WIDTH,
+  DEFAULT_LABEL_WIDTH,
+  MOBILE_CHAPTER_WIDTH,
+  MOBILE_LABEL_WIDTH,
+} from './ChapterHeader'
 import { TimelineToolbar } from './TimelineToolbar'
 import { TimelineFlowView } from './TimelineFlowView'
 import { ExportStoryBibleDialog } from './ExportStoryBibleDialog'
@@ -24,6 +30,7 @@ import { byPosition } from '@/lib/eventOrder'
 import { useChapters } from '@/hooks/useChapters'
 import { useStatuses } from '@/hooks/useStatuses'
 import { useDndSensors } from '@/hooks/useDndSensors'
+import { useIsBelowMd } from '@/hooks/useIsBelowMd'
 import { createEvent, reorderEvents, moveEventToChapter } from '@/actions/events'
 import { getPlaces, getEventPlaceLinks } from '@/actions/places'
 import { getCharacters, getEventCharacterLinks } from '@/actions/characters'
@@ -104,8 +111,14 @@ export function TimelineCanvas({
     : null
   const [selectedEvent, setSelectedEvent] = useState<Event | null>(initialSelectedEvent)
   const [modalOpen, setModalOpen] = useState(initialSelectedEvent !== null)
-  const [labelWidth, setLabelWidth] = useState(DEFAULT_LABEL_WIDTH)
-  const [chapterWidth, setChapterWidth] = useState(DEFAULT_CHAPTER_WIDTH)
+  // null until the user drags a column edge: until then the widths follow the
+  // breakpoint (narrower below md); after that they keep the user's width.
+  // Same pattern as the sidebars' collapsed state.
+  const isBelowMd = useIsBelowMd()
+  const [userLabelWidth, setLabelWidth] = useState<number | null>(null)
+  const [userChapterWidth, setChapterWidth] = useState<number | null>(null)
+  const labelWidth = userLabelWidth ?? (isBelowMd ? MOBILE_LABEL_WIDTH : DEFAULT_LABEL_WIDTH)
+  const chapterWidth = userChapterWidth ?? (isBelowMd ? MOBILE_CHAPTER_WIDTH : DEFAULT_CHAPTER_WIDTH)
   const [activeEvent, setActiveEvent] = useState<Event | null>(null)
   const [allPlaces, setAllPlaces] = useState<PlaceWithCover[]>([])
   const [allCharacters, setAllCharacters] = useState<Character[]>([])
