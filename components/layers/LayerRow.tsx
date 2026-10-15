@@ -129,7 +129,7 @@ export function LayerRow({
         <button
           {...attributes}
           {...listeners}
-          className="relative cursor-grab active:cursor-grabbing text-muted-foreground opacity-100 md:can-hover:opacity-0 md:group-hover:opacity-100 transition-opacity shrink-0 after:absolute after:-inset-1.5"
+          className="relative touch-none cursor-grab active:cursor-grabbing text-muted-foreground opacity-100 md:can-hover:opacity-0 md:group-hover:opacity-100 transition-opacity shrink-0 after:absolute after:-inset-1.5"
         >
           <GripVertical className="h-3.5 w-3.5" />
         </button>
@@ -405,7 +405,7 @@ function EventCardStacked({
         {...attributes}
         {...listeners}
         onClick={(e) => e.stopPropagation()}
-        className="absolute top-1.5 right-1 h-4 w-4 flex items-center justify-center text-muted-foreground opacity-100 md:can-hover:opacity-0 md:group-hover:opacity-100 cursor-grab active:cursor-grabbing transition-opacity after:absolute after:-inset-1.5"
+        className="absolute top-1.5 right-1 h-4 w-4 flex touch-none items-center justify-center text-muted-foreground opacity-100 md:can-hover:opacity-0 md:group-hover:opacity-100 cursor-grab active:cursor-grabbing transition-opacity after:absolute after:-inset-1.5"
       >
         <GripVertical className="h-3 w-3" />
       </button>

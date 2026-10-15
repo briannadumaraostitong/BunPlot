@@ -12,6 +12,7 @@ import {
 } from '@dnd-kit/sortable'
 import { Plus, ChevronLeft, ChevronRight, Loader2 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
+import { useDndSensors } from '@/hooks/useDndSensors'
 import { LayerRow } from './LayerRow'
 import { createLayer, reorderLayers } from '@/actions/layers'
 import { reportResult, settle } from '@/lib/notify'
@@ -46,6 +47,7 @@ export function LayerPanel({
   const [userCollapsed, setUserCollapsed] = useState<boolean | null>(null)
   const collapsed = userCollapsed ?? isBelowMd
   const [adding, setAdding] = useState(false)
+  const sensors = useDndSensors()
 
   async function handleAddLayer() {
     if (adding) return
@@ -103,6 +105,7 @@ export function LayerPanel({
         <>
           <div className="flex-1 overflow-y-auto scrollbar-thin py-1">
             <DndContext
+              sensors={sensors}
               collisionDetection={closestCenter}
               onDragEnd={handleDragEnd}
             >

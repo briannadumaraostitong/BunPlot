@@ -4,6 +4,7 @@ import { useRef, useState } from 'react'
 import { DndContext, closestCenter, type DragEndEvent } from '@dnd-kit/core'
 import { SortableContext, useSortable, verticalListSortingStrategy } from '@dnd-kit/sortable'
 import { CSS } from '@dnd-kit/utilities'
+import { useDndSensors } from '@/hooks/useDndSensors'
 import { GripVertical, Star, Trash2, Pencil, Check, X, Plus, Loader2 } from 'lucide-react'
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover'
 import { cn } from '@/lib/utils'
@@ -29,6 +30,7 @@ interface StatusPickerProps {
 
 export function StatusPicker({ statuses, projectId, value, onChange, onReorder }: StatusPickerProps) {
   const [open, setOpen] = useState(false)
+  const sensors = useDndSensors()
   const [adding, setAdding] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
@@ -96,7 +98,7 @@ export function StatusPicker({ statuses, projectId, value, onChange, onReorder }
         )}
 
         <div className="max-h-56 overflow-y-auto scrollbar-thin p-1">
-          <DndContext collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
+          <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
             <SortableContext items={statuses.map((s) => s.id)} strategy={verticalListSortingStrategy}>
               {statuses.map((status) => (
                 <StatusRow
@@ -221,7 +223,7 @@ function StatusRow({
         {...attributes}
         {...listeners}
         onClick={(e) => e.stopPropagation()}
-        className="relative shrink-0 cursor-grab text-muted-foreground opacity-100 transition-opacity active:cursor-grabbing after:absolute after:-inset-1.5 md:can-hover:opacity-0 md:group-hover:opacity-100"
+        className="relative shrink-0 touch-none cursor-grab text-muted-foreground opacity-100 transition-opacity active:cursor-grabbing after:absolute after:-inset-1.5 md:can-hover:opacity-0 md:group-hover:opacity-100"
       >
         <GripVertical className="h-3.5 w-3.5" />
       </button>

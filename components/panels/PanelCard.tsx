@@ -141,7 +141,7 @@ export function PanelCard({
           {...attributes}
           {...listeners}
           onClick={(e) => e.stopPropagation()}
-          className="absolute left-1.5 top-1.5 flex h-6 w-6 items-center justify-center rounded-full bg-background/90 text-muted-foreground opacity-100 md:can-hover:opacity-0 md:group-hover:opacity-100 shadow-sm transition-opacity cursor-grab active:cursor-grabbing"
+          className="absolute left-1.5 top-1.5 flex h-6 w-6 touch-none items-center justify-center rounded-full bg-background/90 text-muted-foreground opacity-100 md:can-hover:opacity-0 md:group-hover:opacity-100 shadow-sm transition-opacity cursor-grab active:cursor-grabbing"
         >
           <GripVertical className="h-3.5 w-3.5" />
         </button>

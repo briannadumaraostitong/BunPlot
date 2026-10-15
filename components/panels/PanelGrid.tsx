@@ -9,6 +9,7 @@ import { LoadError } from '@/components/ui/load-error'
 import { PanelCard } from './PanelCard'
 import { SketchModal } from './sketch/SketchModal'
 import { usePanels } from '@/hooks/usePanels'
+import { useDndSensors } from '@/hooks/useDndSensors'
 import { reorderPanels } from '@/actions/panels'
 import { reportResult, settle } from '@/lib/notify'
 import type { PanelWithCover } from '@/actions/panels'
@@ -26,6 +27,7 @@ export function PanelGrid({ projectId, chapterId }: PanelGridProps) {
   const [adding, setAdding] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [sketchingPanel, setSketchingPanel] = useState<PanelWithCover | null>(null)
+  const sensors = useDndSensors()
 
   async function handleAddPanel() {
     if (adding) return
@@ -79,7 +81,7 @@ export function PanelGrid({ projectId, chapterId }: PanelGridProps) {
     <div className="h-full overflow-y-auto scrollbar-thin p-4">
       {error && <p className="mb-2 text-xs text-destructive">{error}</p>}
 
-      <DndContext collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
+      <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
         <SortableContext items={panels.map((p) => p.id)} strategy={rectSortingStrategy}>
           <div className="grid grid-cols-[repeat(auto-fill,minmax(160px,1fr))] gap-4">
             {panels.map((panel) => (

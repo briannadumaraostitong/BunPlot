@@ -4,11 +4,7 @@ import { useEffect, useMemo, useState } from 'react'
 import {
   DndContext,
   DragOverlay,
-  PointerSensor,
-  KeyboardSensor,
   closestCenter,
-  useSensor,
-  useSensors,
   type DragEndEvent,
   type DragStartEvent,
 } from '@dnd-kit/core'
@@ -27,6 +23,7 @@ import { useEvents } from '@/hooks/useEvents'
 import { byPosition } from '@/lib/eventOrder'
 import { useChapters } from '@/hooks/useChapters'
 import { useStatuses } from '@/hooks/useStatuses'
+import { useDndSensors } from '@/hooks/useDndSensors'
 import { createEvent, reorderEvents, moveEventToChapter } from '@/actions/events'
 import { getPlaces, getEventPlaceLinks } from '@/actions/places'
 import { getCharacters, getEventCharacterLinks } from '@/actions/characters'
@@ -178,10 +175,7 @@ export function TimelineCanvas({
     }
   }, [project.id, projectListsAttempt])
 
-  const sensors = useSensors(
-    useSensor(PointerSensor, { activationConstraint: { distance: 4 } }),
-    useSensor(KeyboardSensor)
-  )
+  const sensors = useDndSensors()
 
   // Grouped once per link/data change, reused by every event on every
   // keystroke — avoids re-scanning the full link arrays per event per render.
