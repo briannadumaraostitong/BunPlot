@@ -55,6 +55,7 @@ import { EventPlacesField } from "@/components/events/EventPlacesField";
 import { StatusPicker } from "@/components/events/StatusPicker";
 import type { Event, Layer, Chapter, Place, Character, Status } from "@/types/database";
 import { cn } from "@/lib/utils";
+import { EDITABLE_TEXT_CLASS } from "@/lib/editableText";
 import { reportResult, settle } from "@/lib/notify";
 
 interface EventModalProps {
@@ -465,7 +466,7 @@ function EventForm({
             value={title}
             onChange={(e) => setTitle(e.target.value)}
             placeholder="Event title"
-            className="text-lg font-semibold border-none shadow-none px-0 h-auto focus-visible:ring-0"
+            className={cn(EDITABLE_TEXT_CLASS, "text-lg font-semibold border-none shadow-none -mx-1.5 px-1.5 h-auto focus-visible:ring-0 dark:bg-transparent")}
           />
         </div>
 

@@ -5,6 +5,8 @@ import { useSortable } from '@dnd-kit/sortable'
 import { CSS } from '@dnd-kit/utilities'
 import { GripVertical, Trash2, Upload, Pencil, Loader2 } from 'lucide-react'
 import { createClient } from '@/lib/supabase/client'
+import { cn } from '@/lib/utils'
+import { EDITABLE_TEXT_CLASS } from '@/lib/editableText'
 import type { PanelWithCover, ActionResult } from '@/actions/panels'
 
 // Matches SketchModal's own TTL. COVER_SIGNED_URL_TTL can't be imported from
@@ -176,7 +178,7 @@ export function PanelCard({
         onChange={(e) => setCaption(e.target.value)}
         onBlur={handleCaptionBlur}
         placeholder="Add a caption..."
-        className="w-full bg-transparent px-2 py-1.5 text-xs outline-none placeholder:text-muted-foreground"
+        className={cn(EDITABLE_TEXT_CLASS, 'w-full rounded-none bg-transparent px-2 py-1.5 text-xs outline-none placeholder:text-muted-foreground')}
       />
     </div>
   )

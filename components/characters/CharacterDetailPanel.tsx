@@ -3,6 +3,7 @@
 import { useRef, useState } from 'react'
 import { X, Link2 } from 'lucide-react'
 import { cn } from '@/lib/utils'
+import { EDITABLE_TEXT_CLASS } from '@/lib/editableText'
 import { Button } from '@/components/ui/button'
 import { Textarea } from '@/components/ui/textarea'
 import { updateCharacter } from '@/actions/characters'
@@ -179,7 +180,7 @@ function CharacterDetailContent({
               value={name}
               onChange={(e) => setName(e.target.value)}
               onBlur={() => name.trim() && name !== character.name && saveField({ name: name.trim() })}
-              className="w-full text-sm font-semibold bg-transparent outline-none border-b border-transparent focus:border-border pb-0.5"
+              className={cn(EDITABLE_TEXT_CLASS, 'w-full -mx-1.5 px-1.5 text-sm font-semibold bg-transparent outline-none border-b border-transparent focus:border-border pb-0.5')}
               placeholder="Character name"
             />
           </div>
