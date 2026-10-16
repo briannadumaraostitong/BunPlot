@@ -1,17 +1,11 @@
 'use client'
 
 import { useState } from 'react'
-import { ChevronDown, ChevronLeft, ChevronRight, Download, FileText, Plus, X } from 'lucide-react'
+import { ChevronLeft, ChevronRight, FileText, Plus, X } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { Button } from '@/components/ui/button'
 import { RenameHint } from '@/components/ui/rename-hint'
 import { RenameButton } from '@/components/ui/rename-button'
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-} from '@/components/ui/dropdown-menu'
 import { useIsBelowMd } from '@/hooks/useIsBelowMd'
 import { useInlineRename } from '@/hooks/useInlineRename'
 import type { Outline } from '@/types/database'
@@ -24,7 +18,6 @@ interface OutlineSidebarProps {
   onRename: (id: string, name: string) => void
   // Asks first when the document has content (see OutlineEditor).
   onDelete: (id: string) => void
-  onExport: () => void
 }
 
 export function OutlineSidebar({
@@ -34,7 +27,6 @@ export function OutlineSidebar({
   onAdd,
   onRename,
   onDelete,
-  onExport,
 }: OutlineSidebarProps) {
   // null until the chevron is used: until then the sidebar follows the
   // breakpoint (collapsed below md); after that it keeps the user's choice.
@@ -49,31 +41,29 @@ export function OutlineSidebar({
         collapsed ? 'w-10' : 'w-52'
       )}
     >
-      <div className="h-10 border-b border-border flex items-center justify-between px-2 shrink-0">
+      <div className="h-10 border-b border-border flex items-center justify-between gap-2.5 px-2 shrink-0">
         {!collapsed && (
-          <DropdownMenu>
-            <DropdownMenuTrigger asChild>
-              <button className="flex items-center gap-1 text-xs font-semibold text-muted-foreground uppercase tracking-wider transition-colors hover:text-foreground">
-                File
-                <ChevronDown className="h-3 w-3" />
-              </button>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent align="start">
-              <DropdownMenuItem onClick={onAdd}>
-                <Plus className="h-3.5 w-3.5 mr-2" />
-                New document
-              </DropdownMenuItem>
-              <DropdownMenuItem onClick={onExport}>
-                <Download className="h-3.5 w-3.5 mr-2" />
-                Export...
-              </DropdownMenuItem>
-            </DropdownMenuContent>
-          </DropdownMenu>
+          <>
+            <span className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">
+              Documents
+            </span>
+            {/* Rename, export and delete are in the menu bar's File menu. */}
+            <Button
+              variant="ghost"
+              size="icon"
+              title="New document"
+              aria-label="New document"
+              className="relative h-6 w-6 ml-auto after:absolute after:-inset-x-1 after:-inset-y-2.5"
+              onClick={onAdd}
+            >
+              <Plus className="h-3.5 w-3.5" />
+            </Button>
+          </>
         )}
         <Button
           variant="ghost"
           size="icon"
-          className="relative h-6 w-6 ml-auto after:absolute after:-inset-2.5"
+          className={cn('relative h-6 w-6 after:absolute after:-inset-2.5', collapsed && 'ml-auto')}
           onClick={() => setUserCollapsed(!collapsed)}
         >
           {collapsed ? (

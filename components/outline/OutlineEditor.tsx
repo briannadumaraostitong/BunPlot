@@ -143,9 +143,8 @@ export function OutlineEditor({ projectId }: OutlineEditorProps) {
   const [loadAttempt, setLoadAttempt] = useState(0)
   const [outlines, setOutlines] = useState<Outline[]>([])
   const [activeId, setActiveId] = useState<string | null>(null)
-  // Lives here rather than in OutlineSidebar so both the sidebar's File menu
-  // and the top bar's Export button open the same dialog — and the button
-  // keeps working while the sidebar is collapsed.
+  // Lives here so the menu bar's File menu and the toolbar's Export button
+  // open the same dialog.
   const [exportOpen, setExportOpen] = useState(false)
   const [pendingDeleteId, setPendingDeleteId] = useState<string | null>(null)
   // The open document's current text, set by OutlineDocumentEditor. `outlines`
@@ -255,8 +254,11 @@ export function OutlineEditor({ projectId }: OutlineEditorProps) {
       <div className="flex h-full overflow-hidden">
         {/* OutlineSidebar */}
         <div className="hidden md:flex w-52 flex-col border-r border-border shrink-0">
-          <div className="h-10 border-b border-border flex items-center px-2">
-            <Skeleton className="h-3 w-10" />
+          {/* "Documents", then the + and collapse buttons */}
+          <div className="h-10 border-b border-border flex items-center gap-2.5 px-2">
+            <Skeleton className="h-3 w-20" />
+            <Skeleton className="ml-auto h-6 w-6 rounded-md" />
+            <Skeleton className="h-6 w-6 rounded-md" />
           </div>
           <div className="flex-1 py-1 space-y-0.5">
             {Array.from({ length: 4 }).map((_, i) => (
@@ -290,7 +292,6 @@ export function OutlineEditor({ projectId }: OutlineEditorProps) {
         onAdd={handleAdd}
         onRename={handleRename}
         onDelete={requestDelete}
-        onExport={() => setExportOpen(true)}
       />
       <div className="min-w-0 flex-1 overflow-hidden">
         {activeOutline && (
