@@ -29,7 +29,6 @@ import {
   Loader2,
   PanelLeft,
   PanelRight,
-  Download,
   ChevronDown,
   ChevronUp,
   Undo2,
@@ -143,8 +142,8 @@ export function OutlineEditor({ projectId }: OutlineEditorProps) {
   const [loadAttempt, setLoadAttempt] = useState(0)
   const [outlines, setOutlines] = useState<Outline[]>([])
   const [activeId, setActiveId] = useState<string | null>(null)
-  // Lives here so the menu bar's File menu and the toolbar's Export button
-  // open the same dialog.
+  // Opened from the menu bar's File menu (the ⋯ menu on phones), which lives
+  // in the document editor below.
   const [exportOpen, setExportOpen] = useState(false)
   const [pendingDeleteId, setPendingDeleteId] = useState<string | null>(null)
   // The open document's current text, set by OutlineDocumentEditor. `outlines`
@@ -713,19 +712,7 @@ function OutlineDocumentEditor({
             onChange={handleImageUpload}
           />
 
-          <div className="flex shrink-0 items-center gap-3 text-xs">
-            {imageError && <span className="text-destructive">{imageError}</span>}
-            {/* Same button as the Timeline and Panels tabs' Export, so every tab
-                puts its export in the same place. File › Export does the same. */}
-            <button
-              onClick={onExport}
-              aria-label="Export manuscript"
-              className="relative ml-auto flex h-7 shrink-0 items-center gap-1.5 rounded-lg border border-border px-2 text-xs text-muted-foreground transition-colors hover:bg-secondary hover:text-foreground after:absolute after:-inset-1 md:px-2.5"
-            >
-              <Download className="h-3 w-3" />
-              <span className="hidden md:inline">Export</span>
-            </button>
-          </div>
+          {imageError && <span className="shrink-0 text-xs text-destructive">{imageError}</span>}
         </div>
         {moreTools && (
           <div className="flex flex-wrap items-center gap-0.5 px-4 pb-2 md:hidden">
