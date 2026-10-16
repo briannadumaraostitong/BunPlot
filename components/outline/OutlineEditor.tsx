@@ -110,13 +110,20 @@ function countWords(text: string) {
 const pendingOutlineSaves = new Map<string, Promise<unknown>>()
 
 // Local backups around this save are handled by the caller (useEditorBackup's
-// beforeSave/afterSave).
-function saveOutline(id: string, content: Record<string, unknown>) {
-  const promise = settle(updateOutline(id, content)).finally(() => {
-    if (pendingOutlineSaves.get(id) === promise) {
-      pendingOutlineSaves.delete(id)
-    }
-  })
+// beforeSave/afterSave). `onSaved` runs before the save leaves
+// pendingOutlineSaves, so a document waiting on it (see OutlineDocument) opens
+// with this content.
+function saveOutline(id: string, content: Record<string, unknown>, onSaved: () => void) {
+  const promise = settle(updateOutline(id, content))
+    .then((result) => {
+      if (!('error' in result)) onSaved()
+      return result
+    })
+    .finally(() => {
+      if (pendingOutlineSaves.get(id) === promise) {
+        pendingOutlineSaves.delete(id)
+      }
+    })
   pendingOutlineSaves.set(id, promise)
   // Also tracked globally, so sign-out can wait for it.
   return trackSave(promise, (result) => !('error' in result))
@@ -218,6 +225,15 @@ export function OutlineEditor({ projectId }: OutlineEditorProps) {
     setActiveId((current) => (current === id ? (remaining[0]?.id ?? null) : current))
   }
 
+  // Keeps `outlines` holding what's saved. Each document's editor starts from
+  // it when the document is reopened, and an older copy there would be saved
+  // over the newer version as soon as anything was typed.
+  // Stable, so the editor's save callbacks (and its autosave interval) aren't
+  // rebuilt each time this re-renders.
+  const handleSaved = useCallback((id: string, content: Record<string, unknown>) => {
+    setOutlines((prev) => prev.map((o) => (o.id === id ? { ...o, content } : o)))
+  }, [])
+
   // Documents with text ask first; empty ones are deleted straight away.
   function requestDelete(id: string) {
     const outline = outlines.find((o) => o.id === id)
@@ -246,27 +262,7 @@ export function OutlineEditor({ projectId }: OutlineEditorProps) {
           </div>
         </div>
 
-        <div className="flex flex-col flex-1 min-w-0 overflow-hidden">
-          {/* Formatting toolbar */}
-          <div className="flex h-10 shrink-0 items-center gap-1 border-b border-border px-3">
-            {Array.from({ length: 6 }).map((_, i) => (
-              <Skeleton key={i} className="h-6 w-6 rounded-md" />
-            ))}
-          </div>
-
-          {/* Document page — reuses the real page wrapper's own classes so
-              its width/position is already correct at first paint. */}
-          <div className="flex-1 min-h-0 overflow-hidden bg-secondary/10">
-            <div className={cn('mx-auto max-w-3xl bg-card space-y-3', PAGE_PADDING)}>
-              <Skeleton className="h-5 w-2/3" />
-              <Skeleton className="h-3 w-full" />
-              <Skeleton className="h-3 w-full" />
-              <Skeleton className="h-3 w-4/5" />
-              <Skeleton className="h-3 w-full" />
-              <Skeleton className="h-3 w-3/5" />
-            </div>
-          </div>
-        </div>
+        <DocumentSkeleton className="flex-1 min-w-0" />
       </div>
     )
   }
@@ -295,10 +291,11 @@ export function OutlineEditor({ projectId }: OutlineEditorProps) {
       />
       <div className="min-w-0 flex-1 overflow-hidden">
         {activeOutline && (
-          <OutlineDocumentEditor
+          <OutlineDocument
             key={activeOutline.id}
             outline={activeOutline}
             textRef={activeTextRef}
+            onSaved={handleSaved}
             onExport={() => setExportOpen(true)}
           />
         )}
@@ -344,15 +341,62 @@ export function OutlineEditor({ projectId }: OutlineEditorProps) {
   )
 }
 
-function OutlineDocumentEditor({
-  outline,
-  textRef,
-  onExport,
-}: {
+function DocumentSkeleton({ className }: { className?: string }) {
+  return (
+    <div className={cn('flex flex-col overflow-hidden', className)}>
+      {/* Formatting toolbar */}
+      <div className="flex h-10 shrink-0 items-center gap-1 border-b border-border px-3">
+        {Array.from({ length: 6 }).map((_, i) => (
+          <Skeleton key={i} className="h-6 w-6 rounded-md" />
+        ))}
+      </div>
+
+      {/* Document page — reuses the real page wrapper's own classes so
+          its width/position is already correct at first paint. */}
+      <div className="flex-1 min-h-0 overflow-hidden bg-secondary/10">
+        <div className={cn('mx-auto max-w-3xl bg-card space-y-3', PAGE_PADDING)}>
+          <Skeleton className="h-5 w-2/3" />
+          <Skeleton className="h-3 w-full" />
+          <Skeleton className="h-3 w-full" />
+          <Skeleton className="h-3 w-4/5" />
+          <Skeleton className="h-3 w-full" />
+          <Skeleton className="h-3 w-3/5" />
+        </div>
+      </div>
+    </div>
+  )
+}
+
+interface OutlineDocumentProps {
   outline: Outline
   textRef: React.RefObject<(() => string) | null>
+  onSaved: (id: string, content: Record<string, unknown>) => void
   onExport: () => void
-}) {
+}
+
+// Opens a document only after any save of it still in flight has finished
+// (the save made when switching away from it, typically). Until then
+// `outline.content` is the version before that save, and an editor started
+// from it would save that older version back over it on the next edit.
+function OutlineDocument(props: OutlineDocumentProps) {
+  const [pending, setPending] = useState(() => pendingOutlineSaves.get(props.outline.id) ?? null)
+
+  useEffect(() => {
+    if (!pending) return
+    let cancelled = false
+    void pending.then(() => {
+      if (!cancelled) setPending(null)
+    })
+    return () => {
+      cancelled = true
+    }
+  }, [pending])
+
+  if (pending) return <DocumentSkeleton className="h-full" />
+  return <OutlineDocumentEditor {...props} />
+}
+
+function OutlineDocumentEditor({ outline, textRef, onSaved, onExport }: OutlineDocumentProps) {
   const [saveStatus, setSaveStatus] = useState<SaveStatus>('saved')
   const [wordCount, setWordCount] = useState(0)
   const initialSerialized = JSON.stringify(outline.content ?? '')
@@ -424,7 +468,7 @@ function OutlineDocumentEditor({
     // Backed up before the request, so the edits survive even if it never
     // finishes (tab closed, crash), not only if it fails.
     backup.beforeSave(json)
-    const result = await saveOutline(outline.id, json)
+    const result = await saveOutline(outline.id, json, () => onSaved(outline.id, json))
     // lastSavedJson stays as it was on failure, so the next interval or blur
     // tries again.
     if (!reportResult(result, "Couldn't save the outline. It will retry automatically.", { id: SAVE_TOAST_ID })) {
@@ -436,7 +480,7 @@ function OutlineDocumentEditor({
     setSaveStatus('saved')
     dismissError(SAVE_TOAST_ID)
     return true
-  }, [editor, outline.id, backup])
+  }, [editor, outline.id, backup, onSaved])
 
   // Sign-out saves this editor first (see flushAllEdits).
   useEffect(() => registerFlusher(handleSave), [handleSave])
@@ -493,12 +537,12 @@ function OutlineDocumentEditor({
         // Toaster) is the only sign the last edits didn't make it.
         const content = JSON.parse(latestJson.current)
         backup.beforeSave(content)
-        saveOutline(outline.id, content).then((result) => {
+        saveOutline(outline.id, content, () => onSaved(outline.id, content)).then((result) => {
           if (reportResult(result, "Couldn't save the outline.", { id: SAVE_TOAST_ID })) backup.afterSave(content)
         })
       }
     }
-  }, [outline.id, backup])
+  }, [outline.id, backup, onSaved])
 
   async function handleImageUpload(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0]
