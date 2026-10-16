@@ -17,7 +17,7 @@ const geistMono = Geist_Mono({
 })
 
 export const metadata: Metadata = {
-  title: { default: 'BunPlot', template: '%s — BunPlot' },
+  title: 'BunPlot',
   description: 'The visual story timeline planner for writers.',
 }
 
