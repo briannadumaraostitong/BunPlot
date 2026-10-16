@@ -1,7 +1,16 @@
 'use client'
 
 import { Fragment, useRef } from 'react'
-import { Download, Pencil, Plus, TextSelect, Trash2 } from 'lucide-react'
+import { Download, MoreHorizontal, Pencil, Plus, TextSelect, Trash2, type LucideIcon } from 'lucide-react'
+import { Button } from '@/components/ui/button'
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu'
 import {
   Menubar,
   MenubarContent,
@@ -62,9 +71,22 @@ interface OutlineMenuBarProps {
   children?: React.ReactNode
 }
 
+interface FileItem {
+  id: string
+  label: string
+  icon: LucideIcon
+  onSelect: () => void
+  destructive?: boolean
+}
+
+// Section labels in the phone menu, as in ThemeToggle's menu.
+const PHONE_LABEL = 'px-2.5 py-1 text-[10px] font-semibold uppercase tracking-wider text-muted-foreground'
+
 // Docs-style menu bar above the formatting toolbar: the document's name,
 // renamable in place, then File, Edit, Insert and Format. Edit, Insert and
-// Format run the toolbar's own tools, so the two can't drift apart.
+// Format run the toolbar's own tools, so the two can't drift apart. Phones
+// get the name and one ⋯ menu with File and Edit; the toolbar already has
+// everything in Insert and Format.
 export function OutlineMenuBar({
   name,
   tools,
@@ -111,6 +133,16 @@ export function OutlineMenuBar({
   const editTools = ['undo', 'redo'].map(byId).filter((t): t is ToolbarTool => t !== undefined)
   const imageTool = byId('image')
 
+  // Shared by the File menu and the phone menu. Delete comes last; the File
+  // menu puts a separator before it, and in the phone menu the Edit section's
+  // separator follows it.
+  const fileItems: FileItem[] = [
+    { id: 'new', label: 'New document', icon: Plus, onSelect: onAdd },
+    { id: 'rename', label: 'Rename', icon: Pencil, onSelect: rename.start },
+    { id: 'export', label: 'Export...', icon: Download, onSelect: onExport },
+    { id: 'delete', label: 'Delete', icon: Trash2, onSelect: onDelete, destructive: true },
+  ]
+
   function toolItem(tool: ToolbarTool, label = tool.title) {
     return (
       <MenubarItem key={tool.id} disabled={tool.disabled} onSelect={run(tool.onClick)}>
@@ -144,25 +176,17 @@ export function OutlineMenuBar({
         </button>
       )}
 
-      <Menubar className="h-auto shrink-0 gap-0 rounded-none border-0 p-0">
+      <Menubar className="hidden h-auto shrink-0 gap-0 rounded-none border-0 p-0 md:flex">
         <Menu label="File" onCloseAutoFocus={handleCloseAutoFocus}>
-          <MenubarItem onSelect={run(onAdd)}>
-            <Plus className="size-3.5" />
-            New document
-          </MenubarItem>
-          <MenubarItem onSelect={run(rename.start)}>
-            <Pencil className="size-3.5" />
-            Rename
-          </MenubarItem>
-          <MenubarItem onSelect={run(onExport)}>
-            <Download className="size-3.5" />
-            Export...
-          </MenubarItem>
-          <MenubarSeparator />
-          <MenubarItem variant="destructive" onSelect={run(onDelete)}>
-            <Trash2 className="size-3.5" />
-            Delete
-          </MenubarItem>
+          {fileItems.map((item) => (
+            <Fragment key={item.id}>
+              {item.destructive && <MenubarSeparator />}
+              <MenubarItem variant={item.destructive ? 'destructive' : 'default'} onSelect={run(item.onSelect)}>
+                <item.icon className="size-3.5" />
+                {item.label}
+              </MenubarItem>
+            </Fragment>
+          ))}
         </Menu>
 
         <Menu label="Edit" onCloseAutoFocus={handleCloseAutoFocus}>
@@ -190,6 +214,47 @@ export function OutlineMenuBar({
       </Menubar>
 
       <div className="ml-auto flex shrink-0 items-center gap-3 text-xs">{children}</div>
+
+      {/* Phones: File and Edit in one menu, without shortcuts. */}
+      <DropdownMenu>
+        <DropdownMenuTrigger asChild>
+          <Button
+            variant="ghost"
+            size="icon"
+            aria-label="Document menu"
+            className="relative h-7 w-7 shrink-0 md:hidden after:absolute after:-inset-2"
+          >
+            <MoreHorizontal className="h-3.5 w-3.5" />
+          </Button>
+        </DropdownMenuTrigger>
+        {/* Sized to its items: the default width is the trigger's, which for
+            this small button wraps "New document". */}
+        <DropdownMenuContent align="end" className="w-auto whitespace-nowrap" onCloseAutoFocus={handleCloseAutoFocus}>
+          <DropdownMenuLabel className={PHONE_LABEL}>File</DropdownMenuLabel>
+          {fileItems.map((item) => (
+            <DropdownMenuItem
+              key={item.id}
+              variant={item.destructive ? 'destructive' : 'default'}
+              onSelect={run(item.onSelect)}
+            >
+              <item.icon className="size-3.5" />
+              {item.label}
+            </DropdownMenuItem>
+          ))}
+          <DropdownMenuSeparator />
+          <DropdownMenuLabel className={PHONE_LABEL}>Edit</DropdownMenuLabel>
+          {editTools.map((tool) => (
+            <DropdownMenuItem key={tool.id} disabled={tool.disabled} onSelect={run(tool.onClick)}>
+              <tool.icon className="size-3.5" />
+              {tool.title}
+            </DropdownMenuItem>
+          ))}
+          <DropdownMenuItem onSelect={run(onSelectAll)}>
+            <TextSelect className="size-3.5" />
+            Select all
+          </DropdownMenuItem>
+        </DropdownMenuContent>
+      </DropdownMenu>
     </div>
   )
 }
