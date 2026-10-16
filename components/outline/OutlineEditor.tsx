@@ -32,6 +32,8 @@ import {
   Download,
   ChevronDown,
   ChevronUp,
+  Undo2,
+  Redo2,
   type LucideIcon,
 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
@@ -452,6 +454,16 @@ function OutlineDocumentEditor({ outline, textRef, onSaved, onExport }: OutlineD
       editor?.isActive('image') ? ((editor.getAttributes('image').imageAlign as ImageAlign) ?? null) : null,
   })
 
+  // Same reason: whether undo and redo have anything to do changes with every
+  // edit, which useEditor alone wouldn't re-render for.
+  const history = useEditorState({
+    editor,
+    selector: ({ editor }) => ({
+      canUndo: editor?.can().undo() ?? false,
+      canRedo: editor?.can().redo() ?? false,
+    }),
+  })
+
   const handleSave = useCallback(async (): Promise<boolean> => {
     if (!editor) return true
     const json = getEditorJson(editor)
@@ -610,6 +622,8 @@ function OutlineDocumentEditor({ outline, textRef, onSaved, onExport }: OutlineD
   // that reveals the rest in a second, wrapping row. A change of `group`
   // puts a separator between tools.
   const tools: ToolbarTool[] = [
+    { id: 'undo', group: -1, primary: true, title: 'Undo', icon: Undo2, disabled: !history?.canUndo, onClick: () => editor.chain().focus().undo().run() },
+    { id: 'redo', group: -1, primary: true, title: 'Redo', icon: Redo2, disabled: !history?.canRedo, onClick: () => editor.chain().focus().redo().run() },
     { id: 'bold', group: 0, primary: true, title: 'Bold', icon: Bold, active: editor.isActive('bold'), onClick: () => editor.chain().focus().toggleBold().run() },
     { id: 'italic', group: 0, primary: true, title: 'Italic', icon: Italic, active: editor.isActive('italic'), onClick: () => editor.chain().focus().toggleItalic().run() },
     { id: 'underline', group: 0, primary: true, title: 'Underline', icon: UnderlineIcon, active: editor.isActive('underline'), onClick: () => editor.chain().focus().toggleUnderline().run() },
