@@ -7,13 +7,6 @@ import { Button } from '@/components/ui/button'
 import { RenameHint } from '@/components/ui/rename-hint'
 import { RenameButton } from '@/components/ui/rename-button'
 import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogHeader,
-  DialogTitle,
-} from '@/components/ui/dialog'
-import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
@@ -28,16 +21,9 @@ interface OutlineSidebarProps {
   onSelect: (id: string) => void
   onAdd: () => void
   onRename: (id: string, name: string) => void
+  // Asks first when the document has content (see OutlineEditor).
   onDelete: (id: string) => void
   onExport: () => void
-}
-
-function hasTextContent(node: unknown): boolean {
-  if (!node || typeof node !== 'object') return false
-  const obj = node as Record<string, unknown>
-  if (typeof obj.text === 'string' && obj.text.trim().length > 0) return true
-  if (Array.isArray(obj.content)) return obj.content.some(hasTextContent)
-  return false
 }
 
 export function OutlineSidebar({
@@ -54,16 +40,6 @@ export function OutlineSidebar({
   const isBelowMd = useIsBelowMd()
   const [userCollapsed, setUserCollapsed] = useState<boolean | null>(null)
   const collapsed = userCollapsed ?? isBelowMd
-  const [pendingDeleteId, setPendingDeleteId] = useState<string | null>(null)
-  const pendingDeleteOutline = outlines.find((o) => o.id === pendingDeleteId) ?? null
-
-  function requestDelete(outline: Outline) {
-    if (hasTextContent(outline.content)) {
-      setPendingDeleteId(outline.id)
-    } else {
-      onDelete(outline.id)
-    }
-  }
 
   return (
     <div
@@ -119,42 +95,12 @@ export function OutlineSidebar({
                 active={outline.id === activeId}
                 onSelect={() => onSelect(outline.id)}
                 onRename={(name) => onRename(outline.id, name)}
-                onDeleteRequest={() => requestDelete(outline)}
+                onDeleteRequest={() => onDelete(outline.id)}
               />
             ))
           )}
         </div>
       )}
-
-      <Dialog
-        open={pendingDeleteOutline !== null}
-        onOpenChange={(open) => !open && setPendingDeleteId(null)}
-      >
-        <DialogContent className="sm:max-w-sm">
-          <DialogHeader>
-            <DialogTitle>Delete document?</DialogTitle>
-            <DialogDescription>
-              <strong className="text-foreground">{pendingDeleteOutline?.name}</strong> has
-              content. Deleting it cannot be undone.
-            </DialogDescription>
-          </DialogHeader>
-          <div className="flex justify-end gap-2 mt-2">
-            <Button variant="outline" size="sm" onClick={() => setPendingDeleteId(null)}>
-              Cancel
-            </Button>
-            <Button
-              variant="destructive"
-              size="sm"
-              onClick={() => {
-                if (pendingDeleteId) onDelete(pendingDeleteId)
-                setPendingDeleteId(null)
-              }}
-            >
-              Delete
-            </Button>
-          </div>
-        </DialogContent>
-      </Dialog>
     </div>
   )
 }

@@ -34,6 +34,14 @@ import {
   ChevronUp,
   type LucideIcon,
 } from 'lucide-react'
+import { Button } from '@/components/ui/button'
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog'
 import { Separator } from '@/components/ui/separator'
 import { Skeleton } from '@/components/ui/skeleton'
 import { SidebarRowSkeleton } from '@/components/ui/sidebar-skeleton-row'
@@ -79,6 +87,14 @@ type SaveStatus = 'saved' | 'saving' | 'error'
 // updates the same toast instead of stacking them.
 const SAVE_TOAST_ID = 'outline-save'
 
+function hasTextContent(node: unknown): boolean {
+  if (!node || typeof node !== 'object') return false
+  const obj = node as Record<string, unknown>
+  if (typeof obj.text === 'string' && obj.text.trim().length > 0) return true
+  if (Array.isArray(obj.content)) return obj.content.some(hasTextContent)
+  return false
+}
+
 function countWords(text: string) {
   const trimmed = text.trim()
   return trimmed ? trimmed.split(/\s+/).length : 0
@@ -121,6 +137,11 @@ export function OutlineEditor({ projectId }: OutlineEditorProps) {
   // and the top bar's Export button open the same dialog — and the button
   // keeps working while the sidebar is collapsed.
   const [exportOpen, setExportOpen] = useState(false)
+  const [pendingDeleteId, setPendingDeleteId] = useState<string | null>(null)
+  // The open document's current text, set by OutlineDocumentEditor. `outlines`
+  // only has the content each document loaded with, so it can't tell whether
+  // the open one has been written in since.
+  const activeTextRef = useRef<(() => string) | null>(null)
 
   useEffect(() => {
     let cancelled = false
@@ -197,6 +218,19 @@ export function OutlineEditor({ projectId }: OutlineEditorProps) {
     setActiveId((current) => (current === id ? (remaining[0]?.id ?? null) : current))
   }
 
+  // Documents with text ask first; empty ones are deleted straight away.
+  function requestDelete(id: string) {
+    const outline = outlines.find((o) => o.id === id)
+    if (!outline) return
+    const getActiveText = id === activeId ? activeTextRef.current : null
+    const hasText = getActiveText ? getActiveText().trim().length > 0 : hasTextContent(outline.content)
+    if (hasText) {
+      setPendingDeleteId(id)
+    } else {
+      void handleDelete(id)
+    }
+  }
+
   if (loading) {
     return (
       <div className="flex h-full overflow-hidden">
@@ -246,6 +280,7 @@ export function OutlineEditor({ projectId }: OutlineEditorProps) {
   }
 
   const activeOutline = outlines.find((o) => o.id === activeId) ?? null
+  const pendingDeleteOutline = outlines.find((o) => o.id === pendingDeleteId) ?? null
 
   return (
     <div className="flex h-full overflow-hidden">
@@ -255,7 +290,7 @@ export function OutlineEditor({ projectId }: OutlineEditorProps) {
         onSelect={setActiveId}
         onAdd={handleAdd}
         onRename={handleRename}
-        onDelete={handleDelete}
+        onDelete={requestDelete}
         onExport={() => setExportOpen(true)}
       />
       <div className="min-w-0 flex-1 overflow-hidden">
@@ -263,6 +298,7 @@ export function OutlineEditor({ projectId }: OutlineEditorProps) {
           <OutlineDocumentEditor
             key={activeOutline.id}
             outline={activeOutline}
+            textRef={activeTextRef}
             onExport={() => setExportOpen(true)}
           />
         )}
@@ -274,11 +310,49 @@ export function OutlineEditor({ projectId }: OutlineEditorProps) {
         open={exportOpen}
         onClose={() => setExportOpen(false)}
       />
+
+      <Dialog
+        open={pendingDeleteOutline !== null}
+        onOpenChange={(open) => !open && setPendingDeleteId(null)}
+      >
+        <DialogContent className="sm:max-w-sm">
+          <DialogHeader>
+            <DialogTitle>Delete document?</DialogTitle>
+            <DialogDescription>
+              <strong className="text-foreground">{pendingDeleteOutline?.name}</strong> has
+              content. Deleting it cannot be undone.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="flex justify-end gap-2 mt-2">
+            <Button variant="outline" size="sm" onClick={() => setPendingDeleteId(null)}>
+              Cancel
+            </Button>
+            <Button
+              variant="destructive"
+              size="sm"
+              onClick={() => {
+                if (pendingDeleteId) void handleDelete(pendingDeleteId)
+                setPendingDeleteId(null)
+              }}
+            >
+              Delete
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   )
 }
 
-function OutlineDocumentEditor({ outline, onExport }: { outline: Outline; onExport: () => void }) {
+function OutlineDocumentEditor({
+  outline,
+  textRef,
+  onExport,
+}: {
+  outline: Outline
+  textRef: React.RefObject<(() => string) | null>
+  onExport: () => void
+}) {
   const [saveStatus, setSaveStatus] = useState<SaveStatus>('saved')
   const [wordCount, setWordCount] = useState(0)
   const initialSerialized = JSON.stringify(outline.content ?? '')
@@ -396,6 +470,14 @@ function OutlineDocumentEditor({ outline, onExport }: { outline: Outline; onExpo
       editor.off('update', handleEdit)
     }
   }, [editor, backup])
+
+  useEffect(() => {
+    if (!editor) return
+    textRef.current = () => editor.getText()
+    return () => {
+      textRef.current = null
+    }
+  }, [editor, textRef])
 
   useEffect(() => {
     return () => {
