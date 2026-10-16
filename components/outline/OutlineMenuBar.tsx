@@ -139,7 +139,7 @@ export function OutlineMenuBar({
   const fileItems: FileItem[] = [
     { id: 'new', label: 'New document', icon: Plus, onSelect: onAdd },
     { id: 'rename', label: 'Rename', icon: Pencil, onSelect: rename.start },
-    { id: 'export', label: 'Export...', icon: Download, onSelect: onExport },
+    { id: 'export', label: 'Export', icon: Download, onSelect: onExport },
     { id: 'delete', label: 'Delete', icon: Trash2, onSelect: onDelete, destructive: true },
   ]
 
@@ -200,7 +200,7 @@ export function OutlineMenuBar({
         </Menu>
 
         <Menu label="Insert" onCloseAutoFocus={handleCloseAutoFocus}>
-          {imageTool && toolItem(imageTool, 'Image...')}
+          {imageTool && toolItem(imageTool, 'Image')}
         </Menu>
 
         <Menu label="Format" onCloseAutoFocus={handleCloseAutoFocus}>
