@@ -4,12 +4,14 @@ import { useState } from 'react'
 import { Loader2 } from 'lucide-react'
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog'
 import { Button } from '@/components/ui/button'
+import { PdfPreview } from '@/components/ui/pdf-preview'
 import { cn } from '@/lib/utils'
 import { getStoryboardPanels, type StoryboardChapter } from '@/actions/export'
 import { settle } from '@/lib/notify'
 import { buildStoryboardZip, sanitizeFileName } from '@/lib/export/storyboardZip'
 import { prepareStoryboardImages } from '@/lib/export/storyboardImages'
 import { downloadBlob } from '@/lib/export/downloadBlob'
+import { usePdfPreview } from '@/hooks/usePdfPreview'
 import type { Chapter } from '@/types/database'
 
 type Format = 'pdf' | 'zip'
@@ -23,6 +25,18 @@ function phaseLabel(phase: Phase | null, format: Format): string {
   if (phase.kind === 'building') return 'Building PDF…'
   return `${format === 'pdf' ? 'Preparing images' : 'Downloading'} ${phase.done} of ${phase.total}…`
 }
+
+// The images a PDF shows as empty frames, as a sentence, or null when there are none.
+function imageProblems(failed: number, unsupported: number): string | null {
+  const problems = [
+    failed > 0 && `${plural(failed, 'image')} couldn't be downloaded`,
+    unsupported > 0 && `${plural(unsupported, 'image')} ${unsupported === 1 ? 'is' : 'are'} in a format the browser can't read`,
+  ].filter(Boolean)
+  if (problems.length === 0) return null
+  return `${problems.join(' and ')}. ${failed + unsupported === 1 ? 'It is' : 'They are'} shown as empty frames.`
+}
+
+type PdfBuild = { blob: Blob; filename: string; problems: string | null } | { notice: string }
 
 interface ExportStoryboardDialogProps {
   projectId: string
@@ -39,6 +53,10 @@ export function ExportStoryboardDialog({ projectId, chapters, onClose }: ExportS
   const [phase, setPhase] = useState<Phase | null>(null)
   const [error, setError] = useState<string | null>(null)
   const [notice, setNotice] = useState<string | null>(null)
+  // Mounted only while open, so the preview's PDF is released on close
+  // without clearing it here.
+  const preview = usePdfPreview()
+  const busy = exporting || preview.building
 
   function handleOpenChange(next: boolean) {
     // Closing mid-export would unmount the progress UI while the download
@@ -46,13 +64,27 @@ export function ExportStoryboardDialog({ projectId, chapters, onClose }: ExportS
     if (!next && !exporting) onClose()
   }
 
+  // Changing what's exported makes the preview out of date, along with its
+  // notice about images shown as empty frames. (The options are disabled
+  // while a preview or export is being built.)
+  function clearPreview() {
+    if (preview.file) setNotice(null)
+    preview.clear()
+  }
+
   function toggle(id: string) {
+    clearPreview()
     setSelected((prev) => {
       const next = new Set(prev)
       if (next.has(id)) next.delete(id)
       else next.add(id)
       return next
     })
+  }
+
+  function chooseFormat(next: Format) {
+    if (next !== format) clearPreview()
+    setFormat(next)
   }
 
   async function exportZip(projectTitle: string, storyboard: StoryboardChapter[]) {
@@ -78,12 +110,10 @@ export function ExportStoryboardDialog({ projectId, chapters, onClose }: ExportS
     }
   }
 
-  async function exportPdf(projectTitle: string, storyboard: StoryboardChapter[]) {
+  // Shared by Export and Preview.
+  async function buildPdf(projectTitle: string, storyboard: StoryboardChapter[]): Promise<PdfBuild> {
     const total = storyboard.reduce((sum, ch) => sum + ch.panels.length, 0)
-    if (total === 0) {
-      setNotice('None of the selected chapters have any panels yet.')
-      return
-    }
+    if (total === 0) return { notice: 'None of the selected chapters have any panels yet.' }
 
     const { images, failed, unsupported } = await prepareStoryboardImages(storyboard, (p) =>
       setPhase({ kind: 'images', ...p })
@@ -96,22 +126,48 @@ export function ExportStoryboardDialog({ projectId, chapters, onClose }: ExportS
     // Loaded only now, so react-pdf never lands in the Panels tab bundle.
     const { renderStoryboardPdf } = await import('@/lib/export/storyboardToPdf')
     const blob = await renderStoryboardPdf({ projectTitle, chapters: storyboard, images })
+    return { blob, filename: `${fileBase(projectTitle)}.pdf`, problems: imageProblems(failed, unsupported) }
+  }
 
-    downloadBlob(blob, `${fileBase(projectTitle)}.pdf`)
-    const problems = [
-      failed > 0 && `${plural(failed, 'image')} couldn't be downloaded`,
-      unsupported > 0 && `${plural(unsupported, 'image')} ${unsupported === 1 ? 'is' : 'are'} in a format the browser can't read`,
-    ].filter(Boolean)
-    if (problems.length > 0) {
-      setNotice(
-        `Downloaded the PDF, but ${problems.join(' and ')}. ${failed + unsupported === 1 ? 'It is' : 'They are'} shown as empty frames.`
-      )
-    } else {
-      onClose()
+  async function exportPdf(projectTitle: string, storyboard: StoryboardChapter[]) {
+    const built = await buildPdf(projectTitle, storyboard)
+    if ('notice' in built) {
+      setNotice(built.notice)
+      return
     }
+    downloadBlob(built.blob, built.filename)
+    if (built.problems) setNotice(`Downloaded the PDF, but ${built.problems}`)
+    else onClose()
+  }
+
+  async function handlePreview() {
+    if (selected.size === 0) return
+    setError(null)
+    setNotice(null)
+    setPhase({ kind: 'preparing' })
+    const previewError = await preview.build(async () => {
+      const result = await settle(getStoryboardPanels(projectId, [...selected]))
+      if ('error' in result) return result
+      const built = await buildPdf(result.projectTitle, result.chapters)
+      if ('notice' in built) {
+        setNotice(built.notice)
+        return null
+      }
+      if (built.problems) setNotice(`In this preview, ${built.problems}`)
+      return { blob: built.blob, filename: built.filename }
+    })
+    setPhase(null)
+    if (previewError) setError(previewError)
   }
 
   async function handleExport() {
+    // Already built for the preview: save that same file.
+    if (preview.file) {
+      downloadBlob(preview.file.blob, preview.file.filename)
+      onClose()
+      return
+    }
+
     if (selected.size === 0) return
     setExporting(true)
     setError(null)
@@ -138,7 +194,7 @@ export function ExportStoryboardDialog({ projectId, chapters, onClose }: ExportS
 
   return (
     <Dialog open onOpenChange={handleOpenChange}>
-      <DialogContent className="sm:max-w-md">
+      <DialogContent className={cn('sm:max-w-md', preview.file && 'md:max-w-4xl')}>
         <DialogHeader>
           <DialogTitle>Export storyboard</DialogTitle>
           <DialogDescription>
@@ -147,59 +203,70 @@ export function ExportStoryboardDialog({ projectId, chapters, onClose }: ExportS
           </DialogDescription>
         </DialogHeader>
 
-        <div className="space-y-4">
-          <div className="max-h-52 space-y-1 overflow-y-auto scrollbar-thin rounded-lg border border-border p-2">
-            {chapters.length === 0 ? (
-              <p className="px-2 py-3 text-center text-xs text-muted-foreground">
-                No chapters yet. Add one on the Timeline tab to start storyboarding.
-              </p>
-            ) : (
-              chapters.map((chapter) => (
-                <label
-                  key={chapter.id}
-                  className="flex cursor-pointer items-center gap-2 rounded-md px-2 py-1.5 text-sm hover:bg-secondary/50"
+        {/* md and up, while previewing: options on the left, the PDF on the right. */}
+        <div className={cn('space-y-4', preview.file && 'md:flex md:gap-6 md:space-y-0')}>
+          <div className={cn('space-y-4', preview.file && 'md:w-72 md:shrink-0')}>
+            <div className="max-h-52 space-y-1 overflow-y-auto scrollbar-thin rounded-lg border border-border p-2">
+              {chapters.length === 0 ? (
+                <p className="px-2 py-3 text-center text-xs text-muted-foreground">
+                  No chapters yet. Add one on the Timeline tab to start storyboarding.
+                </p>
+              ) : (
+                chapters.map((chapter) => (
+                  <label
+                    key={chapter.id}
+                    className="flex cursor-pointer items-center gap-2 rounded-md px-2 py-1.5 text-sm hover:bg-secondary/50"
+                  >
+                    <input
+                      type="checkbox"
+                      checked={selected.has(chapter.id)}
+                      onChange={() => toggle(chapter.id)}
+                      disabled={busy}
+                      className="h-3.5 w-3.5 rounded border-border"
+                    />
+                    <span className="truncate">{chapter.title}</span>
+                  </label>
+                ))
+              )}
+            </div>
+
+            <div className="inline-flex items-center gap-1 rounded-lg bg-secondary/50 p-1">
+              {(['pdf', 'zip'] as const).map((f) => (
+                <button
+                  key={f}
+                  onClick={() => chooseFormat(f)}
+                  disabled={busy}
+                  className={cn(
+                    'relative rounded-md px-3 py-1 text-xs font-medium uppercase transition-all after:absolute after:-inset-y-1 after:-inset-x-0.5',
+                    format === f ? 'bg-background text-foreground shadow-sm' : 'text-muted-foreground hover:text-foreground'
+                  )}
                 >
-                  <input
-                    type="checkbox"
-                    checked={selected.has(chapter.id)}
-                    onChange={() => toggle(chapter.id)}
-                    disabled={exporting}
-                    className="h-3.5 w-3.5 rounded border-border"
-                  />
-                  <span className="truncate">{chapter.title}</span>
-                </label>
-              ))
-            )}
+                  {f}
+                </button>
+              ))}
+            </div>
+
+            {error && <p className="text-sm text-destructive">{error}</p>}
+            {notice && <p className="text-sm text-muted-foreground">{notice}</p>}
+
+            <div className="flex justify-end gap-2">
+              <Button variant="outline" size="sm" onClick={onClose} disabled={exporting}>
+                {notice ? 'Close' : 'Cancel'}
+              </Button>
+              {format === 'pdf' && !preview.file && (
+                <Button variant="outline" size="sm" onClick={handlePreview} disabled={busy || selected.size === 0}>
+                  {preview.building && <Loader2 className="h-3.5 w-3.5 mr-1.5 animate-spin" />}
+                  {preview.building ? phaseLabel(phase, 'pdf') : 'Preview'}
+                </Button>
+              )}
+              <Button size="sm" onClick={handleExport} disabled={busy || selected.size === 0}>
+                {exporting && <Loader2 className="h-3.5 w-3.5 mr-1.5 animate-spin" />}
+                {exporting ? phaseLabel(phase, format) : format === 'pdf' ? 'Download PDF' : 'Download ZIP'}
+              </Button>
+            </div>
           </div>
 
-          <div className="inline-flex items-center gap-1 rounded-lg bg-secondary/50 p-1">
-            {(['pdf', 'zip'] as const).map((f) => (
-              <button
-                key={f}
-                onClick={() => setFormat(f)}
-                disabled={exporting}
-                className={cn(
-                  'relative rounded-md px-3 py-1 text-xs font-medium uppercase transition-all after:absolute after:-inset-y-1 after:-inset-x-0.5',
-                  format === f ? 'bg-background text-foreground shadow-sm' : 'text-muted-foreground hover:text-foreground'
-                )}
-              >
-                {f}
-              </button>
-            ))}
-          </div>
-
-          {error && <p className="text-sm text-destructive">{error}</p>}
-          {notice && <p className="text-sm text-muted-foreground">{notice}</p>}
-
-          <div className="flex justify-end gap-2">
-            <Button variant="outline" size="sm" onClick={onClose} disabled={exporting}>
-              {notice ? 'Close' : 'Cancel'}
-            </Button>
-            <Button size="sm" onClick={handleExport} disabled={exporting || selected.size === 0}>
-              {exporting && <Loader2 className="h-3.5 w-3.5 mr-1.5 animate-spin" />}
-              {exporting ? phaseLabel(phase, format) : format === 'pdf' ? 'Download PDF' : 'Download ZIP'}
-            </Button>
-          </div>
+          {preview.file && <PdfPreview file={preview.file} className="md:min-w-0 md:flex-1" />}
         </div>
       </DialogContent>
     </Dialog>

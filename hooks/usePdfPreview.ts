@@ -9,7 +9,9 @@ export interface PdfPreviewFile {
   filename: string
 }
 
-type BuildResult = { blob: Blob; filename: string } | { error: string }
+// null: nothing to preview, and nothing to report as an error (the dialog
+// has already said why, e.g. the storyboard's "no panels yet" notice).
+type BuildResult = { blob: Blob; filename: string } | { error: string } | null
 
 // State for an export dialog's PDF preview, shared by the manuscript, story
 // bible and storyboard dialogs. The previewed file is the one Download saves,
@@ -57,6 +59,7 @@ export function usePdfPreview() {
     }
     if (id !== live.current.run) return null
     setBuilding(false)
+    if (result === null) return null
     if ('error' in result) return result.error
     const url = URL.createObjectURL(result.blob)
     live.current.url = url
