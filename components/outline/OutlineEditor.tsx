@@ -64,6 +64,7 @@ import {
   deleteOutline,
 } from '@/actions/outline'
 import { OutlineSidebar } from '@/components/outline/OutlineSidebar'
+import { OutlineMenuBar } from '@/components/outline/OutlineMenuBar'
 import { ExportOutlinesDialog } from '@/components/outline/ExportOutlinesDialog'
 import { cn } from '@/lib/utils'
 import type { Outline } from '@/types/database'
@@ -298,6 +299,9 @@ export function OutlineEditor({ projectId }: OutlineEditorProps) {
             outline={activeOutline}
             textRef={activeTextRef}
             onSaved={handleSaved}
+            onAdd={handleAdd}
+            onRename={handleRename}
+            onDelete={requestDelete}
             onExport={() => setExportOpen(true)}
           />
         )}
@@ -346,6 +350,12 @@ export function OutlineEditor({ projectId }: OutlineEditorProps) {
 function DocumentSkeleton({ className }: { className?: string }) {
   return (
     <div className={cn('flex flex-col overflow-hidden', className)}>
+      {/* Menu bar: document name, then the menus */}
+      <div className="flex h-10 shrink-0 items-center gap-3 border-b border-border px-4">
+        <Skeleton className="h-4 w-28" />
+        <Skeleton className="h-3 w-36" />
+      </div>
+
       {/* Formatting toolbar */}
       <div className="flex h-10 shrink-0 items-center gap-1 border-b border-border px-3">
         {Array.from({ length: 6 }).map((_, i) => (
@@ -373,6 +383,10 @@ interface OutlineDocumentProps {
   outline: Outline
   textRef: React.RefObject<(() => string) | null>
   onSaved: (id: string, content: Record<string, unknown>) => void
+  onAdd: () => void
+  onRename: (id: string, name: string) => void
+  // Asks first when the document has content.
+  onDelete: (id: string) => void
   onExport: () => void
 }
 
@@ -398,7 +412,15 @@ function OutlineDocument(props: OutlineDocumentProps) {
   return <OutlineDocumentEditor {...props} />
 }
 
-function OutlineDocumentEditor({ outline, textRef, onSaved, onExport }: OutlineDocumentProps) {
+function OutlineDocumentEditor({
+  outline,
+  textRef,
+  onSaved,
+  onAdd,
+  onRename,
+  onDelete,
+  onExport,
+}: OutlineDocumentProps) {
   const [saveStatus, setSaveStatus] = useState<SaveStatus>('saved')
   const [wordCount, setWordCount] = useState(0)
   const initialSerialized = JSON.stringify(outline.content ?? '')
@@ -643,6 +665,27 @@ function OutlineDocumentEditor({ outline, textRef, onSaved, onExport }: OutlineD
 
   return (
     <div className="flex h-full flex-col overflow-hidden">
+      <OutlineMenuBar
+        name={outline.name}
+        tools={tools}
+        onAdd={onAdd}
+        onRename={(name) => onRename(outline.id, name)}
+        onExport={onExport}
+        onDelete={() => onDelete(outline.id)}
+        onSelectAll={() => editor.chain().focus().selectAll().run()}
+      >
+        <span className="hidden text-muted-foreground sm:inline">
+          {wordCount} word{wordCount === 1 ? '' : 's'}
+        </span>
+        {saveStatus === 'saving' ? (
+          <span className="text-muted-foreground">Saving...</span>
+        ) : saveStatus === 'error' ? (
+          <span className="text-destructive">Not saved</span>
+        ) : (
+          <span className="text-emerald-600 dark:text-emerald-500">Saved ✓</span>
+        )}
+      </OutlineMenuBar>
+
       <div className="shrink-0 border-b border-border bg-background">
         <div className="flex items-center justify-between gap-2 px-4 py-2">
           {/* md and up: every tool, wrapping, exactly as before. */}
@@ -671,19 +714,8 @@ function OutlineDocumentEditor({ outline, textRef, onSaved, onExport }: OutlineD
 
           <div className="flex shrink-0 items-center gap-3 text-xs">
             {imageError && <span className="text-destructive">{imageError}</span>}
-            <span className="hidden text-muted-foreground sm:inline">
-              {wordCount} word{wordCount === 1 ? '' : 's'}
-            </span>
-            {saveStatus === 'saving' ? (
-              <span className="text-muted-foreground">Saving...</span>
-            ) : saveStatus === 'error' ? (
-              <span className="text-destructive">Not saved</span>
-            ) : (
-              <span className="text-emerald-600 dark:text-emerald-500">Saved ✓</span>
-            )}
             {/* Same button as the Timeline and Panels tabs' Export, so every tab
-                puts its export in the same place. Also in the sidebar's File
-                menu, but this one stays visible when the sidebar is collapsed. */}
+                puts its export in the same place. File › Export does the same. */}
             <button
               onClick={onExport}
               aria-label="Export manuscript"
@@ -750,7 +782,8 @@ function OutlineDocumentEditor({ outline, textRef, onSaved, onExport }: OutlineD
   )
 }
 
-interface ToolbarTool {
+// Also drives the menu bar's Edit, Insert and Format menus (OutlineMenuBar).
+export interface ToolbarTool {
   id: string
   group: number
   primary?: boolean

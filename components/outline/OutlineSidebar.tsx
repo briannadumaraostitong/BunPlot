@@ -1,6 +1,6 @@
 'use client'
 
-import { useRef, useState } from 'react'
+import { useState } from 'react'
 import { ChevronDown, ChevronLeft, ChevronRight, Download, FileText, Plus, X } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { Button } from '@/components/ui/button'
@@ -13,6 +13,7 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu'
 import { useIsBelowMd } from '@/hooks/useIsBelowMd'
+import { useInlineRename } from '@/hooks/useInlineRename'
 import type { Outline } from '@/types/database'
 
 interface OutlineSidebarProps {
@@ -118,37 +119,12 @@ function OutlineRow({
   onRename: (name: string) => void
   onDeleteRequest: () => void
 }) {
-  const [editing, setEditing] = useState(false)
-  const [name, setName] = useState(outline.name)
-  const inputRef = useRef<HTMLInputElement>(null)
-
-  function startEditing() {
-    setName(outline.name)
-    setEditing(true)
-  }
-
-  function commitRename() {
-    const trimmed = name.trim()
-    if (!trimmed || trimmed === outline.name) {
-      setName(outline.name)
-    } else {
-      onRename(trimmed)
-    }
-    setEditing(false)
-  }
-
-  function handleKeyDown(e: React.KeyboardEvent) {
-    if (e.key === 'Enter') commitRename()
-    if (e.key === 'Escape') {
-      setName(outline.name)
-      setEditing(false)
-    }
-  }
+  const rename = useInlineRename(outline.name, onRename)
 
   return (
     <div
       onClick={onSelect}
-      onDoubleClick={startEditing}
+      onDoubleClick={rename.start}
       className={cn(
         'group flex items-center gap-2 mx-1 px-2 py-1.5 rounded-md cursor-pointer transition-colors',
         active ? 'bg-secondary' : 'hover:bg-secondary/50'
@@ -156,14 +132,13 @@ function OutlineRow({
     >
       <FileText className="h-3.5 w-3.5 shrink-0 text-muted-foreground" />
 
-      {editing ? (
+      {rename.editing ? (
         <input
-          ref={inputRef}
           autoFocus
-          value={name}
-          onChange={(e) => setName(e.target.value)}
-          onKeyDown={handleKeyDown}
-          onBlur={commitRename}
+          value={rename.draft}
+          onChange={(e) => rename.setDraft(e.target.value)}
+          onKeyDown={rename.onKeyDown}
+          onBlur={rename.commit}
           onClick={(e) => e.stopPropagation()}
           className="min-w-0 flex-1 rounded border border-border bg-background px-1 py-0 text-sm md:text-xs outline-none focus:border-primary"
         />
@@ -173,9 +148,9 @@ function OutlineRow({
         </RenameHint>
       )}
 
-      {!editing && <RenameButton onClick={startEditing} label="Rename document" />}
+      {!rename.editing && <RenameButton onClick={rename.start} label="Rename document" />}
 
-      {!editing && (
+      {!rename.editing && (
         <button
           onClick={(e) => {
             e.stopPropagation()
