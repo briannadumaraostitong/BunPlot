@@ -13,6 +13,7 @@ import {
   TextWrappingSide,
 } from 'docx'
 import { fetchImageBytes } from './fetchImageBytes'
+import { DEFAULT_DOCUMENT_FONT, hasItalic } from '../documentFonts'
 import type { Align, BlockNode, InlineRun } from './outlineIR'
 
 export interface OutlineSection {
@@ -104,13 +105,19 @@ async function wrappedImageRun(block: ImageBlock): Promise<ImageRun | null> {
   })
 }
 
+// A run's chosen font is named, not embedded: Word substitutes one that isn't
+// installed (Google Docs has all of them). Runs without one use the
+// document's default (renderOutlinesToDocx). A font with no italic
+// (Comfortaa) drops the flag, so Word doesn't slant it — italic Comfortaa
+// stays upright, as in the editor and PDF.
 function textRuns(runs: InlineRun[]): TextRun[] {
   return runs.map(
     (r) =>
       new TextRun({
         text: r.text,
+        font: r.font,
         bold: r.bold,
-        italics: r.italic,
+        italics: r.italic && (!r.font || hasItalic(r.font)) ? true : undefined,
         underline: r.underline ? {} : undefined,
         strike: r.strike,
       })
@@ -250,6 +257,9 @@ export async function renderOutlinesToDocx(sections: OutlineSection[]): Promise<
   }
 
   const doc = new Document({
+    // Literata for everything without a chosen font, titles and headings
+    // included (docx's heading styles set only size and colour).
+    styles: { default: { document: { run: { font: DEFAULT_DOCUMENT_FONT } } } },
     sections: [{ children }],
   })
 
