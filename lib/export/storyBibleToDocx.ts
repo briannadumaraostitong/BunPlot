@@ -1,5 +1,5 @@
 import { Document, Packer, Paragraph, TextRun, HeadingLevel } from 'docx'
-import { blocksToParagraphs } from './outlineToDocx'
+import { blocksToParagraphs, DOCX_STYLES } from './outlineToDocx'
 import type { BlockNode } from './outlineIR'
 import type { StoryBible } from './storyBible'
 
@@ -98,6 +98,6 @@ export async function renderStoryBibleToDocx(bible: StoryBible): Promise<Buffer>
     }
   }
 
-  const doc = new Document({ sections: [{ children }] })
+  const doc = new Document({ styles: DOCX_STYLES, sections: [{ children }] })
   return Packer.toBuffer(doc)
 }

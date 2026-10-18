@@ -16,6 +16,11 @@ import { fetchImageBytes } from './fetchImageBytes'
 import { DEFAULT_DOCUMENT_FONT, hasItalic } from '../documentFonts'
 import type { Align, BlockNode, InlineRun } from './outlineIR'
 
+// Document styles for the manuscript and story bible DOCX: Literata for
+// everything without a chosen font, titles and headings included (docx's
+// heading styles set only size and colour).
+export const DOCX_STYLES = { default: { document: { run: { font: DEFAULT_DOCUMENT_FONT } } } }
+
 export interface OutlineSection {
   title: string
   blocks: BlockNode[]
@@ -257,9 +262,7 @@ export async function renderOutlinesToDocx(sections: OutlineSection[]): Promise<
   }
 
   const doc = new Document({
-    // Literata for everything without a chosen font, titles and headings
-    // included (docx's heading styles set only size and colour).
-    styles: { default: { document: { run: { font: DEFAULT_DOCUMENT_FONT } } } },
+    styles: DOCX_STYLES,
     sections: [{ children }],
   })
 
