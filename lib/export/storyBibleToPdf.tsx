@@ -1,5 +1,6 @@
 import { Document, Page, View, Text, StyleSheet, renderToBuffer } from '@react-pdf/renderer'
-import { renderBlocks, styles as outlineStyles } from './outlineToPdf'
+import { renderBlocks, SERVER_FONTS_DIR, styles as outlineStyles } from './outlineToPdf'
+import { registerPdfFonts } from './pdfFonts'
 import type { BlockNode } from './outlineIR'
 import type { StoryBible } from './storyBible'
 
@@ -78,6 +79,8 @@ async function richSubsection(title: string, blocks: BlockNode[]) {
 }
 
 export async function renderStoryBibleToPdf(bible: StoryBible): Promise<Buffer> {
+  // Pages use the outline export's page style, which carries the font stack.
+  registerPdfFonts(SERVER_FONTS_DIR)
   const pages: React.ReactNode[] = [
     <Page key="cover" size="A4" style={outlineStyles.page}>
       <Text style={styles.coverTitle}>{bible.title}</Text>

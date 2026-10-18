@@ -1,12 +1,14 @@
 import { Document, Page, View, Text, Image, StyleSheet, pdf } from '@react-pdf/renderer'
 import type { StoryboardChapter, StoryboardPanel } from '@/actions/export'
+import { PDF_FONT_STACK, registerPdfFonts } from './pdfFonts'
 import type { PanelImageState } from './storyboardImages'
 
 // Browser-only: rendered with pdf().toBlob() and loaded via dynamic import
 // from ExportStoryboardDialog, so react-pdf stays out of the Panels tab
 // bundle. Deliberately imports nothing from outlineToPdf or fetchImageBytes —
 // those are server-side (Buffer, renderToBuffer). Images arrive here already
-// canvas-encoded as PNG/JPEG Blobs (see storyboardImages.ts).
+// canvas-encoded as PNG/JPEG Blobs (see storyboardImages.ts). Fonts come from
+// the shared, browser-safe pdfFonts, fetched from /fonts.
 
 // A4 portrait in points, 3×2 panels per page. Pagination is explicit — each
 // group of six panels is its own <Page wrap={false}> — so the grid never
@@ -27,7 +29,8 @@ const IMAGE_BOX_HEIGHT = CELL_HEIGHT - LABEL_HEIGHT
 // Font sizes follow outlineToPdf/storyBibleToPdf so the exports read as one
 // family; copied rather than imported to keep this module browser-safe.
 const styles = StyleSheet.create({
-  page: { padding: MARGIN, fontSize: 9 },
+  // Every Text on the page inherits the font stack.
+  page: { padding: MARGIN, fontSize: 9, fontFamily: PDF_FONT_STACK },
   coverTitle: { fontSize: 32, fontWeight: 700, marginTop: 200, textAlign: 'center' },
   coverSubtitle: { fontSize: 14, marginTop: 12, textAlign: 'center', color: '#555555' },
   header: { height: HEADER_HEIGHT },
@@ -149,5 +152,6 @@ function StoryboardDocument({ projectTitle, chapters, images }: StoryboardPdfInp
 }
 
 export async function renderStoryboardPdf(input: StoryboardPdfInput): Promise<Blob> {
+  registerPdfFonts(`${window.location.origin}/fonts`)
   return pdf(<StoryboardDocument {...input} />).toBlob()
 }

@@ -1,10 +1,17 @@
+import path from 'path'
 import { Document, Page, View, Text, Image, StyleSheet, renderToBuffer } from '@react-pdf/renderer'
 import { fetchImageBytes } from './fetchImageBytes'
+import { PDF_FONT_STACK, registerPdfFonts } from './pdfFonts'
 import type { Align, BlockNode, InlineRun } from './outlineIR'
 import type { OutlineSection } from './outlineToDocx'
 
+// public/fonts on disk; next.config traces it into the project page's server
+// function, where the export actions run.
+export const SERVER_FONTS_DIR = path.join(process.cwd(), 'public', 'fonts')
+
 export const styles = StyleSheet.create({
-  page: { paddingTop: 56, paddingBottom: 56, paddingHorizontal: 64, fontSize: 11 },
+  // Every Text on the page inherits the font stack.
+  page: { paddingTop: 56, paddingBottom: 56, paddingHorizontal: 64, fontSize: 11, fontFamily: PDF_FONT_STACK },
   title: { fontSize: 22, fontWeight: 700, marginBottom: 20 },
   heading1: { fontSize: 18, fontWeight: 700, marginTop: 16, marginBottom: 8 },
   heading2: { fontSize: 15, fontWeight: 700, marginTop: 14, marginBottom: 6 },
@@ -148,6 +155,7 @@ export async function renderBlocks(blocks: BlockNode[]): Promise<React.ReactNode
 }
 
 export async function renderOutlinesToPdf(sections: OutlineSection[]): Promise<Buffer> {
+  registerPdfFonts(SERVER_FONTS_DIR)
   const pages = await Promise.all(
     sections.map(async (section, i) => (
       <Page key={i} size="A4" style={styles.page} wrap>
