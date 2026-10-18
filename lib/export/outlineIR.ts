@@ -2,7 +2,8 @@
 // representation that both the DOCX and PDF renderers build from. Written
 // against Outline's actual, confirmed extension list (OutlineEditor.tsx):
 // StarterKit (paragraph, heading, bulletList/orderedList/listItem, hardBreak),
-// Underline, Strike, Blockquote, TextAlign (paragraph/heading only), and the
+// Underline, Strike, Blockquote, TextAlign (paragraph/heading only), the
+// font picker's textStyle mark (fontFamily, one of lib/documentFonts.ts), and the
 // local ResizableImage extension — which extends the stock @tiptap/extension-image
 // without renaming its node type, so images are plain `type: 'image'` nodes
 // with `attrs: { src, width, imageAlign }` on top of the standard src/alt/title.
@@ -12,6 +13,8 @@
 // erroring, so an export never hard-fails on content this walker doesn't yet
 // cover.
 
+import { toDocumentFont, type DocumentFont } from '../documentFonts'
+
 export type Align = 'left' | 'center' | 'right' | 'justify'
 
 export interface InlineRun {
@@ -20,6 +23,9 @@ export interface InlineRun {
   italic?: boolean
   underline?: boolean
   strike?: boolean
+  // The run's chosen font. Absent means the document default (Literata), as
+  // does a stored font that isn't on the list.
+  font?: DocumentFont
 }
 
 export type BlockNode =
@@ -35,7 +41,7 @@ interface TiptapNode {
   attrs?: Record<string, unknown>
   content?: TiptapNode[]
   text?: string
-  marks?: { type: string }[]
+  marks?: { type: string; attrs?: Record<string, unknown> }[]
 }
 
 function readAlign(attrs: Record<string, unknown> | undefined): Align | null {
@@ -49,12 +55,14 @@ function walkInline(nodes: TiptapNode[] | undefined): InlineRun[] {
   for (const node of nodes) {
     if (node.type === 'text') {
       const markTypes = new Set((node.marks ?? []).map((m) => m.type))
+      const font = toDocumentFont(node.marks?.find((m) => m.type === 'textStyle')?.attrs?.fontFamily)
       runs.push({
         text: node.text ?? '',
         bold: markTypes.has('bold') || undefined,
         italic: markTypes.has('italic') || undefined,
         underline: markTypes.has('underline') || undefined,
         strike: markTypes.has('strike') || undefined,
+        font: font ?? undefined,
       })
     } else if (node.type === 'hardBreak') {
       runs.push({ text: '\n' })

@@ -1,14 +1,18 @@
 import { Font } from '@react-pdf/renderer'
+import { DEFAULT_DOCUMENT_FONT, type DocumentFont } from '../documentFonts'
 
 // Fonts for the PDF exports. The files live in public/fonts/<dir>/ (each with
 // its OFL.txt). Browser-safe — no Node imports — because the storyboard PDF
 // is built in the browser: the server registers them from disk, the browser
 // from /fonts URLs.
 
-export const DEFAULT_PDF_FONT = 'Literata'
-
 // Text uses its font, then Noto Sans for any character that font lacks.
-export const PDF_FONT_STACK = [DEFAULT_PDF_FONT, 'Noto Sans']
+export function pdfFontStack(font: DocumentFont): string[] {
+  return [font, 'Noto Sans']
+}
+
+// The default, set on each page: text without a chosen font inherits it.
+export const PDF_FONT_STACK = pdfFontStack(DEFAULT_DOCUMENT_FONT)
 
 type Face = { file: string; fontWeight: 400 | 700; fontStyle: 'normal' | 'italic' }
 

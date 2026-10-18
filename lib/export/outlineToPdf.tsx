@@ -1,7 +1,7 @@
 import path from 'path'
 import { Document, Page, View, Text, Image, StyleSheet, renderToBuffer } from '@react-pdf/renderer'
 import { fetchImageBytes } from './fetchImageBytes'
-import { PDF_FONT_STACK, registerPdfFonts } from './pdfFonts'
+import { PDF_FONT_STACK, pdfFontStack, registerPdfFonts } from './pdfFonts'
 import type { Align, BlockNode, InlineRun } from './outlineIR'
 import type { OutlineSection } from './outlineToDocx'
 
@@ -52,6 +52,9 @@ function Runs({ runs }: { runs: InlineRun[] }) {
         <Text
           key={i}
           style={{
+            // A chosen font; otherwise the page's default. Italic Comfortaa
+            // gets its upright face (see pdfFonts).
+            fontFamily: r.font ? pdfFontStack(r.font) : undefined,
             fontWeight: r.bold ? 700 : undefined,
             fontStyle: r.italic ? 'italic' : undefined,
             textDecoration: r.underline && r.strike ? 'underline line-through' : r.underline ? 'underline' : r.strike ? 'line-through' : undefined,
