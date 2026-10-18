@@ -67,6 +67,13 @@ import { OutlineMenuBar } from '@/components/outline/OutlineMenuBar'
 import { ExportOutlinesDialog } from '@/components/outline/ExportOutlinesDialog'
 import { cn } from '@/lib/utils'
 import type { Outline } from '@/types/database'
+// Literata, the outline's default font (font-document in globals.css) and
+// the PDF exports' body font. Loaded only with the outline editor; each face
+// is split by script, so the browser fetches just what's on screen.
+import '@fontsource/literata/400.css'
+import '@fontsource/literata/700.css'
+import '@fontsource/literata/400-italic.css'
+import '@fontsource/literata/700-italic.css'
 
 const AUTOSAVE_INTERVAL_MS = 30000
 
@@ -463,7 +470,7 @@ function OutlineDocumentEditor({
     content: outline.content ?? '',
     editorProps: {
       attributes: {
-        class: 'outline-none text-base leading-relaxed min-h-full',
+        class: 'outline-none font-document text-base leading-relaxed min-h-full',
       },
     },
   })
