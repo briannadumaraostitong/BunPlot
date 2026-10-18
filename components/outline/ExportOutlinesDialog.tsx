@@ -65,13 +65,21 @@ export function ExportOutlinesDialog({ projectId, outlines, open, onClose }: Exp
   const [options, setOptions] = useState<ManuscriptOptions>(DEFAULT_MANUSCRIPT_OPTIONS)
   const [exporting, setExporting] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  // Something left out of an otherwise good export (a Book cover that
+  // couldn't be used). Belongs to that export, so it goes with the preview.
+  const [notice, setNotice] = useState<string | null>(null)
   const preview = usePdfPreview()
   const busy = exporting || preview.building
+
+  function clearPreview() {
+    preview.clear()
+    setNotice(null)
+  }
 
   // The dialog stays mounted while closed, so the preview is dropped here
   // rather than left holding its PDF until the next open.
   function close() {
-    preview.clear()
+    clearPreview()
     onClose()
   }
 
@@ -81,7 +89,7 @@ export function ExportOutlinesDialog({ projectId, outlines, open, onClose }: Exp
 
   // Changing what's exported makes the preview out of date.
   function toggle(id: string) {
-    preview.clear()
+    clearPreview()
     setSelected((prev) => {
       const next = new Set(prev)
       if (next.has(id)) next.delete(id)
@@ -91,14 +99,14 @@ export function ExportOutlinesDialog({ projectId, outlines, open, onClose }: Exp
   }
 
   function chooseFormat(next: 'docx' | 'pdf') {
-    if (next !== format) preview.clear()
+    if (next !== format) clearPreview()
     setFormat(next)
   }
 
   // Any PDF option makes the preview out of date. Picking a style also
   // switches to its usual page size.
   function changeOptions(next: Partial<ManuscriptOptions>) {
-    preview.clear()
+    clearPreview()
     setOptions((prev) => ({ ...prev, ...next }))
   }
 
@@ -109,9 +117,11 @@ export function ExportOutlinesDialog({ projectId, outlines, open, onClose }: Exp
   async function handlePreview() {
     if (selected.size === 0) return
     setError(null)
+    setNotice(null)
     const previewError = await preview.build(async () => {
       const result = await settle(exportOutlines(projectId, [...selected], 'pdf', options))
       if ('error' in result) return result
+      if (result.notice) setNotice(result.notice)
       return { blob: base64ToBlob(result.base64, result.mimeType), filename: result.filename }
     })
     if (previewError) setError(previewError)
@@ -128,6 +138,7 @@ export function ExportOutlinesDialog({ projectId, outlines, open, onClose }: Exp
     if (selected.size === 0) return
     setExporting(true)
     setError(null)
+    setNotice(null)
     const result = await settle(exportOutlines(projectId, [...selected], format, options))
     setExporting(false)
 
@@ -136,7 +147,9 @@ export function ExportOutlinesDialog({ projectId, outlines, open, onClose }: Exp
       return
     }
     downloadBase64(result.base64, result.mimeType, result.filename)
-    close()
+    // Stay open to say what was left out; otherwise done.
+    if (result.notice) setNotice(result.notice)
+    else close()
   }
 
   return (
@@ -222,10 +235,11 @@ export function ExportOutlinesDialog({ projectId, outlines, open, onClose }: Exp
             )}
 
             {error && <p className="text-sm text-destructive">{error}</p>}
+            {notice && <p className="text-sm text-muted-foreground">{notice}</p>}
 
             <div className="flex justify-end gap-2">
               <Button variant="outline" size="sm" onClick={close} disabled={exporting}>
-                Cancel
+                {notice && !preview.file ? 'Close' : 'Cancel'}
               </Button>
               {format === 'pdf' && !preview.file && (
                 <Button variant="outline" size="sm" onClick={handlePreview} disabled={busy || selected.size === 0}>

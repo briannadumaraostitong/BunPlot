@@ -5,6 +5,7 @@ import { tiptapToBlocks } from '@/lib/export/outlineIR'
 import { renderOutlinesToDocx, type OutlineSection } from '@/lib/export/outlineToDocx'
 import { renderOutlinesToPdf, type BookDetails } from '@/lib/export/outlineToPdf'
 import { DEFAULT_MANUSCRIPT_OPTIONS, type ManuscriptOptions } from '@/lib/export/manuscriptOptions'
+import { prepareCover } from '@/lib/export/prepareCover'
 import { buildStoryBible, STORY_BIBLE_SECTIONS, type StoryBibleSection } from '@/lib/export/storyBible'
 import { renderStoryBibleToDocx } from '@/lib/export/storyBibleToDocx'
 import { renderStoryBibleToPdf } from '@/lib/export/storyBibleToPdf'
@@ -22,9 +23,13 @@ import type {
   Status,
 } from '@/types/database'
 
+// notice: something left out of an otherwise good export (a Book cover that
+// couldn't be used), to tell the user.
 export type ExportOutlinesResult =
-  | { base64: string; mimeType: string; filename: string }
+  | { base64: string; mimeType: string; filename: string; notice?: string }
   | { error: string }
+
+const COVER_NOTICE = "Couldn't include the cover image, so the book starts at its title page."
 
 const MIME_TYPE = {
   docx: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
@@ -32,12 +37,13 @@ const MIME_TYPE = {
 } as const
 
 // The Book style's title page: the project's title and cover, and the
-// author's name from their profile (display name, else username).
+// author's name from their profile (display name, else username). A cover
+// that can't be used is left out, with a notice.
 async function bookDetails(
   supabase: Awaited<ReturnType<typeof createClient>>,
   projectId: string,
   includeCover: boolean
-): Promise<BookDetails | { error: string }> {
+): Promise<{ details: BookDetails; notice: string | null } | { error: string }> {
   const { data: project, error } = await supabase
     .from('projects')
     .select('title, cover_image_url')
@@ -58,14 +64,21 @@ async function bookDetails(
     author = p?.display_name?.trim() || p?.username?.trim() || null
   }
 
-  // Only needs to outlive the export itself.
   let coverUrl: string | null = null
+  let notice: string | null = null
   if (includeCover && cover_image_url) {
+    // Only needs to outlive the export itself.
     const { data } = await supabase.storage.from('attachments').createSignedUrl(cover_image_url, 60 * 5)
-    coverUrl = data?.signedUrl ?? null
+    const cover = data?.signedUrl ? await prepareCover(data.signedUrl) : { error: "Couldn't sign the cover's URL." }
+    if ('url' in cover) {
+      coverUrl = cover.url
+    } else {
+      console.error('Book cover left out:', cover.error)
+      notice = COVER_NOTICE
+    }
   }
 
-  return { projectTitle: title, author, coverUrl }
+  return { details: { projectTitle: title, author, coverUrl }, notice }
 }
 
 // Small enough (text-heavy, no per-project image volume like storyboards
@@ -99,10 +112,12 @@ export async function exportOutlines(
   }))
 
   let book: BookDetails | undefined
+  let notice: string | null = null
   if (format === 'pdf' && options.style === 'book') {
-    const details = await bookDetails(supabase, projectId, options.includeCover)
-    if ('error' in details) return details
-    book = details
+    const result = await bookDetails(supabase, projectId, options.includeCover)
+    if ('error' in result) return result
+    book = result.details
+    notice = result.notice
   }
 
   try {
@@ -114,6 +129,7 @@ export async function exportOutlines(
       base64: buffer.toString('base64'),
       mimeType: MIME_TYPE[format],
       filename: `${outlines.length === 1 ? outlines[0].name : 'Outline Export'}.${format}`,
+      ...(notice ? { notice } : {}),
     }
   } catch (err) {
     console.error('Outline export error:', err)
