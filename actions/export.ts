@@ -3,7 +3,8 @@
 import { createClient } from '@/lib/supabase/server'
 import { tiptapToBlocks } from '@/lib/export/outlineIR'
 import { renderOutlinesToDocx, type OutlineSection } from '@/lib/export/outlineToDocx'
-import { renderOutlinesToPdf } from '@/lib/export/outlineToPdf'
+import { renderOutlinesToPdf, type BookDetails } from '@/lib/export/outlineToPdf'
+import { DEFAULT_MANUSCRIPT_OPTIONS, type ManuscriptOptions } from '@/lib/export/manuscriptOptions'
 import { buildStoryBible, STORY_BIBLE_SECTIONS, type StoryBibleSection } from '@/lib/export/storyBible'
 import { renderStoryBibleToDocx } from '@/lib/export/storyBibleToDocx'
 import { renderStoryBibleToPdf } from '@/lib/export/storyBibleToPdf'
@@ -30,14 +31,53 @@ const MIME_TYPE = {
   pdf: 'application/pdf',
 } as const
 
+// The Book style's title page: the project's title and cover, and the
+// author's name from their profile (display name, else username).
+async function bookDetails(
+  supabase: Awaited<ReturnType<typeof createClient>>,
+  projectId: string,
+  includeCover: boolean
+): Promise<BookDetails | { error: string }> {
+  const { data: project, error } = await supabase
+    .from('projects')
+    .select('title, cover_image_url')
+    .eq('id', projectId)
+    .single()
+  if (error || !project) return { error: error?.message ?? 'Project not found' }
+  const { title, cover_image_url } = project as { title: string; cover_image_url: string | null }
+
+  let author: string | null = null
+  const { data: auth } = await supabase.auth.getUser()
+  if (auth.user) {
+    const { data: profile } = await supabase
+      .from('profiles')
+      .select('display_name, username')
+      .eq('id', auth.user.id)
+      .single()
+    const p = profile as { display_name: string | null; username: string | null } | null
+    author = p?.display_name?.trim() || p?.username?.trim() || null
+  }
+
+  // Only needs to outlive the export itself.
+  let coverUrl: string | null = null
+  if (includeCover && cover_image_url) {
+    const { data } = await supabase.storage.from('attachments').createSignedUrl(cover_image_url, 60 * 5)
+    coverUrl = data?.signedUrl ?? null
+  }
+
+  return { projectTitle: title, author, coverUrl }
+}
+
 // Small enough (text-heavy, no per-project image volume like storyboards
 // will have) to return the file directly from the action as base64 rather
 // than uploading to Storage for a signed URL — see the manuscript-export
 // plan for why that tradeoff flips for image-heavy export types later.
+// options: the PDF's style and page size (DOCX ignores them for now).
 export async function exportOutlines(
   projectId: string,
   outlineIds: string[],
-  format: 'docx' | 'pdf'
+  format: 'docx' | 'pdf',
+  options: ManuscriptOptions = DEFAULT_MANUSCRIPT_OPTIONS
 ): Promise<ExportOutlinesResult> {
   if (outlineIds.length === 0) return { error: 'No documents selected' }
 
@@ -58,8 +98,18 @@ export async function exportOutlines(
     blocks: tiptapToBlocks(o.content),
   }))
 
+  let book: BookDetails | undefined
+  if (format === 'pdf' && options.style === 'book') {
+    const details = await bookDetails(supabase, projectId, options.includeCover)
+    if ('error' in details) return details
+    book = details
+  }
+
   try {
-    const buffer = format === 'docx' ? await renderOutlinesToDocx(sections) : await renderOutlinesToPdf(sections)
+    const buffer =
+      format === 'docx'
+        ? await renderOutlinesToDocx(sections)
+        : await renderOutlinesToPdf(sections, { style: options.style, pageSize: options.pageSize, book })
     return {
       base64: buffer.toString('base64'),
       mimeType: MIME_TYPE[format],

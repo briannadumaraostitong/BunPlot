@@ -12,7 +12,44 @@ import { base64ToBlob } from '@/lib/export/base64ToBlob'
 import { downloadBase64 } from '@/lib/export/downloadBase64'
 import { downloadBlob } from '@/lib/export/downloadBlob'
 import { usePdfPreview } from '@/hooks/usePdfPreview'
+import {
+  DEFAULT_MANUSCRIPT_OPTIONS,
+  DEFAULT_PAGE_SIZE,
+  type ManuscriptOptions,
+  type ManuscriptPageSize,
+  type ManuscriptStyle,
+} from '@/lib/export/manuscriptOptions'
 import type { Outline } from '@/types/database'
+
+const LABEL = 'text-[10px] font-semibold uppercase tracking-wider text-muted-foreground'
+
+// A row of mutually exclusive choices (format, style, page size).
+function Segmented<T extends string>({
+  value,
+  options,
+  onChange,
+}: {
+  value: T
+  options: { value: T; label: string }[]
+  onChange: (value: T) => void
+}) {
+  return (
+    <div className="inline-flex items-center gap-1 rounded-lg bg-secondary/50 p-1">
+      {options.map((o) => (
+        <button
+          key={o.value}
+          onClick={() => onChange(o.value)}
+          className={cn(
+            'relative rounded-md px-3 py-1 text-xs font-medium transition-all after:absolute after:-inset-y-1 after:-inset-x-0.5',
+            value === o.value ? 'bg-background text-foreground shadow-sm' : 'text-muted-foreground hover:text-foreground'
+          )}
+        >
+          {o.label}
+        </button>
+      ))}
+    </div>
+  )
+}
 
 interface ExportOutlinesDialogProps {
   projectId: string
@@ -24,6 +61,8 @@ interface ExportOutlinesDialogProps {
 export function ExportOutlinesDialog({ projectId, outlines, open, onClose }: ExportOutlinesDialogProps) {
   const [selected, setSelected] = useState<Set<string>>(new Set())
   const [format, setFormat] = useState<'docx' | 'pdf'>('docx')
+  // PDF only, for now (the Book style DOCX comes later).
+  const [options, setOptions] = useState<ManuscriptOptions>(DEFAULT_MANUSCRIPT_OPTIONS)
   const [exporting, setExporting] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const preview = usePdfPreview()
@@ -56,11 +95,22 @@ export function ExportOutlinesDialog({ projectId, outlines, open, onClose }: Exp
     setFormat(next)
   }
 
+  // Any PDF option makes the preview out of date. Picking a style also
+  // switches to its usual page size.
+  function changeOptions(next: Partial<ManuscriptOptions>) {
+    preview.clear()
+    setOptions((prev) => ({ ...prev, ...next }))
+  }
+
+  function chooseStyle(style: ManuscriptStyle) {
+    changeOptions({ style, pageSize: DEFAULT_PAGE_SIZE[style] })
+  }
+
   async function handlePreview() {
     if (selected.size === 0) return
     setError(null)
     const previewError = await preview.build(async () => {
-      const result = await settle(exportOutlines(projectId, [...selected], 'pdf'))
+      const result = await settle(exportOutlines(projectId, [...selected], 'pdf', options))
       if ('error' in result) return result
       return { blob: base64ToBlob(result.base64, result.mimeType), filename: result.filename }
     })
@@ -78,7 +128,7 @@ export function ExportOutlinesDialog({ projectId, outlines, open, onClose }: Exp
     if (selected.size === 0) return
     setExporting(true)
     setError(null)
-    const result = await settle(exportOutlines(projectId, [...selected], format))
+    const result = await settle(exportOutlines(projectId, [...selected], format, options))
     setExporting(false)
 
     if ('error' in result) {
@@ -121,20 +171,55 @@ export function ExportOutlinesDialog({ projectId, outlines, open, onClose }: Exp
               )}
             </div>
 
-            <div className="inline-flex items-center gap-1 rounded-lg bg-secondary/50 p-1">
-              {(['docx', 'pdf'] as const).map((f) => (
-                <button
-                  key={f}
-                  onClick={() => chooseFormat(f)}
-                  className={cn(
-                    'relative rounded-md px-3 py-1 text-xs font-medium uppercase transition-all after:absolute after:-inset-y-1 after:-inset-x-0.5',
-                    format === f ? 'bg-background text-foreground shadow-sm' : 'text-muted-foreground hover:text-foreground'
-                  )}
-                >
-                  {f}
-                </button>
-              ))}
+            <div className="space-y-1.5">
+              <p className={LABEL}>Format</p>
+              <Segmented
+                value={format}
+                options={[
+                  { value: 'docx', label: 'DOCX' },
+                  { value: 'pdf', label: 'PDF' },
+                ]}
+                onChange={chooseFormat}
+              />
             </div>
+
+            {format === 'pdf' && (
+              <>
+                <div className="space-y-1.5">
+                  <p className={LABEL}>Style</p>
+                  <Segmented<ManuscriptStyle>
+                    value={options.style}
+                    options={[
+                      { value: 'standard', label: 'Standard' },
+                      { value: 'book', label: 'Book' },
+                    ]}
+                    onChange={chooseStyle}
+                  />
+                </div>
+                <div className="space-y-1.5">
+                  <p className={LABEL}>Page size</p>
+                  <Segmented<ManuscriptPageSize>
+                    value={options.pageSize}
+                    options={[
+                      { value: 'a4', label: 'A4' },
+                      { value: '6x9', label: '6×9 in' },
+                    ]}
+                    onChange={(pageSize) => changeOptions({ pageSize })}
+                  />
+                </div>
+                {options.style === 'book' && (
+                  <label className="flex cursor-pointer items-center gap-2 text-sm">
+                    <input
+                      type="checkbox"
+                      checked={options.includeCover}
+                      onChange={(e) => changeOptions({ includeCover: e.target.checked })}
+                      className="h-3.5 w-3.5 rounded border-border"
+                    />
+                    Include the project&apos;s cover
+                  </label>
+                )}
+              </>
+            )}
 
             {error && <p className="text-sm text-destructive">{error}</p>}
 
