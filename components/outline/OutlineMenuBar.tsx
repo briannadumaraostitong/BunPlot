@@ -1,7 +1,7 @@
 'use client'
 
 import { Fragment, useRef } from 'react'
-import { Download, MoreHorizontal, Pencil, Plus, TextSelect, Trash2, type LucideIcon } from 'lucide-react'
+import { Download, MoreHorizontal, Pencil, Plus, TextSelect, Trash2, Type, type LucideIcon } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import {
   DropdownMenu,
@@ -16,11 +16,17 @@ import {
   MenubarContent,
   MenubarItem,
   MenubarMenu,
+  MenubarRadioGroup,
+  MenubarRadioItem,
   MenubarSeparator,
   MenubarShortcut,
+  MenubarSub,
+  MenubarSubContent,
+  MenubarSubTrigger,
   MenubarTrigger,
 } from '@/components/ui/menubar'
 import { useInlineRename } from '@/hooks/useInlineRename'
+import { DOCUMENT_FONTS, documentFontStack, toDocumentFont, type DocumentFont } from '@/lib/documentFonts'
 import { cn } from '@/lib/utils'
 import type { ToolbarTool } from '@/components/outline/OutlineEditor'
 
@@ -67,6 +73,10 @@ interface OutlineMenuBarProps {
   onExport: () => void
   onDelete: () => void
   onSelectAll: () => void
+  // The selection's font (null when mixed) and how to change it, shared with
+  // the toolbar's font picker.
+  font: DocumentFont | null
+  onFont: (font: DocumentFont) => void
   // Shown at the end of the row (word count and save status).
   children?: React.ReactNode
 }
@@ -95,6 +105,8 @@ export function OutlineMenuBar({
   onExport,
   onDelete,
   onSelectAll,
+  font,
+  onFont,
   children,
 }: OutlineMenuBarProps) {
   const rename = useInlineRename(name, onRename)
@@ -204,6 +216,29 @@ export function OutlineMenuBar({
         </Menu>
 
         <Menu label="Format" onCloseAutoFocus={handleCloseAutoFocus}>
+          <MenubarSub>
+            <MenubarSubTrigger>
+              <Type className="size-3.5" />
+              Font
+            </MenubarSubTrigger>
+            {/* Each font in its own typeface, as in the toolbar's picker. */}
+            <MenubarSubContent className="whitespace-nowrap">
+              <MenubarRadioGroup
+                value={font ?? ''}
+                onValueChange={(next) => {
+                  const picked = toDocumentFont(next)
+                  if (picked) run(() => onFont(picked))()
+                }}
+              >
+                {DOCUMENT_FONTS.map(({ name }) => (
+                  <MenubarRadioItem key={name} value={name} style={{ fontFamily: documentFontStack(name) }}>
+                    {name}
+                  </MenubarRadioItem>
+                ))}
+              </MenubarRadioGroup>
+            </MenubarSubContent>
+          </MenubarSub>
+          <MenubarSeparator />
           {formatTools.map((tool, i) => (
             <Fragment key={tool.id}>
               {i > 0 && tool.group !== formatTools[i - 1].group && <MenubarSeparator />}

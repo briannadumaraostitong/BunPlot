@@ -694,6 +694,8 @@ function OutlineDocumentEditor({
         onExport={onExport}
         onDelete={() => onDelete(outline.id)}
         onSelectAll={() => editor.chain().focus().selectAll().run()}
+        font={font ?? null}
+        onFont={(next) => applyFont(editor, next)}
       >
         <span className="hidden text-muted-foreground sm:inline">
           {wordCount} word{wordCount === 1 ? '' : 's'}
