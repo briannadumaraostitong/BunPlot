@@ -67,13 +67,16 @@ import { OutlineMenuBar } from '@/components/outline/OutlineMenuBar'
 import { ExportOutlinesDialog } from '@/components/outline/ExportOutlinesDialog'
 import { cn } from '@/lib/utils'
 import type { Outline } from '@/types/database'
-// Literata, the outline's default font (font-document in globals.css) and
-// the PDF exports' body font. Loaded only with the outline editor; each face
-// is split by script, so the browser fetches just what's on screen.
-import '@fontsource/literata/400.css'
-import '@fontsource/literata/700.css'
-import '@fontsource/literata/400-italic.css'
-import '@fontsource/literata/700-italic.css'
+import { FontPicker } from '@/components/outline/FontPicker'
+import {
+  DocumentFontFamily,
+  DocumentTextStyle,
+  applyFont,
+  selectionFont,
+} from '@/components/outline/documentFontExtensions'
+// The outline's fonts: Literata by default (font-document in globals.css),
+// and the font picker's others. Loaded only with the outline editor.
+import '@/components/outline/documentFontFaces'
 
 const AUTOSAVE_INTERVAL_MS = 30000
 
@@ -458,6 +461,8 @@ function OutlineDocumentEditor({
       Underline,
       Strike,
       Blockquote,
+      DocumentTextStyle,
+      DocumentFontFamily,
       TextAlign.configure({
         types: ['heading', 'paragraph'],
       }),
@@ -491,6 +496,12 @@ function OutlineDocumentEditor({
       canUndo: editor?.can().undo() ?? false,
       canRedo: editor?.can().redo() ?? false,
     }),
+  })
+
+  // And the font picker follows the selection.
+  const font = useEditorState({
+    editor,
+    selector: ({ editor }) => (editor ? selectionFont(editor) : null),
   })
 
   const handleSave = useCallback(async (): Promise<boolean> => {
@@ -649,7 +660,8 @@ function OutlineDocumentEditor({
   // One list drives both toolbar layouts. md and up shows every tool in this
   // order, wrapping as before. Phones show the `primary` ones plus a toggle
   // that reveals the rest in a second, wrapping row. A change of `group`
-  // puts a separator between tools.
+  // puts a separator between tools. The font picker isn't a button, so it sits
+  // outside the list: after undo/redo on md and up, first in the phone row.
   const tools: ToolbarTool[] = [
     { id: 'undo', group: -1, primary: true, title: 'Undo', icon: Undo2, disabled: !history?.canUndo, onClick: () => editor.chain().focus().undo().run() },
     { id: 'redo', group: -1, primary: true, title: 'Redo', icon: Redo2, disabled: !history?.canRedo, onClick: () => editor.chain().focus().redo().run() },
@@ -669,6 +681,8 @@ function OutlineDocumentEditor({
     { id: 'align-justify', group: 3, title: 'Justify', icon: AlignJustify, active: isAlignActive('justify'), onClick: () => setAlign('justify') },
     { id: 'image', group: 4, primary: true, title: 'Insert image', icon: uploadingImage ? Loader2 : ImageIcon, iconClassName: uploadingImage ? 'animate-spin' : undefined, disabled: uploadingImage, onClick: () => fileInputRef.current?.click() },
   ]
+
+  const fontPicker = <FontPicker value={font ?? null} onChange={(next) => applyFont(editor, next)} />
 
   return (
     <div className="flex h-full flex-col overflow-hidden">
@@ -695,9 +709,13 @@ function OutlineDocumentEditor({
 
       <div className="shrink-0 border-b border-border bg-background">
         <div className="flex items-center justify-between gap-2 px-4 py-2">
-          {/* md and up: every tool, wrapping, exactly as before. */}
+          {/* md and up: every tool, wrapping, with the font picker after undo/redo. */}
           <div className="hidden flex-wrap items-center gap-0.5 md:flex">
-            <ToolbarTools tools={tools} />
+            <ToolbarTools tools={tools} show="history" />
+            <Separator orientation="vertical" className="h-4 mx-2" />
+            {fontPicker}
+            <Separator orientation="vertical" className="h-4 mx-2" />
+            <ToolbarTools tools={tools} show="formatting" />
           </div>
           {/* Phones: the most-used tools and a toggle for the rest. */}
           <div className="flex min-w-0 flex-wrap items-center gap-0.5 md:hidden">
@@ -723,6 +741,8 @@ function OutlineDocumentEditor({
         </div>
         {moreTools && (
           <div className="flex flex-wrap items-center gap-0.5 px-4 pb-2 md:hidden">
+            {fontPicker}
+            <Separator orientation="vertical" className="h-4 mx-2" />
             <ToolbarTools tools={tools} show="more" />
           </div>
         )}
@@ -799,10 +819,17 @@ function ToolbarTools({
   separators = true,
 }: {
   tools: ToolbarTool[]
-  show?: 'all' | 'primary' | 'more'
+  // primary/more: the phone rows. history/formatting: the undo/redo group and
+  // everything after it, so md and up can put the font picker between them.
+  show?: 'all' | 'primary' | 'more' | 'history' | 'formatting'
   separators?: boolean
 }) {
-  const shown = show === 'all' ? tools : tools.filter((t) => (show === 'primary') === Boolean(t.primary))
+  const shown =
+    show === 'all'
+      ? tools
+      : tools.filter((t) =>
+          show === 'history' ? t.group < 0 : show === 'formatting' ? t.group >= 0 : (show === 'primary') === Boolean(t.primary)
+        )
   return shown.map((tool, i) => (
     <Fragment key={tool.id}>
       {separators && i > 0 && tool.group !== shown[i - 1].group && (
