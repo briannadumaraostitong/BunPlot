@@ -16,8 +16,11 @@ export const styles = StyleSheet.create({
   heading1: { fontSize: 18, fontWeight: 700, marginTop: 16, marginBottom: 8 },
   heading2: { fontSize: 15, fontWeight: 700, marginTop: 14, marginBottom: 6 },
   heading3: { fontSize: 13, fontWeight: 700, marginTop: 12, marginBottom: 6 },
-  paragraph: { marginBottom: 8, lineHeight: 1.5 },
-  blockquote: { marginLeft: 24, marginBottom: 8, lineHeight: 1.5, color: '#555555' },
+  // fontSize repeats the page's 11: react-pdf turns a unitless lineHeight into
+  // points using the style's own fontSize (18 if unset) before the page's is
+  // inherited, so without it 1.5 means 27pt rather than 16.5pt.
+  paragraph: { fontSize: 11, marginBottom: 8, lineHeight: 1.5 },
+  blockquote: { marginLeft: 24, marginBottom: 8, fontSize: 11, lineHeight: 1.5, color: '#555555' },
   listRow: { flexDirection: 'row', marginBottom: 4 },
   listMarker: { width: 18 },
   listContent: { flex: 1 },
