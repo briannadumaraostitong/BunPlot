@@ -114,17 +114,20 @@ export function ExportStoryBibleDialog({ projectId, open, onClose }: ExportStory
           <div className={cn('space-y-4', preview.file && 'md:w-72 md:shrink-0')}>
             <div className="space-y-1 rounded-lg border border-border p-2">
               {STORY_BIBLE_SECTIONS.map((section) => (
+                // Labels wrap rather than truncate (the options column is
+                // narrow while previewing, and on phones), with the checkbox
+                // centred on the first line.
                 <label
                   key={section}
-                  className="flex cursor-pointer items-center gap-2 rounded-md px-2 py-1.5 text-sm hover:bg-secondary/50"
+                  className="flex cursor-pointer items-start gap-2 rounded-md px-2 py-1.5 text-sm hover:bg-secondary/50"
                 >
                   <input
                     type="checkbox"
                     checked={selected.has(section)}
                     onChange={() => toggle(section)}
-                    className="h-3.5 w-3.5 rounded border-border"
+                    className="mt-0.75 h-3.5 w-3.5 shrink-0 rounded border-border"
                   />
-                  <span className="truncate">{SECTION_LABELS[section]}</span>
+                  <span className="min-w-0">{SECTION_LABELS[section]}</span>
                 </label>
               ))}
             </div>
