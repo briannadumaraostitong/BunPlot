@@ -96,20 +96,25 @@ const PT_PER_PX = 0.75
 const WRAP_GAP_PT = 18
 const WRAP_BOTTOM_GAP_PT = 12
 // Narrower than this, text beside an image reads badly (and justified text
-// gets gappy), so the image goes on its own line instead.
+// gets gappy), so the image is scaled down to leave this much, but to no less
+// than WRAP_MIN_SCALE of its width; past that it goes on its own line.
 const WRAP_MIN_COLUMN_PT = 160
+const WRAP_MIN_SCALE = 0.6
 // An image and its side text move to the next page together if they don't
 // fit, so a group taller than this share of the text height would leave too
 // large a gap; the image goes on its own line instead.
 const WRAP_MAX_ROW_SHARE = 2 / 3
 
-function Runs({ runs }: { runs: InlineRun[] }) {
+// indent: a first-line indent. react-pdf reads it from the paragraph's first
+// run, and a nested Text doesn't inherit textIndent from its parent.
+function Runs({ runs, indent }: { runs: InlineRun[]; indent?: number }) {
   return (
     <>
       {runs.map((r, i) => (
         <Text
           key={i}
           style={{
+            textIndent: i === 0 ? indent : undefined,
             // A chosen font; otherwise the page's default. Italic Comfortaa
             // gets its upright face (see pdfFonts).
             fontFamily: r.font ? pdfFontStack(r.font) : undefined,
@@ -138,6 +143,18 @@ function isBlank(block: BlockNode | undefined): boolean {
 // empty paragraph, so a run of them is a single break.
 function isDroppedBlank(block: BlockNode, prev: BlockNode | undefined): boolean {
   return isBlank(block) && (prev?.type === 'image' || isBlank(prev))
+}
+
+// Book style: a paragraph gets a first-line indent when it follows a
+// paragraph with text, unless it's centred or right-aligned.
+function hasBookIndent(block: BlockNode, prev: BlockNode | undefined): boolean {
+  return (
+    block.type === 'paragraph' &&
+    block.align !== 'center' &&
+    block.align !== 'right' &&
+    prev?.type === 'paragraph' &&
+    !isBlank(prev)
+  )
 }
 
 interface PdfImage {
@@ -190,12 +207,17 @@ function isSideBlock(block: BlockNode): block is SideBlock {
 
 // Estimated height of a block at `width`, following the styles above.
 // Headings and images never sit beside an image, so they aren't estimated.
-// Book paragraphs ignore their first-line indent, which rarely adds a line.
-export async function estimateHeight(block: SideBlock, width: number, layout: PdfLayout = DEFAULT_LAYOUT): Promise<number> {
+// indented: a Book paragraph with a first-line indent (hasBookIndent).
+export async function estimateHeight(
+  block: SideBlock,
+  width: number,
+  layout: PdfLayout = DEFAULT_LAYOUT,
+  indented = false
+): Promise<number> {
   const fontSize = styles.page.fontSize
   switch (block.type) {
     case 'paragraph': {
-      const lines = await countLines(block.runs, width, fontSize)
+      const lines = await countLines(block.runs, width, fontSize, indented ? BOOK_BODY.indent : 0)
       if (layout.book) return Math.max(lines, 1) * BOOK_BODY.fontSize * BOOK_BODY.lineHeight
       return lines * fontSize * styles.paragraph.lineHeight + styles.paragraph.marginBottom
     }
@@ -224,10 +246,10 @@ export async function estimateHeight(block: SideBlock, width: number, layout: Pd
 // A left/right ("wrap") image at blocks[index], with the text after it beside
 // it: as many following paragraphs, lists and quotes as it takes for their
 // estimated height to reach the image's, whole blocks only. The rest
-// continues at full width. Falls back to the image on its own line when the
-// text column would be too narrow, nothing can go beside it, or the pair
-// would be too tall to keep on one page. Returns how many following blocks
-// it used.
+// continues at full width. Falls back to the image on its own line when it
+// would have to shrink too much to leave the text room, nothing can go
+// beside it, or the pair would be too tall to keep on one page. Returns how
+// many following blocks it used.
 async function renderWrappedImage(
   block: Extract<BlockNode, { type: 'image' }>,
   blocks: BlockNode[],
@@ -237,11 +259,14 @@ async function renderWrappedImage(
   const image = await loadImage(block.src, block.width, layout)
   if (!image) return { node: null, used: 0 }
 
-  const width = Math.min(image.width, layout.textWidth / 2)
+  // Its width beside text, capped at half the text width as in the editor,
+  // then scaled down if needed to leave the text column its minimum.
+  const fullWidth = Math.min(image.width, layout.textWidth / 2)
+  const width = Math.min(fullWidth, layout.textWidth - WRAP_GAP_PT - WRAP_MIN_COLUMN_PT)
   const height = image.height * (width / image.width)
   const columnWidth = layout.textWidth - width - WRAP_GAP_PT
   const ownLine = { node: <View key={index}>{ownLineImage(image, block.align)}</View>, used: 0 }
-  if (columnWidth < WRAP_MIN_COLUMN_PT) return ownLine
+  if (width < fullWidth * WRAP_MIN_SCALE) return ownLine
 
   const side: SideBlock[] = []
   let columnHeight = 0
@@ -250,7 +275,10 @@ async function renderWrappedImage(
     if (!isSideBlock(next)) break
     side.push(next)
     // A Book style blank that won't be drawn takes no space.
-    if (!(layout.book && isDroppedBlank(next, blocks[j - 1]))) columnHeight += await estimateHeight(next, columnWidth, layout)
+    const prev = blocks[j - 1]
+    if (!(layout.book && isDroppedBlank(next, prev))) {
+      columnHeight += await estimateHeight(next, columnWidth, layout, layout.book && hasBookIndent(next, prev))
+    }
   }
   if (side.length === 0) return ownLine
   if (Math.max(height + WRAP_BOTTOM_GAP_PT, columnHeight) > layout.textHeight * WRAP_MAX_ROW_SHARE) return ownLine
@@ -277,19 +305,13 @@ async function renderWrappedImage(
 }
 
 // Book style paragraph: justified unless centred or right-aligned (those keep
-// their alignment, unindented); indented when it follows another paragraph.
+// their alignment); indent from hasBookIndent.
 function bookParagraph(block: Extract<BlockNode, { type: 'paragraph' }>, key: number, indent: boolean) {
   if (plainText(block.runs) === '') return <View key={key} style={book.blankLine} />
   const keepsAlign = block.align === 'center' || block.align === 'right'
   return (
-    <Text
-      key={key}
-      style={[
-        book.paragraph,
-        keepsAlign ? { textAlign: ALIGN_STYLE[block.align!] } : indent ? { textIndent: BOOK_BODY.indent } : undefined,
-      ]}
-    >
-      <Runs runs={block.runs} />
+    <Text key={key} style={[book.paragraph, keepsAlign ? { textAlign: ALIGN_STYLE[block.align!] } : undefined]}>
+      <Runs runs={block.runs} indent={indent ? BOOK_BODY.indent : undefined} />
     </Text>
   )
 }
@@ -379,9 +401,7 @@ export async function renderBlocks(
     }
     const prev = i === 0 ? previous : blocks[i - 1]
     if (layout.book && isDroppedBlank(block, prev)) continue
-    // Book: indent a paragraph only when it follows a paragraph with text.
-    const indent = prev?.type === 'paragraph' && !isBlank(prev)
-    nodes.push(await renderBlock(block, i, layout, indent))
+    nodes.push(await renderBlock(block, i, layout, hasBookIndent(block, prev)))
   }
   return nodes
 }
