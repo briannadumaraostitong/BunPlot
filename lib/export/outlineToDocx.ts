@@ -36,10 +36,10 @@ import {
 import { HEADINGS, PAGE_NUMBER, RUNNING_HEADER, TITLE_PAGE, marginLineOffset } from './printTypography'
 import type { Align, BlockNode, InlineRun } from './outlineIR'
 
-// Document styles for the manuscript and story bible DOCX: Literata for
-// everything without a chosen font, titles and headings included (docx's
-// heading styles set only size and colour).
-export const DOCX_STYLES = { default: { document: { run: { font: DEFAULT_DOCUMENT_FONT } } } }
+// Document styles for the Standard manuscript DOCX: Literata for everything
+// without a chosen font, titles and headings included (docx's heading styles
+// set only size and colour).
+const DOCX_STYLES = { default: { document: { run: { font: DEFAULT_DOCUMENT_FONT } } } }
 
 export interface OutlineSection {
   title: string
@@ -72,9 +72,9 @@ const DOCX_IMAGE_TYPE: Partial<Record<'png' | 'jpeg' | 'gif' | 'webp', 'jpg' | '
 }
 
 const TWIPS_PER_PT = 20
-const twips = (pt: number) => Math.round(pt * TWIPS_PER_PT)
+export const twips = (pt: number) => Math.round(pt * TWIPS_PER_PT)
 // docx takes colours without the '#'.
-const docxColor = (hex: string) => hex.slice(1)
+export const docxColor = (hex: string) => hex.slice(1)
 const PT_PER_PX = 0.75
 const EMU_PER_PX = 9525
 // Gap between a wrapped image and the text beside/below it — the editor's
@@ -85,7 +85,7 @@ const WRAP_GAP_BOTTOM = 16 * EMU_PER_PX
 // A page's size and margins in twips, its text width in the 96-dpi px
 // ImageRun sizes use, and its text height in points. Every image (wrapped or
 // in line) keeps the width set in the editor, clamped to the text width.
-interface DocxPage {
+export interface DocxPage {
   size: { width: number; height: number }
   margin: { top: number; right: number; bottom: number; left: number }
   textWidthPx: number
@@ -101,12 +101,21 @@ function docxPage(width: number, height: number, marginX: number, marginY: numbe
   }
 }
 
+// The PDF's page at this size (MANUSCRIPT_PAGES), as in the Book style and
+// the story bible.
+export function printPage(pageSize: ManuscriptPageSize): DocxPage {
+  const page = MANUSCRIPT_PAGES[pageSize]
+  return docxPage(page.width, page.height, page.marginX, page.marginY)
+}
+
 // Standard A4 keeps docx's default page (1" margins), as the DOCX has always
 // had; everything else uses the PDF's pages.
 function pageFor(style: ManuscriptStyle, pageSize: ManuscriptPageSize): DocxPage {
-  const page = MANUSCRIPT_PAGES[pageSize]
-  if (style === 'standard' && pageSize === 'a4') return docxPage(page.width, page.height, 72, 72)
-  return docxPage(page.width, page.height, page.marginX, page.marginY)
+  if (style === 'standard' && pageSize === 'a4') {
+    const page = MANUSCRIPT_PAGES.a4
+    return docxPage(page.width, page.height, 72, 72)
+  }
+  return printPage(pageSize)
 }
 
 // Where the blocks are laid out: the page's text width (px), and whether the
@@ -379,8 +388,13 @@ function bookStyles(page: DocxPage): IStylesOptions {
 }
 
 // A title page's paragraphs: the title centred TITLE_PAGE.top of the way down
-// the text area, and the line below it when there is one.
-export function titlePageParagraphs(title: string, subtitle: string | null, textHeightPt: number): Paragraph[] {
+// the text area, then the subtitle and byline when there are any.
+export function titlePageParagraphs(
+  title: string,
+  subtitle: string | null,
+  textHeightPt: number,
+  byline: string | null = null
+): Paragraph[] {
   return [
     new Paragraph({
       alignment: AlignmentType.CENTER,
@@ -395,6 +409,15 @@ export function titlePageParagraphs(title: string, subtitle: string | null, text
             children: [
               new TextRun({ text: subtitle, size: TITLE_PAGE.subtitleSize * 2, color: docxColor(TITLE_PAGE.subtitleColor) }),
             ],
+          }),
+        ]
+      : []),
+    ...(byline
+      ? [
+          new Paragraph({
+            alignment: AlignmentType.CENTER,
+            spacing: { before: twips(TITLE_PAGE.bylineGap) },
+            children: [new TextRun({ text: byline, size: TITLE_PAGE.bylineSize * 2, color: docxColor(TITLE_PAGE.bylineColor) })],
           }),
         ]
       : []),

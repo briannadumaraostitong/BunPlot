@@ -57,17 +57,29 @@ const book = StyleSheet.create({
 export const printStyles = StyleSheet.create({
   title: { fontSize: TITLE_PAGE.titleSize, textAlign: 'center' },
   subtitle: { fontSize: TITLE_PAGE.subtitleSize, textAlign: 'center', marginTop: TITLE_PAGE.subtitleGap, color: TITLE_PAGE.subtitleColor },
+  byline: { fontSize: TITLE_PAGE.bylineSize, textAlign: 'center', marginTop: TITLE_PAGE.bylineGap, color: TITLE_PAGE.bylineColor },
   runningHeader: { position: 'absolute', left: 0, right: 0, fontSize: RUNNING_HEADER.size, color: RUNNING_HEADER.color, textAlign: 'center' },
   pageNumber: { position: 'absolute', left: 0, right: 0, fontSize: PAGE_NUMBER.size, color: PAGE_NUMBER.color, textAlign: 'center' },
 })
 
 // A title page's content: the title centred TITLE_PAGE.top of the way down
-// the text area, and the line below it when there is one.
-export function TitlePageContent({ title, subtitle, textHeight }: { title: string; subtitle: string | null; textHeight: number }) {
+// the text area, then the subtitle and byline when there are any.
+export function TitlePageContent({
+  title,
+  subtitle,
+  byline = null,
+  textHeight,
+}: {
+  title: string
+  subtitle: string | null
+  byline?: string | null
+  textHeight: number
+}) {
   return (
     <View style={{ marginTop: textHeight * TITLE_PAGE.top }}>
       <Text style={printStyles.title}>{title}</Text>
       {subtitle && <Text style={printStyles.subtitle}>{subtitle}</Text>}
+      {byline && <Text style={printStyles.byline}>{byline}</Text>}
     </View>
   )
 }
@@ -93,14 +105,17 @@ const PAGE_SIZES: Record<ManuscriptPageSize, (typeof MANUSCRIPT_PAGES)[Manuscrip
 }
 
 // Where the blocks are laid out: the text area of the page, and whether the
-// Book style's body text applies.
+// Book style's body text applies. body: another size for Standard paragraphs
+// and quotes (the story bible's); wrapped image estimates don't use it, so
+// it's only for blocks laid out without wrapImages.
 export interface PdfLayout {
   textWidth: number
   textHeight: number
   book: boolean
+  body?: { fontSize: number; lineHeight: number; marginBottom: number }
 }
 
-function layoutFor(style: ManuscriptStyle, pageSize: ManuscriptPageSize): PdfLayout {
+export function layoutFor(style: ManuscriptStyle, pageSize: ManuscriptPageSize): PdfLayout {
   const page = PAGE_SIZES[pageSize]
   return { textWidth: page.width - 2 * page.marginX, textHeight: page.height - 2 * page.marginY, book: style === 'book' }
 }
@@ -318,14 +333,17 @@ async function renderBlock(block: BlockNode, key: number, layout: PdfLayout, ind
     case 'paragraph':
       if (layout.book) return bookParagraph(block, key, indent)
       return (
-        <Text key={key} style={[styles.paragraph, block.align ? { textAlign: ALIGN_STYLE[block.align] } : undefined]}>
+        <Text
+          key={key}
+          style={[styles.paragraph, layout.body, block.align ? { textAlign: ALIGN_STYLE[block.align] } : undefined]}
+        >
           <Runs runs={block.runs} />
         </Text>
       )
 
     case 'blockquote':
       return (
-        <View key={key} style={styles.blockquote}>
+        <View key={key} style={[styles.blockquote, layout.body]}>
           {await renderBlocks(block.children, { layout })}
         </View>
       )

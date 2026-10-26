@@ -53,15 +53,19 @@ export interface EventEntry {
   notes: string[]
 }
 
+// unassigned: the group of events in no chapter (always last).
 export interface TimelineGroup {
   heading: string
   events: EventEntry[]
+  unassigned?: boolean
 }
 
 // A null section means it was deselected in the export dialog (omitted
 // entirely); an empty array means it was selected but the project has none.
+// author: the title page's byline (the profile's name), when there is one.
 export interface StoryBible {
   title: string
+  author: string | null
   characters: { entries: CharacterEntry[]; familyTrees: FamilyTreeEntry[] } | null
   places: PlaceEntry[] | null
   timeline: TimelineGroup[] | null
@@ -69,6 +73,7 @@ export interface StoryBible {
 
 export interface StoryBibleInput {
   projectTitle: string
+  author: string | null
   sections: Set<StoryBibleSection>
   characters: Character[]
   relationships: CharacterRelationship[]
@@ -252,8 +257,53 @@ export function buildStoryBible(input: StoryBibleInput): StoryBible {
       .filter((group) => group.events.length > 0)
 
     const unassigned = sortedEvents.filter((e) => !e.chapter_id || !chapterIds.has(e.chapter_id))
-    if (unassigned.length > 0) timeline.push({ heading: 'Unassigned', events: unassigned.map(toEntry) })
+    if (unassigned.length > 0) {
+      timeline.push({ heading: 'Unassigned', events: unassigned.map(toEntry), unassigned: true })
+    }
   }
 
-  return { title: input.projectTitle, characters, places, timeline }
+  return { title: input.projectTitle, author: input.author, characters, places, timeline }
+}
+
+// Each section's opening: its title, and what it says when the project has
+// nothing for it.
+export const SECTION_TITLES: Record<StoryBibleSection, string> = {
+  characters: 'Characters',
+  places: 'Places',
+  timeline: 'Timeline',
+}
+
+export const SECTION_EMPTY_TEXT: Record<StoryBibleSection, string> = {
+  characters: 'No characters yet.',
+  places: 'No places yet.',
+  timeline: 'No events yet.',
+}
+
+function count(n: number, singular: string, plural = `${singular}s`) {
+  return `${n} ${n === 1 ? singular : plural}`
+}
+
+// The count line under a section's title ("12 characters · 2 family trees"),
+// or null for an empty section, which shows SECTION_EMPTY_TEXT instead.
+export function sectionSummary(bible: StoryBible, section: StoryBibleSection): string | null {
+  switch (section) {
+    case 'characters': {
+      const n = bible.characters?.entries.length ?? 0
+      if (n === 0) return null
+      const trees = bible.characters?.familyTrees.length ?? 0
+      return trees > 0 ? `${count(n, 'character')} · ${count(trees, 'family tree')}` : count(n, 'character')
+    }
+    case 'places': {
+      const n = bible.places?.length ?? 0
+      return n > 0 ? count(n, 'place') : null
+    }
+    case 'timeline': {
+      const groups = bible.timeline ?? []
+      const events = groups.reduce((sum, g) => sum + g.events.length, 0)
+      if (events === 0) return null
+      // Unassigned events aren't in a chapter.
+      const chapters = groups.filter((g) => !g.unassigned).length
+      return chapters > 0 ? `${count(events, 'event')} across ${count(chapters, 'chapter')}` : count(events, 'event')
+    }
+  }
 }

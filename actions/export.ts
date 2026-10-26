@@ -37,9 +37,23 @@ const MIME_TYPE = {
   pdf: 'application/pdf',
 } as const
 
+// The signed-in writer's name for a title page: their profile's display name,
+// else username, else null.
+async function profileAuthor(supabase: Awaited<ReturnType<typeof createClient>>): Promise<string | null> {
+  const { data: auth } = await supabase.auth.getUser()
+  if (!auth.user) return null
+  const { data: profile } = await supabase
+    .from('profiles')
+    .select('display_name, username')
+    .eq('id', auth.user.id)
+    .single()
+  const p = profile as { display_name: string | null; username: string | null } | null
+  return p?.display_name?.trim() || p?.username?.trim() || null
+}
+
 // The Book style's title page: the project's title and cover, and the
-// author's name from their profile (display name, else username). A cover
-// that can't be used is left out, with a notice.
+// author's name (profileAuthor). A cover that can't be used is left out, with
+// a notice.
 async function bookDetails(
   supabase: Awaited<ReturnType<typeof createClient>>,
   projectId: string,
@@ -52,18 +66,7 @@ async function bookDetails(
     .single()
   if (error || !project) return { error: error?.message ?? 'Project not found' }
   const { title, cover_image_url } = project as { title: string; cover_image_url: string | null }
-
-  let author: string | null = null
-  const { data: auth } = await supabase.auth.getUser()
-  if (auth.user) {
-    const { data: profile } = await supabase
-      .from('profiles')
-      .select('display_name, username')
-      .eq('id', auth.user.id)
-      .single()
-    const p = profile as { display_name: string | null; username: string | null } | null
-    author = p?.display_name?.trim() || p?.username?.trim() || null
-  }
+  const author = await profileAuthor(supabase)
 
   let coverUrl: string | null = null
   let notice: string | null = null
@@ -149,6 +152,7 @@ export async function exportStoryBible(
 
   const supabase = await createClient()
   const [
+    author,
     projectRes,
     charactersRes,
     relationshipsRes,
@@ -162,6 +166,7 @@ export async function exportStoryBible(
     eventCharactersRes,
     eventPlacesRes,
   ] = await Promise.all([
+    profileAuthor(supabase),
     supabase.from('projects').select('title').eq('id', projectId).single(),
     supabase.from('characters').select('*').eq('project_id', projectId),
     supabase.from('character_relationships').select('*').eq('project_id', projectId),
@@ -195,6 +200,7 @@ export async function exportStoryBible(
 
   const bible = buildStoryBible({
     projectTitle,
+    author,
     sections: selected,
     characters: (charactersRes.data ?? []) as Character[],
     relationships: (relationshipsRes.data ?? []) as CharacterRelationship[],
