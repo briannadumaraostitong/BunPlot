@@ -3,7 +3,8 @@
 import { createClient } from '@/lib/supabase/server'
 import { tiptapToBlocks } from '@/lib/export/outlineIR'
 import { renderOutlinesToDocx, type OutlineSection } from '@/lib/export/outlineToDocx'
-import { renderOutlinesToPdf, type BookDetails } from '@/lib/export/outlineToPdf'
+import { renderOutlinesToPdf } from '@/lib/export/outlineToPdf'
+import type { BookDetails } from '@/lib/export/manuscriptLayout'
 import { DEFAULT_MANUSCRIPT_OPTIONS, type ManuscriptOptions } from '@/lib/export/manuscriptOptions'
 import { prepareCover } from '@/lib/export/prepareCover'
 import { buildStoryBible, STORY_BIBLE_SECTIONS, type StoryBibleSection } from '@/lib/export/storyBible'
@@ -85,7 +86,7 @@ async function bookDetails(
 // will have) to return the file directly from the action as base64 rather
 // than uploading to Storage for a signed URL — see the manuscript-export
 // plan for why that tradeoff flips for image-heavy export types later.
-// options: the PDF's style and page size (DOCX ignores them for now).
+// options: the style and page size, for either format.
 export async function exportOutlines(
   projectId: string,
   outlineIds: string[],
@@ -113,7 +114,7 @@ export async function exportOutlines(
 
   let book: BookDetails | undefined
   let notice: string | null = null
-  if (format === 'pdf' && options.style === 'book') {
+  if (options.style === 'book') {
     const result = await bookDetails(supabase, projectId, options.includeCover)
     if ('error' in result) return result
     book = result.details
@@ -121,10 +122,8 @@ export async function exportOutlines(
   }
 
   try {
-    const buffer =
-      format === 'docx'
-        ? await renderOutlinesToDocx(sections)
-        : await renderOutlinesToPdf(sections, { style: options.style, pageSize: options.pageSize, book })
+    const render = format === 'docx' ? renderOutlinesToDocx : renderOutlinesToPdf
+    const buffer = await render(sections, { style: options.style, pageSize: options.pageSize, book })
     return {
       base64: buffer.toString('base64'),
       mimeType: MIME_TYPE[format],

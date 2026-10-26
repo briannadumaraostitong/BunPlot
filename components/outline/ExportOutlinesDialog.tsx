@@ -61,7 +61,6 @@ interface ExportOutlinesDialogProps {
 export function ExportOutlinesDialog({ projectId, outlines, open, onClose }: ExportOutlinesDialogProps) {
   const [selected, setSelected] = useState<Set<string>>(new Set())
   const [format, setFormat] = useState<'docx' | 'pdf'>('docx')
-  // PDF only, for now (the Book style DOCX comes later).
   const [options, setOptions] = useState<ManuscriptOptions>(DEFAULT_MANUSCRIPT_OPTIONS)
   const [exporting, setExporting] = useState(false)
   const [error, setError] = useState<string | null>(null)
@@ -103,7 +102,7 @@ export function ExportOutlinesDialog({ projectId, outlines, open, onClose }: Exp
     setFormat(next)
   }
 
-  // Any PDF option makes the preview out of date. Picking a style also
+  // Any option makes the preview out of date. Picking a style also
   // switches to its usual page size.
   function changeOptions(next: Partial<ManuscriptOptions>) {
     clearPreview()
@@ -196,42 +195,38 @@ export function ExportOutlinesDialog({ projectId, outlines, open, onClose }: Exp
               />
             </div>
 
-            {format === 'pdf' && (
-              <>
-                <div className="space-y-1.5">
-                  <p className={LABEL}>Style</p>
-                  <Segmented<ManuscriptStyle>
-                    value={options.style}
-                    options={[
-                      { value: 'standard', label: 'Standard' },
-                      { value: 'book', label: 'Book' },
-                    ]}
-                    onChange={chooseStyle}
-                  />
-                </div>
-                <div className="space-y-1.5">
-                  <p className={LABEL}>Page size</p>
-                  <Segmented<ManuscriptPageSize>
-                    value={options.pageSize}
-                    options={[
-                      { value: 'a4', label: 'A4' },
-                      { value: '6x9', label: '6×9 in' },
-                    ]}
-                    onChange={(pageSize) => changeOptions({ pageSize })}
-                  />
-                </div>
-                {options.style === 'book' && (
-                  <label className="flex cursor-pointer items-center gap-2 text-sm">
-                    <input
-                      type="checkbox"
-                      checked={options.includeCover}
-                      onChange={(e) => changeOptions({ includeCover: e.target.checked })}
-                      className="h-3.5 w-3.5 rounded border-border"
-                    />
-                    Include the project&apos;s cover
-                  </label>
-                )}
-              </>
+            <div className="space-y-1.5">
+              <p className={LABEL}>Style</p>
+              <Segmented<ManuscriptStyle>
+                value={options.style}
+                options={[
+                  { value: 'standard', label: 'Standard' },
+                  { value: 'book', label: 'Book' },
+                ]}
+                onChange={chooseStyle}
+              />
+            </div>
+            <div className="space-y-1.5">
+              <p className={LABEL}>Page size</p>
+              <Segmented<ManuscriptPageSize>
+                value={options.pageSize}
+                options={[
+                  { value: 'a4', label: 'A4' },
+                  { value: '6x9', label: '6×9 in' },
+                ]}
+                onChange={(pageSize) => changeOptions({ pageSize })}
+              />
+            </div>
+            {options.style === 'book' && (
+              <label className="flex cursor-pointer items-center gap-2 text-sm">
+                <input
+                  type="checkbox"
+                  checked={options.includeCover}
+                  onChange={(e) => changeOptions({ includeCover: e.target.checked })}
+                  className="h-3.5 w-3.5 rounded border-border"
+                />
+                Include the project&apos;s cover
+              </label>
             )}
 
             {error && <p className="text-sm text-destructive">{error}</p>}

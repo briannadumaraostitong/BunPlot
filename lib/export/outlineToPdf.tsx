@@ -4,6 +4,18 @@ import { fetchImageBytes } from './fetchImageBytes'
 import { PDF_FONT_STACK, pdfFontStack, registerPdfFonts } from './pdfFonts'
 import { countLines } from './pdfTextMeasure'
 import { DEFAULT_MANUSCRIPT_OPTIONS, type ManuscriptPageSize, type ManuscriptStyle } from './manuscriptOptions'
+import {
+  BOOK_BODY,
+  MANUSCRIPT_PAGES,
+  WRAP_GAP_PT,
+  bookChapters,
+  hasBookIndent,
+  isDroppedBlank,
+  plainText,
+  wrapImageWidth,
+  type BookDetails,
+  type RenderOutlinesOptions,
+} from './manuscriptLayout'
 import type { Align, BlockNode, InlineRun } from './outlineIR'
 import type { OutlineSection } from './outlineToDocx'
 
@@ -32,10 +44,6 @@ export const styles = StyleSheet.create({
   wrapColumn: { flex: 1 },
 })
 
-// Book style body text: justified, set a little tighter, no gap between
-// paragraphs; a paragraph that follows another paragraph is indented instead.
-const BOOK_BODY = { fontSize: 11, lineHeight: 1.4, indent: 18 }
-
 const book = StyleSheet.create({
   paragraph: { fontSize: BOOK_BODY.fontSize, lineHeight: BOOK_BODY.lineHeight, textAlign: 'justify' },
   // An empty paragraph keeps one blank line (a scene break).
@@ -61,11 +69,10 @@ const PDF_IMAGE_FORMAT: Partial<Record<'png' | 'jpeg' | 'gif' | 'webp', 'png' | 
   jpeg: 'jpg',
 }
 
-// Page sizes in points, with their margins. A4 keeps the margins the
-// manuscript has always had; 6×9 in is a trade paperback.
-const PAGE_SIZES: Record<ManuscriptPageSize, { size: 'A4' | [number, number]; width: number; height: number; marginX: number; marginY: number }> = {
-  a4: { size: 'A4', width: 595.28, height: 841.89, marginX: 64, marginY: 56 },
-  '6x9': { size: [432, 648], width: 432, height: 648, marginX: 54, marginY: 54 },
+// MANUSCRIPT_PAGES with react-pdf's page size for each.
+const PAGE_SIZES: Record<ManuscriptPageSize, (typeof MANUSCRIPT_PAGES)[ManuscriptPageSize] & { size: 'A4' | [number, number] }> = {
+  a4: { size: 'A4', ...MANUSCRIPT_PAGES.a4 },
+  '6x9': { size: [432, 648], ...MANUSCRIPT_PAGES['6x9'] },
 }
 
 // Where the blocks are laid out: the text area of the page, and whether the
@@ -91,15 +98,9 @@ const DEFAULT_LAYOUT = layoutFor('standard', 'a4')
 // own line. The editor's width is CSS px, so convert to pt.
 const PT_PER_PX = 0.75
 
-// Wrapped (left/right) images: the editor caps them at half the text width,
-// with 24px (18pt) between image and text and 16px (12pt) below.
-const WRAP_GAP_PT = 18
+// Wrapped (left/right) images: 16px (12pt) below them, as in the editor
+// (the side gap and width are wrapImageWidth's).
 const WRAP_BOTTOM_GAP_PT = 12
-// Narrower than this, text beside an image reads badly (and justified text
-// gets gappy), so the image is scaled down to leave this much, but to no less
-// than WRAP_MIN_SCALE of its width; past that it goes on its own line.
-const WRAP_MIN_COLUMN_PT = 160
-const WRAP_MIN_SCALE = 0.6
 // An image and its side text move to the next page together if they don't
 // fit, so a group taller than this share of the text height would leave too
 // large a gap; the image goes on its own line instead.
@@ -127,33 +128,6 @@ function Runs({ runs, indent }: { runs: InlineRun[]; indent?: number }) {
         </Text>
       ))}
     </>
-  )
-}
-
-function plainText(runs: InlineRun[]): string {
-  return runs.map((r) => r.text).join('').replace(/\s+/g, ' ').trim()
-}
-
-function isBlank(block: BlockNode | undefined): boolean {
-  return block?.type === 'paragraph' && plainText(block.runs) === ''
-}
-
-// Book style: an empty paragraph is a scene break (one blank line), except
-// the one the editor keeps after every image, and any that follow another
-// empty paragraph, so a run of them is a single break.
-function isDroppedBlank(block: BlockNode, prev: BlockNode | undefined): boolean {
-  return isBlank(block) && (prev?.type === 'image' || isBlank(prev))
-}
-
-// Book style: a paragraph gets a first-line indent when it follows a
-// paragraph with text, unless it's centred or right-aligned.
-function hasBookIndent(block: BlockNode, prev: BlockNode | undefined): boolean {
-  return (
-    block.type === 'paragraph' &&
-    block.align !== 'center' &&
-    block.align !== 'right' &&
-    prev?.type === 'paragraph' &&
-    !isBlank(prev)
   )
 }
 
@@ -259,14 +233,11 @@ async function renderWrappedImage(
   const image = await loadImage(block.src, block.width, layout)
   if (!image) return { node: null, used: 0 }
 
-  // Its width beside text, capped at half the text width as in the editor,
-  // then scaled down if needed to leave the text column its minimum.
-  const fullWidth = Math.min(image.width, layout.textWidth / 2)
-  const width = Math.min(fullWidth, layout.textWidth - WRAP_GAP_PT - WRAP_MIN_COLUMN_PT)
+  const ownLine = { node: <View key={index}>{ownLineImage(image, block.align)}</View>, used: 0 }
+  const width = wrapImageWidth(image.width, layout.textWidth)
+  if (width === null) return ownLine
   const height = image.height * (width / image.width)
   const columnWidth = layout.textWidth - width - WRAP_GAP_PT
-  const ownLine = { node: <View key={index}>{ownLineImage(image, block.align)}</View>, used: 0 }
-  if (width < fullWidth * WRAP_MIN_SCALE) return ownLine
 
   const side: SideBlock[] = []
   let columnHeight = 0
@@ -406,50 +377,6 @@ export async function renderBlocks(
   return nodes
 }
 
-// Book style front matter, from the export action.
-export interface BookDetails {
-  projectTitle: string
-  author: string | null
-  // Signed URL of the project's cover, when there is one and it's wanted.
-  coverUrl: string | null
-}
-
-interface BookChapter {
-  title: InlineRun[]
-  blocks: BlockNode[]
-}
-
-// A chapter's blocks without empty paragraphs at either end, which would only
-// add a blank line under the chapter title or at its close.
-function trimBlanks(blocks: BlockNode[]): BlockNode[] {
-  let start = 0
-  let end = blocks.length
-  while (start < end && isBlank(blocks[start])) start++
-  while (end > start && isBlank(blocks[end - 1])) end--
-  return blocks.slice(start, end)
-}
-
-// Book chapters: each selected document starts one, titled with its name, and
-// each Heading 1 starts another, titled with the heading. A document that
-// opens with a Heading 1 lets the heading title its first chapter instead.
-function bookChapters(sections: OutlineSection[]): BookChapter[] {
-  const chapters: BookChapter[] = []
-  for (const section of sections) {
-    let current: BookChapter = { title: [{ text: section.title }], blocks: [] }
-    for (const block of section.blocks) {
-      if (block.type === 'heading' && block.level === 1) {
-        const blocks = trimBlanks(current.blocks)
-        if (blocks.length > 0) chapters.push({ ...current, blocks })
-        current = { title: block.runs, blocks: [] }
-      } else {
-        current.blocks.push(block)
-      }
-    }
-    chapters.push({ ...current, blocks: trimBlanks(current.blocks) })
-  }
-  return chapters
-}
-
 async function renderBook(sections: OutlineSection[], pageSize: ManuscriptPageSize, details: BookDetails) {
   const page = PAGE_SIZES[pageSize]
   const layout = layoutFor('book', pageSize)
@@ -509,13 +436,6 @@ async function renderBook(sections: OutlineSection[], pageSize: ManuscriptPageSi
       {chapterPages}
     </Document>
   )
-}
-
-export interface RenderOutlinesOptions {
-  style: ManuscriptStyle
-  pageSize: ManuscriptPageSize
-  // Required for the Book style.
-  book?: BookDetails
 }
 
 export async function renderOutlinesToPdf(

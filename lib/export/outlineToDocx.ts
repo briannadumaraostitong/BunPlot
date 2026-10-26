@@ -11,9 +11,28 @@ import {
   VerticalPositionRelativeFrom,
   TextWrappingType,
   TextWrappingSide,
+  Header,
+  Footer,
+  PageNumber,
+  LineRuleType,
+  type ISectionOptions,
+  type IStylesOptions,
 } from 'docx'
 import { fetchImageBytes } from './fetchImageBytes'
 import { DEFAULT_DOCUMENT_FONT, hasItalic } from '../documentFonts'
+import { DEFAULT_MANUSCRIPT_OPTIONS, type ManuscriptPageSize, type ManuscriptStyle } from './manuscriptOptions'
+import {
+  BOOK_BODY,
+  MANUSCRIPT_PAGES,
+  bookChapters,
+  hasBookIndent,
+  isBlank,
+  isDroppedBlank,
+  plainText,
+  wrapImageWidth,
+  type BookDetails,
+  type RenderOutlinesOptions,
+} from './manuscriptLayout'
 import type { Align, BlockNode, InlineRun } from './outlineIR'
 
 // Document styles for the manuscript and story bible DOCX: Literata for
@@ -51,15 +70,60 @@ const DOCX_IMAGE_TYPE: Partial<Record<'png' | 'jpeg' | 'gif' | 'webp', 'jpg' | '
   gif: 'gif',
 }
 
-// Text width of docx's default page (A4, 1" margins): 11906 − 2×1440 twips,
-// in the 96-dpi px ImageRun sizes use. Every image (wrapped or in line) keeps
-// the width set in the editor, clamped to it.
-const TEXT_WIDTH_PX = Math.floor(((11906 - 2 * 1440) / 1440) * 96)
+const TWIPS_PER_PT = 20
+const PT_PER_PX = 0.75
 const EMU_PER_PX = 9525
 // Gap between a wrapped image and the text beside/below it — the editor's
 // mr-6/ml-6 (24px) and mb-4 (16px).
 const WRAP_GAP_SIDE = 24 * EMU_PER_PX
 const WRAP_GAP_BOTTOM = 16 * EMU_PER_PX
+
+// A page's size and margins in twips, its text width in the 96-dpi px
+// ImageRun sizes use, and its text height in points. Every image (wrapped or
+// in line) keeps the width set in the editor, clamped to the text width.
+interface DocxPage {
+  size: { width: number; height: number }
+  margin: { top: number; right: number; bottom: number; left: number }
+  textWidthPx: number
+  textHeightPt: number
+}
+
+function docxPage(width: number, height: number, marginX: number, marginY: number): DocxPage {
+  const twips = (pt: number) => Math.round(pt * TWIPS_PER_PT)
+  return {
+    size: { width: twips(width), height: twips(height) },
+    margin: { top: twips(marginY), right: twips(marginX), bottom: twips(marginY), left: twips(marginX) },
+    textWidthPx: Math.floor(((twips(width) - 2 * twips(marginX)) / 1440) * 96),
+    textHeightPt: height - 2 * marginY,
+  }
+}
+
+// Standard A4 keeps docx's default page (1" margins), as the DOCX has always
+// had; everything else uses the PDF's pages.
+function pageFor(style: ManuscriptStyle, pageSize: ManuscriptPageSize): DocxPage {
+  const page = MANUSCRIPT_PAGES[pageSize]
+  if (style === 'standard' && pageSize === 'a4') return docxPage(page.width, page.height, 72, 72)
+  return docxPage(page.width, page.height, page.marginX, page.marginY)
+}
+
+// Where the blocks are laid out: the page's text width (px), and whether the
+// Book style's body text applies.
+export interface DocxLayout {
+  textWidth: number
+  book: boolean
+}
+
+// The story bible (and anything else not choosing) lays out Standard A4.
+const DEFAULT_LAYOUT: DocxLayout = { textWidth: pageFor('standard', 'a4').textWidthPx, book: false }
+
+// Book body text: lines at least BOOK_BODY's height, so tall glyphs and
+// substituted fonts aren't clipped (Literata's own line, 1.485, is taller, so
+// Word sets it at that), and the first-line indent.
+const BOOK_SPACING = {
+  line: Math.round(BOOK_BODY.fontSize * BOOK_BODY.lineHeight * TWIPS_PER_PT),
+  lineRule: LineRuleType.AT_LEAST,
+}
+const BOOK_INDENT = BOOK_BODY.indent * TWIPS_PER_PT
 
 type ImageBlock = Extract<BlockNode, { type: 'image' }>
 
@@ -85,11 +149,16 @@ async function fetchDocxImage(src: string) {
 
 // A floating image with square wrapping on the side away from it, anchored
 // to the paragraph it's placed in. Its own width (or natural width if never
-// resized), clamped to the text width.
-async function wrappedImageRun(block: ImageBlock): Promise<ImageRun | null> {
+// resized), clamped to the text width; the Book style then sizes it as the
+// PDF does (wrapImageWidth), and gives 'ownLine' when that leaves too little
+// room for text beside it.
+async function wrappedImageRun(block: ImageBlock, layout: DocxLayout): Promise<ImageRun | 'ownLine' | null> {
   const image = await fetchDocxImage(block.src)
   if (!image) return null
-  const width = Math.min(TEXT_WIDTH_PX, block.width ?? image.width)
+  const clamped = Math.min(layout.textWidth, block.width ?? image.width)
+  const fitted = layout.book ? wrapImageWidth(clamped, layout.textWidth, PT_PER_PX) : clamped
+  if (fitted === null) return 'ownLine'
+  const width = Math.round(fitted)
   const height = Math.round(width * (image.height / image.width))
   const left = block.align === 'left'
   return new ImageRun({
@@ -130,14 +199,37 @@ function textRuns(runs: InlineRun[]): TextRun[] {
 }
 
 interface DocxContext {
+  layout: DocxLayout
   indentLevel: number
   listType?: 'bullet' | 'ordered'
   orderedIndex?: number
   // A floating image anchored into this paragraph (see blocksToParagraphs).
   leadingImage?: ImageRun
+  // The block before this one, for the Book style's indents.
+  prev?: BlockNode
+}
+
+// Blocks nested in a quote or list item, each knowing the one before it. The
+// Book style leaves out the empty paragraphs it drops (isDroppedBlank).
+async function nestedParagraphs(blocks: BlockNode[], ctx: Omit<DocxContext, 'prev'>): Promise<Paragraph[]> {
+  const out: Paragraph[] = []
+  for (let i = 0; i < blocks.length; i++) {
+    const prev = blocks[i - 1]
+    if (ctx.layout.book && isDroppedBlank(blocks[i], prev)) continue
+    out.push(...(await blockToParagraphs(blocks[i], { ...ctx, prev })))
+  }
+  return out
+}
+
+// Book style paragraphs are justified unless centred or right-aligned (those
+// keep their alignment).
+function paragraphAlignment(block: Extract<BlockNode, { type: 'paragraph' }>, book: boolean) {
+  if (book && block.align !== 'center' && block.align !== 'right') return AlignmentType.JUSTIFIED
+  return block.align ? ALIGN_MAP[block.align] : undefined
 }
 
 async function blockToParagraphs(block: BlockNode, ctx: DocxContext): Promise<Paragraph[]> {
+  const { layout } = ctx
   const indent = ctx.indentLevel > 0 ? { left: 360 * ctx.indentLevel } : undefined
 
   switch (block.type) {
@@ -151,11 +243,15 @@ async function blockToParagraphs(block: BlockNode, ctx: DocxContext): Promise<Pa
         }),
       ]
 
-    case 'paragraph':
+    case 'paragraph': {
+      // Book style: no gap between paragraphs (an empty one is a blank line,
+      // without an indent), and an indent from hasBookIndent.
+      const firstLine = layout.book && !isBlank(block) && hasBookIndent(block, ctx.prev) ? BOOK_INDENT : undefined
       return [
         new Paragraph({
-          alignment: block.align ? ALIGN_MAP[block.align] : undefined,
-          indent,
+          alignment: paragraphAlignment(block, layout.book),
+          indent: firstLine ? { ...indent, firstLine } : indent,
+          spacing: layout.book ? BOOK_SPACING : undefined,
           bullet: ctx.listType === 'bullet' ? { level: Math.max(0, ctx.indentLevel - 1) } : undefined,
           children:
             ctx.listType === 'ordered'
@@ -163,23 +259,15 @@ async function blockToParagraphs(block: BlockNode, ctx: DocxContext): Promise<Pa
               : [...(ctx.leadingImage ? [ctx.leadingImage] : []), ...textRuns(block.runs)],
         }),
       ]
-
-    case 'blockquote': {
-      const out: Paragraph[] = []
-      for (const child of block.children) {
-        out.push(...(await blockToParagraphs(child, { indentLevel: ctx.indentLevel + 1 })))
-      }
-      return out
     }
+
+    case 'blockquote':
+      return nestedParagraphs(block.children, { layout, indentLevel: ctx.indentLevel + 1 })
 
     case 'bulletList': {
       const out: Paragraph[] = []
       for (const item of block.items) {
-        for (const child of item) {
-          out.push(
-            ...(await blockToParagraphs(child, { indentLevel: ctx.indentLevel + 1, listType: 'bullet' }))
-          )
-        }
+        out.push(...(await nestedParagraphs(item, { layout, indentLevel: ctx.indentLevel + 1, listType: 'bullet' })))
       }
       return out
     }
@@ -187,15 +275,14 @@ async function blockToParagraphs(block: BlockNode, ctx: DocxContext): Promise<Pa
     case 'orderedList': {
       const out: Paragraph[] = []
       for (let i = 0; i < block.items.length; i++) {
-        for (const child of block.items[i]) {
-          out.push(
-            ...(await blockToParagraphs(child, {
-              indentLevel: ctx.indentLevel + 1,
-              listType: 'ordered',
-              orderedIndex: i + 1,
-            }))
-          )
-        }
+        out.push(
+          ...(await nestedParagraphs(block.items[i], {
+            layout,
+            indentLevel: ctx.indentLevel + 1,
+            listType: 'ordered',
+            orderedIndex: i + 1,
+          }))
+        )
       }
       return out
     }
@@ -203,7 +290,7 @@ async function blockToParagraphs(block: BlockNode, ctx: DocxContext): Promise<Pa
     case 'image': {
       const image = await fetchDocxImage(block.src)
       if (!image) return []
-      const width = Math.min(TEXT_WIDTH_PX, block.width ?? image.width)
+      const width = Math.min(layout.textWidth, block.width ?? image.width)
       const height = Math.round(width * (image.height / image.width))
       return [
         new Paragraph({
@@ -224,29 +311,184 @@ async function blockToParagraphs(block: BlockNode, ctx: DocxContext): Promise<Pa
 // Top level only — images nested in lists or quotes go through
 // blockToParagraphs and stay in line, matching the editor. A wrapped image is
 // anchored into the next paragraph when there is one (so no blank anchor line
-// sits above the wrapped text), otherwise into its own empty paragraph.
-export async function blocksToParagraphs(blocks: BlockNode[]): Promise<Paragraph[]> {
+// sits above the wrapped text), otherwise into its own empty paragraph. In
+// the Book style that's the next paragraph drawn, past any empty ones it
+// drops (isDroppedBlank).
+// layout: the page's text width and style; Standard A4 unless given.
+export async function blocksToParagraphs(blocks: BlockNode[], layout: DocxLayout = DEFAULT_LAYOUT): Promise<Paragraph[]> {
   const out: Paragraph[] = []
   for (let i = 0; i < blocks.length; i++) {
     const block = blocks[i]
+    const prev = blocks[i - 1]
+    if (layout.book && isDroppedBlank(block, prev)) continue
     if (isWrappedImage(block)) {
-      const run = await wrappedImageRun(block)
+      const run = await wrappedImageRun(block, layout)
       if (!run) continue
-      const next = blocks[i + 1]
+      if (run === 'ownLine') {
+        out.push(...(await blockToParagraphs(block, { layout, indentLevel: 0 })))
+        continue
+      }
+      let j = i + 1
+      while (layout.book && j < blocks.length && isDroppedBlank(blocks[j], blocks[j - 1])) j++
+      const next = blocks[j]
       if (next?.type === 'paragraph') {
-        out.push(...(await blockToParagraphs(next, { indentLevel: 0, leadingImage: run })))
-        i++
+        out.push(...(await blockToParagraphs(next, { layout, indentLevel: 0, leadingImage: run, prev: blocks[j - 1] })))
+        i = j
       } else {
         out.push(new Paragraph({ children: [run] }))
       }
       continue
     }
-    out.push(...(await blockToParagraphs(block, { indentLevel: 0 })))
+    out.push(...(await blockToParagraphs(block, { layout, indentLevel: 0, prev })))
   }
   return out
 }
 
-export async function renderOutlinesToDocx(sections: OutlineSection[]): Promise<Buffer> {
+// Book style: Literata 11pt, and headings set as in the PDF, in black rather
+// than docx's blue: chapter titles (Heading 1) large and centred a quarter of
+// the way down the page, the rest bold.
+function bookStyles(page: DocxPage): IStylesOptions {
+  const twips = (pt: number) => Math.round(pt * TWIPS_PER_PT)
+  const heading = (size: number, before: number) => ({
+    run: { size: size * 2, bold: true, color: '000000' },
+    paragraph: { spacing: { before: twips(before), after: twips(6) }, keepNext: true },
+  })
+  return {
+    default: {
+      document: { run: { font: DEFAULT_DOCUMENT_FONT, size: BOOK_BODY.fontSize * 2 } },
+      heading1: {
+        run: { size: 48, color: '000000' },
+        paragraph: { alignment: AlignmentType.CENTER, spacing: { before: twips(page.textHeightPt * 0.25), after: twips(36) } },
+      },
+      heading2: heading(15, 14),
+      heading3: heading(13, 12),
+      heading4: heading(13, 12),
+      heading5: heading(13, 12),
+      heading6: heading(13, 12),
+    },
+  }
+}
+
+// The cover fills its page, cropped like the PDF's (objectFit cover): a
+// floating image behind the text, scaled to cover the page and centred, so
+// any overflow falls off the page's edges.
+async function coverParagraph(src: string, page: DocxPage): Promise<Paragraph | null> {
+  const image = await fetchDocxImage(src)
+  if (!image) return null
+  const pageWidth = (page.size.width / 1440) * 96
+  const pageHeight = (page.size.height / 1440) * 96
+  const scale = Math.max(pageWidth / image.width, pageHeight / image.height)
+  const width = Math.ceil(image.width * scale)
+  const height = Math.ceil(image.height * scale)
+  return new Paragraph({
+    children: [
+      new ImageRun({
+        type: image.type,
+        data: image.data,
+        transformation: { width, height },
+        floating: {
+          horizontalPosition: {
+            relative: HorizontalPositionRelativeFrom.PAGE,
+            offset: Math.round(((pageWidth - width) / 2) * EMU_PER_PX),
+          },
+          verticalPosition: {
+            relative: VerticalPositionRelativeFrom.PAGE,
+            offset: Math.round(((pageHeight - height) / 2) * EMU_PER_PX),
+          },
+          behindDocument: true,
+          allowOverlap: true,
+        },
+      }),
+    ],
+  })
+}
+
+// A centred header or footer line; empty for a chapter's opening page (Word
+// wants a paragraph in every header and footer).
+function marginLine(children: TextRun[], size: number, color: string) {
+  return new Paragraph({ alignment: AlignmentType.CENTER, run: { size, color }, children })
+}
+
+async function renderBookDocx(sections: OutlineSection[], pageSize: ManuscriptPageSize, details: BookDetails) {
+  const page = pageFor('book', pageSize)
+  const layout: DocxLayout = { textWidth: page.textWidthPx, book: true }
+  // Header and page number sit centred in the top and bottom margins, as in
+  // the PDF.
+  const edge = Math.round((MANUSCRIPT_PAGES[pageSize].marginY / 2 - 6) * TWIPS_PER_PT)
+  const pageProps = { size: page.size, margin: { ...page.margin, header: edge, footer: edge } }
+  const docSections: ISectionOptions[] = []
+
+  const cover = details.coverUrl ? await coverParagraph(details.coverUrl, page) : null
+  if (cover) {
+    docSections.push({
+      properties: { page: { size: page.size, margin: { top: 0, right: 0, bottom: 0, left: 0, header: 0, footer: 0 } } },
+      children: [cover],
+    })
+  }
+
+  docSections.push({
+    properties: { page: pageProps },
+    children: [
+      new Paragraph({
+        alignment: AlignmentType.CENTER,
+        spacing: { before: Math.round(page.textHeightPt * 0.3 * TWIPS_PER_PT) },
+        children: [new TextRun({ text: details.projectTitle, size: 60 })],
+      }),
+      ...(details.author
+        ? [
+            new Paragraph({
+              alignment: AlignmentType.CENTER,
+              spacing: { before: 18 * TWIPS_PER_PT },
+              children: [new TextRun({ text: details.author, size: 28, color: '444444' })],
+            }),
+          ]
+        : []),
+    ],
+  })
+
+  // Each chapter is a section whose first page (the opening) has no header or
+  // number; elsewhere the book's title heads even pages and the chapter's odd
+  // ones. Numbers start at 1 on the first chapter and run on from there.
+  const header = (text: string | null) =>
+    new Header({ children: [marginLine(text ? [new TextRun({ text, size: 17, color: '666666' })] : [], 17, '666666')] })
+  const footer = (numbered: boolean) =>
+    new Footer({
+      children: [
+        marginLine(numbered ? [new TextRun({ children: [PageNumber.CURRENT], size: 18, color: '444444' })] : [], 18, '444444'),
+      ],
+    })
+  const chapters = bookChapters(sections)
+  for (let i = 0; i < chapters.length; i++) {
+    const chapter = chapters[i]
+    docSections.push({
+      properties: { titlePage: true, page: { ...pageProps, ...(i === 0 ? { pageNumbers: { start: 1 } } : {}) } },
+      headers: { default: header(plainText(chapter.title)), even: header(details.projectTitle), first: header(null) },
+      footers: { default: footer(true), even: footer(true), first: footer(false) },
+      children: [
+        new Paragraph({ heading: HeadingLevel.HEADING_1, children: textRuns(chapter.title) }),
+        ...(await blocksToParagraphs(chapter.blocks, layout)),
+      ],
+    })
+  }
+
+  const doc = new Document({
+    title: details.projectTitle,
+    creator: details.author ?? undefined,
+    styles: bookStyles(page),
+    evenAndOddHeaderAndFooters: true,
+    sections: docSections,
+  })
+  return Packer.toBuffer(doc)
+}
+
+export async function renderOutlinesToDocx(
+  sections: OutlineSection[],
+  { style, pageSize, book: details }: RenderOutlinesOptions = DEFAULT_MANUSCRIPT_OPTIONS
+): Promise<Buffer> {
+  if (style === 'book' && details) return renderBookDocx(sections, pageSize, details)
+
+  const page = pageFor('standard', pageSize)
+  const layout: DocxLayout = { textWidth: page.textWidthPx, book: false }
   const children: Paragraph[] = []
 
   for (let i = 0; i < sections.length; i++) {
@@ -258,12 +500,12 @@ export async function renderOutlinesToDocx(sections: OutlineSection[]): Promise<
         children: [new TextRun({ text: section.title })],
       })
     )
-    children.push(...(await blocksToParagraphs(section.blocks)))
+    children.push(...(await blocksToParagraphs(section.blocks, layout)))
   }
 
   const doc = new Document({
     styles: DOCX_STYLES,
-    sections: [{ children }],
+    sections: [{ properties: { page: { size: page.size, margin: page.margin } }, children }],
   })
 
   return Packer.toBuffer(doc)
