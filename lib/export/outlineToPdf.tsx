@@ -16,6 +16,7 @@ import {
   type BookDetails,
   type RenderOutlinesOptions,
 } from './manuscriptLayout'
+import { HEADINGS, PAGE_NUMBER, RUNNING_HEADER, TITLE_PAGE, marginLineOffset } from './printTypography'
 import type { Align, BlockNode, InlineRun } from './outlineIR'
 import type { OutlineSection } from './outlineToDocx'
 
@@ -27,9 +28,9 @@ export const styles = StyleSheet.create({
   // Every Text on the page inherits the font stack.
   page: { paddingTop: 56, paddingBottom: 56, paddingHorizontal: 64, fontSize: 11, fontFamily: PDF_FONT_STACK },
   title: { fontSize: 22, fontWeight: 700, marginBottom: 20 },
-  heading1: { fontSize: 18, fontWeight: 700, marginTop: 16, marginBottom: 8 },
-  heading2: { fontSize: 15, fontWeight: 700, marginTop: 14, marginBottom: 6 },
-  heading3: { fontSize: 13, fontWeight: 700, marginTop: 12, marginBottom: 6 },
+  heading1: { fontSize: HEADINGS[1].size, fontWeight: 700, marginTop: HEADINGS[1].before, marginBottom: HEADINGS[1].after },
+  heading2: { fontSize: HEADINGS[2].size, fontWeight: 700, marginTop: HEADINGS[2].before, marginBottom: HEADINGS[2].after },
+  heading3: { fontSize: HEADINGS[3].size, fontWeight: 700, marginTop: HEADINGS[3].before, marginBottom: HEADINGS[3].after },
   // fontSize repeats the page's 11: react-pdf turns a unitless lineHeight into
   // points using the style's own fontSize (18 if unset) before the page's is
   // inherited, so without it 1.5 means 27pt rather than 16.5pt.
@@ -49,11 +50,27 @@ const book = StyleSheet.create({
   // An empty paragraph keeps one blank line (a scene break).
   blankLine: { height: BOOK_BODY.fontSize * BOOK_BODY.lineHeight },
   chapterTitle: { fontSize: 24, textAlign: 'center', marginBottom: 36 },
-  bookTitle: { fontSize: 30, textAlign: 'center' },
-  author: { fontSize: 14, textAlign: 'center', marginTop: 18, color: '#444444' },
-  runningHeader: { position: 'absolute', left: 0, right: 0, fontSize: 8.5, color: '#666666', textAlign: 'center' },
-  pageNumber: { position: 'absolute', left: 0, right: 0, fontSize: 9, color: '#444444', textAlign: 'center' },
 })
+
+// The title page and page furniture the Book style and story bible share
+// (printTypography).
+export const printStyles = StyleSheet.create({
+  title: { fontSize: TITLE_PAGE.titleSize, textAlign: 'center' },
+  subtitle: { fontSize: TITLE_PAGE.subtitleSize, textAlign: 'center', marginTop: TITLE_PAGE.subtitleGap, color: TITLE_PAGE.subtitleColor },
+  runningHeader: { position: 'absolute', left: 0, right: 0, fontSize: RUNNING_HEADER.size, color: RUNNING_HEADER.color, textAlign: 'center' },
+  pageNumber: { position: 'absolute', left: 0, right: 0, fontSize: PAGE_NUMBER.size, color: PAGE_NUMBER.color, textAlign: 'center' },
+})
+
+// A title page's content: the title centred TITLE_PAGE.top of the way down
+// the text area, and the line below it when there is one.
+export function TitlePageContent({ title, subtitle, textHeight }: { title: string; subtitle: string | null; textHeight: number }) {
+  return (
+    <View style={{ marginTop: textHeight * TITLE_PAGE.top }}>
+      <Text style={printStyles.title}>{title}</Text>
+      {subtitle && <Text style={printStyles.subtitle}>{subtitle}</Text>}
+    </View>
+  )
+}
 
 const ALIGN_STYLE: Record<Align, 'left' | 'center' | 'right' | 'justify'> = {
   left: 'left',
@@ -386,8 +403,8 @@ async function renderBook(sections: OutlineSection[], pageSize: ManuscriptPageSi
   const frontPages = (cover ? 1 : 0) + 1
   // Header and page number sit centred in the top and bottom margins. Absolute
   // positions on a page count from its edge, not from inside the margins.
-  const headerTop = { top: page.marginY / 2 - 6 }
-  const numberBottom = { bottom: page.marginY / 2 - 6 }
+  const headerTop = { top: marginLineOffset(page.marginY) }
+  const numberBottom = { bottom: marginLineOffset(page.marginY) }
 
   const chapterPages = await Promise.all(
     bookChapters(sections).map(async (chapter, i) => {
@@ -398,7 +415,7 @@ async function renderBook(sections: OutlineSection[], pageSize: ManuscriptPageSi
               even pages and the chapter's on odd ones. */}
           <Text
             fixed
-            style={[book.runningHeader, headerTop]}
+            style={[printStyles.runningHeader, headerTop]}
             render={({ pageNumber, subPageNumber }) =>
               subPageNumber === 1 ? '' : (pageNumber - frontPages) % 2 === 0 ? details.projectTitle : title
             }
@@ -409,7 +426,7 @@ async function renderBook(sections: OutlineSection[], pageSize: ManuscriptPageSi
           {await renderBlocks(chapter.blocks, { wrapImages: true, layout })}
           <Text
             fixed
-            style={[book.pageNumber, numberBottom]}
+            style={[printStyles.pageNumber, numberBottom]}
             render={({ pageNumber, subPageNumber }) => (subPageNumber === 1 ? '' : String(pageNumber - frontPages))}
           />
         </Page>
@@ -428,10 +445,7 @@ async function renderBook(sections: OutlineSection[], pageSize: ManuscriptPageSi
         </Page>
       )}
       <Page size={page.size} style={pageStyle}>
-        <View style={{ marginTop: layout.textHeight * 0.3 }}>
-          <Text style={book.bookTitle}>{details.projectTitle}</Text>
-          {details.author && <Text style={book.author}>{details.author}</Text>}
-        </View>
+        <TitlePageContent title={details.projectTitle} subtitle={details.author} textHeight={layout.textHeight} />
       </Page>
       {chapterPages}
     </Document>

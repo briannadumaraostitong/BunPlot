@@ -33,6 +33,7 @@ import {
   type BookDetails,
   type RenderOutlinesOptions,
 } from './manuscriptLayout'
+import { HEADINGS, PAGE_NUMBER, RUNNING_HEADER, TITLE_PAGE, marginLineOffset } from './printTypography'
 import type { Align, BlockNode, InlineRun } from './outlineIR'
 
 // Document styles for the manuscript and story bible DOCX: Literata for
@@ -71,6 +72,9 @@ const DOCX_IMAGE_TYPE: Partial<Record<'png' | 'jpeg' | 'gif' | 'webp', 'jpg' | '
 }
 
 const TWIPS_PER_PT = 20
+const twips = (pt: number) => Math.round(pt * TWIPS_PER_PT)
+// docx takes colours without the '#'.
+const docxColor = (hex: string) => hex.slice(1)
 const PT_PER_PX = 0.75
 const EMU_PER_PX = 9525
 // Gap between a wrapped image and the text beside/below it — the editor's
@@ -89,7 +93,6 @@ interface DocxPage {
 }
 
 function docxPage(width: number, height: number, marginX: number, marginY: number): DocxPage {
-  const twips = (pt: number) => Math.round(pt * TWIPS_PER_PT)
   return {
     size: { width: twips(width), height: twips(height) },
     margin: { top: twips(marginY), right: twips(marginX), bottom: twips(marginY), left: twips(marginX) },
@@ -344,15 +347,25 @@ export async function blocksToParagraphs(blocks: BlockNode[], layout: DocxLayout
   return out
 }
 
-// Book style: Literata 11pt, and headings set as in the PDF, in black rather
-// than docx's blue: chapter titles (Heading 1) large and centred a quarter of
-// the way down the page, the rest bold.
-function bookStyles(page: DocxPage): IStylesOptions {
-  const twips = (pt: number) => Math.round(pt * TWIPS_PER_PT)
-  const heading = (size: number, before: number) => ({
+// Heading 2–6 set as in the PDF (HEADINGS), in black rather than docx's blue.
+// The Book style and story bible each add their own Heading 1.
+export function printHeadingStyles() {
+  const heading = ({ size, before, after }: (typeof HEADINGS)[keyof typeof HEADINGS]) => ({
     run: { size: size * 2, bold: true, color: '000000' },
-    paragraph: { spacing: { before: twips(before), after: twips(6) }, keepNext: true },
+    paragraph: { spacing: { before: twips(before), after: twips(after) }, keepNext: true },
   })
+  return {
+    heading2: heading(HEADINGS[2]),
+    heading3: heading(HEADINGS[3]),
+    heading4: heading(HEADINGS[3]),
+    heading5: heading(HEADINGS[3]),
+    heading6: heading(HEADINGS[3]),
+  }
+}
+
+// Book style: Literata 11pt, chapter titles (Heading 1) large and centred a
+// quarter of the way down the page, and the shared headings.
+function bookStyles(page: DocxPage): IStylesOptions {
   return {
     default: {
       document: { run: { font: DEFAULT_DOCUMENT_FONT, size: BOOK_BODY.fontSize * 2 } },
@@ -360,13 +373,60 @@ function bookStyles(page: DocxPage): IStylesOptions {
         run: { size: 48, color: '000000' },
         paragraph: { alignment: AlignmentType.CENTER, spacing: { before: twips(page.textHeightPt * 0.25), after: twips(36) } },
       },
-      heading2: heading(15, 14),
-      heading3: heading(13, 12),
-      heading4: heading(13, 12),
-      heading5: heading(13, 12),
-      heading6: heading(13, 12),
+      ...printHeadingStyles(),
     },
   }
+}
+
+// A title page's paragraphs: the title centred TITLE_PAGE.top of the way down
+// the text area, and the line below it when there is one.
+export function titlePageParagraphs(title: string, subtitle: string | null, textHeightPt: number): Paragraph[] {
+  return [
+    new Paragraph({
+      alignment: AlignmentType.CENTER,
+      spacing: { before: twips(textHeightPt * TITLE_PAGE.top) },
+      children: [new TextRun({ text: title, size: TITLE_PAGE.titleSize * 2 })],
+    }),
+    ...(subtitle
+      ? [
+          new Paragraph({
+            alignment: AlignmentType.CENTER,
+            spacing: { before: twips(TITLE_PAGE.subtitleGap) },
+            children: [
+              new TextRun({ text: subtitle, size: TITLE_PAGE.subtitleSize * 2, color: docxColor(TITLE_PAGE.subtitleColor) }),
+            ],
+          }),
+        ]
+      : []),
+  ]
+}
+
+// The header and footer distance (twips) that centres a running header or
+// page number in a margin marginY (pt) tall, as in the PDF.
+export function marginLineTwips(marginY: number): number {
+  return twips(marginLineOffset(marginY))
+}
+
+// A centred header or footer line; empty for a page that shows none (Word
+// wants a paragraph in every header and footer).
+function marginLine(children: TextRun[], size: number, color: string) {
+  return new Paragraph({ alignment: AlignmentType.CENTER, run: { size, color }, children })
+}
+
+// A running header with this text, or an empty one.
+export function runningHeader(text: string | null): Header {
+  const size = RUNNING_HEADER.size * 2
+  const color = docxColor(RUNNING_HEADER.color)
+  return new Header({ children: [marginLine(text ? [new TextRun({ text, size, color })] : [], size, color)] })
+}
+
+// A footer with the page number, or an empty one.
+export function pageNumberFooter(numbered: boolean): Footer {
+  const size = PAGE_NUMBER.size * 2
+  const color = docxColor(PAGE_NUMBER.color)
+  return new Footer({
+    children: [marginLine(numbered ? [new TextRun({ children: [PageNumber.CURRENT], size, color })] : [], size, color)],
+  })
 }
 
 // The cover fills its page, cropped like the PDF's (objectFit cover): a
@@ -403,18 +463,12 @@ async function coverParagraph(src: string, page: DocxPage): Promise<Paragraph | 
   })
 }
 
-// A centred header or footer line; empty for a chapter's opening page (Word
-// wants a paragraph in every header and footer).
-function marginLine(children: TextRun[], size: number, color: string) {
-  return new Paragraph({ alignment: AlignmentType.CENTER, run: { size, color }, children })
-}
-
 async function renderBookDocx(sections: OutlineSection[], pageSize: ManuscriptPageSize, details: BookDetails) {
   const page = pageFor('book', pageSize)
   const layout: DocxLayout = { textWidth: page.textWidthPx, book: true }
   // Header and page number sit centred in the top and bottom margins, as in
   // the PDF.
-  const edge = Math.round((MANUSCRIPT_PAGES[pageSize].marginY / 2 - 6) * TWIPS_PER_PT)
+  const edge = marginLineTwips(MANUSCRIPT_PAGES[pageSize].marginY)
   const pageProps = { size: page.size, margin: { ...page.margin, header: edge, footer: edge } }
   const docSections: ISectionOptions[] = []
 
@@ -428,42 +482,23 @@ async function renderBookDocx(sections: OutlineSection[], pageSize: ManuscriptPa
 
   docSections.push({
     properties: { page: pageProps },
-    children: [
-      new Paragraph({
-        alignment: AlignmentType.CENTER,
-        spacing: { before: Math.round(page.textHeightPt * 0.3 * TWIPS_PER_PT) },
-        children: [new TextRun({ text: details.projectTitle, size: 60 })],
-      }),
-      ...(details.author
-        ? [
-            new Paragraph({
-              alignment: AlignmentType.CENTER,
-              spacing: { before: 18 * TWIPS_PER_PT },
-              children: [new TextRun({ text: details.author, size: 28, color: '444444' })],
-            }),
-          ]
-        : []),
-    ],
+    children: titlePageParagraphs(details.projectTitle, details.author, page.textHeightPt),
   })
 
   // Each chapter is a section whose first page (the opening) has no header or
   // number; elsewhere the book's title heads even pages and the chapter's odd
   // ones. Numbers start at 1 on the first chapter and run on from there.
-  const header = (text: string | null) =>
-    new Header({ children: [marginLine(text ? [new TextRun({ text, size: 17, color: '666666' })] : [], 17, '666666')] })
-  const footer = (numbered: boolean) =>
-    new Footer({
-      children: [
-        marginLine(numbered ? [new TextRun({ children: [PageNumber.CURRENT], size: 18, color: '444444' })] : [], 18, '444444'),
-      ],
-    })
   const chapters = bookChapters(sections)
   for (let i = 0; i < chapters.length; i++) {
     const chapter = chapters[i]
     docSections.push({
       properties: { titlePage: true, page: { ...pageProps, ...(i === 0 ? { pageNumbers: { start: 1 } } : {}) } },
-      headers: { default: header(plainText(chapter.title)), even: header(details.projectTitle), first: header(null) },
-      footers: { default: footer(true), even: footer(true), first: footer(false) },
+      headers: {
+        default: runningHeader(plainText(chapter.title)),
+        even: runningHeader(details.projectTitle),
+        first: runningHeader(null),
+      },
+      footers: { default: pageNumberFooter(true), even: pageNumberFooter(true), first: pageNumberFooter(false) },
       children: [
         new Paragraph({ heading: HeadingLevel.HEADING_1, children: textRuns(chapter.title) }),
         ...(await blocksToParagraphs(chapter.blocks, layout)),
