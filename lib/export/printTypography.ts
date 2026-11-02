@@ -33,6 +33,10 @@ export const SECTION_TITLE = {
   after: 18,
 }
 
+// The story bible's contents: sections, and their parts indented and
+// smaller, each with its page number in the PDF.
+export const CONTENTS = { size: 11, gap: 8, subSize: 10, subGap: 3, subIndent: 14, subColor: '#444444', numberWidth: 36 }
+
 // Secondary text: labelled details ("Role: …") and empty-section notes.
 export const META_TEXT = { size: 10, color: '#444444' }
 export const MUTED_COLOR = '#666666'

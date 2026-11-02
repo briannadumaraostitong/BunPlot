@@ -1,4 +1,4 @@
-import { Document, Page, View, Text, StyleSheet, renderToBuffer } from '@react-pdf/renderer'
+import { Document, Page, View, Text, Link, StyleSheet, renderToBuffer } from '@react-pdf/renderer'
 import {
   layoutFor,
   printStyles,
@@ -10,23 +10,29 @@ import {
 } from './outlineToPdf'
 import { registerPdfFonts } from './pdfFonts'
 import { MANUSCRIPT_PAGES } from './manuscriptLayout'
-import { BIBLE_BODY, META_TEXT, MUTED_COLOR, SECTION_TITLE, marginLineOffset } from './printTypography'
+import { BIBLE_BODY, CONTENTS, META_TEXT, MUTED_COLOR, SECTION_TITLE, marginLineOffset } from './printTypography'
 import type { BlockNode } from './outlineIR'
 import {
+  CONTENTS_TITLE,
+  FAMILY_TREES_ANCHOR,
+  FAMILY_TREES_TITLE,
   SECTION_EMPTY_TEXT,
   SECTION_TITLES,
+  contentsEntries,
+  sectionAnchor,
   sectionSummary,
+  timelineGroupAnchor,
   type StoryBible,
   type StoryBibleSection,
 } from './storyBible'
 
-// Heading scheme mirrors storyBibleToDocx: a centred title page, then each
-// section on its own pages, opening with its title and count line; entries
-// use heading2, subsections heading3. Rich-text headings were already
-// shifted by buildStoryBible (level 4+ in places), but the outline renderer
-// styles every level past 3 as heading3 — so in PDF, place headings match
-// the "Description" / "Notes" subheading size rather than sitting visibly
-// below it.
+// Heading scheme mirrors storyBibleToDocx: a centred title page, the
+// contents, then each section on its own pages, opening with its title and
+// count line; entries use heading2, subsections heading3. Rich-text headings
+// were already shifted by buildStoryBible (level 4+ in places), but the
+// outline renderer styles every level past 3 as heading3 — so in PDF, place
+// headings match the "Description" / "Notes" subheading size rather than
+// sitting visibly below it.
 
 // Body text at the story bible's size (BIBLE_BODY), for its own paragraphs
 // and the rich text it lays out with renderBlocks.
@@ -38,7 +44,7 @@ const PAGE = MANUSCRIPT_PAGES.a4
 // the Book style.
 const HEADER_TOP = { top: marginLineOffset(PAGE.marginY) }
 const NUMBER_BOTTOM = { bottom: marginLineOffset(PAGE.marginY) }
-// Pages before the first section (the title page), so sections number from 1.
+// Pages before the contents (the title page), so the contents is page 1.
 const FRONT_PAGES = 1
 
 const styles = StyleSheet.create({
@@ -60,6 +66,19 @@ const styles = StyleSheet.create({
   metaLabel: { fontWeight: 700 },
   empty: { fontStyle: 'italic', color: MUTED_COLOR },
   entry: { marginBottom: 10 },
+  // Contents rows are links, which react-pdf would otherwise colour and
+  // underline.
+  contentsLink: { color: '#000000', textDecoration: 'none' },
+  contentsRow: { flexDirection: 'row', fontSize: CONTENTS.size, marginTop: CONTENTS.gap },
+  contentsSubRow: {
+    flexDirection: 'row',
+    fontSize: CONTENTS.subSize,
+    marginTop: CONTENTS.subGap,
+    paddingLeft: CONTENTS.subIndent,
+    color: CONTENTS.subColor,
+  },
+  contentsTitle: { flex: 1 },
+  contentsNumber: { width: CONTENTS.numberWidth, textAlign: 'right' },
 })
 
 const pageStyle = [outlineStyles.page, styles.page]
@@ -68,9 +87,31 @@ const pageStyle = [outlineStyles.page, styles.page]
 // two body lines would fit under it (as Word's keep with next does).
 const KEEP_WITH_NEXT = 2 * BIBLE_BODY.fontSize * BIBLE_BODY.lineHeight
 
-function Heading({ level, children }: { level: 2 | 3; children: React.ReactNode }) {
+// Where each contents entry's anchor landed, as printed page numbers, from
+// the last time the document was laid out (see renderStoryBibleToPdf).
+type PageNumbers = Map<string, number>
+
+// Records the page it lands on under anchor. react-pdf calls render more than
+// once per layout (before and after splitting pages), and the last call is
+// the final page. Goes after the heading it marks, so it moves with it.
+function PageMarker({ anchor, pages }: { anchor: string; pages: PageNumbers }) {
   return (
-    <Text style={level === 2 ? outlineStyles.heading2 : outlineStyles.heading3} minPresenceAhead={KEEP_WITH_NEXT}>
+    <Text
+      render={({ pageNumber }) => {
+        pages.set(anchor, pageNumber - FRONT_PAGES)
+        return ''
+      }}
+    />
+  )
+}
+
+function Heading({ level, anchor, children }: { level: 2 | 3; anchor?: string; children: React.ReactNode }) {
+  return (
+    <Text
+      id={anchor}
+      style={level === 2 ? outlineStyles.heading2 : outlineStyles.heading3}
+      minPresenceAhead={KEEP_WITH_NEXT}
+    >
       {children}
     </Text>
   )
@@ -111,30 +152,73 @@ function Bullets({ items }: { items: string[] }) {
   )
 }
 
-// A section's pages: its title over a rule and its count line, or the empty
-// note when the project has nothing for it. The running header (project ·
-// section) is hidden on the opening page; every page is numbered.
-function Section({ bible, section, children }: { bible: StoryBible; section: StoryBibleSection; children: React.ReactNode }) {
-  const title = SECTION_TITLES[section]
-  const summary = sectionSummary(bible, section)
+// A page run with the story bible's furniture: the running header (project ·
+// header), hidden on the opening page, and a page number on every page.
+function BiblePage({ bible, header, bookmark, children }: {
+  bible: StoryBible
+  header: string
+  bookmark: string
+  children: React.ReactNode
+}) {
   return (
-    <Page size="A4" style={pageStyle} wrap>
+    <Page size="A4" style={pageStyle} wrap bookmark={bookmark}>
       <Text
         fixed
         style={[printStyles.runningHeader, HEADER_TOP]}
-        render={({ subPageNumber }) => (subPageNumber === 1 ? '' : `${bible.title} · ${title}`)}
+        render={({ subPageNumber }) => (subPageNumber === 1 ? '' : `${bible.title} · ${header}`)}
       />
-      <View style={styles.sectionOpening}>
-        <Text style={styles.sectionTitle}>{title}</Text>
-        {summary && <Text style={styles.sectionCount}>{summary}</Text>}
-      </View>
-      {summary === null ? <Text style={[styles.body, styles.empty]}>{SECTION_EMPTY_TEXT[section]}</Text> : children}
+      {children}
       <Text
         fixed
         style={[printStyles.pageNumber, NUMBER_BOTTOM]}
         render={({ pageNumber }) => String(pageNumber - FRONT_PAGES)}
       />
     </Page>
+  )
+}
+
+// The contents: each entry links to its anchor, with the page it's on from
+// the previous layout (blank on the first; the number column has a fixed
+// width, so filling it in doesn't move anything).
+function ContentsPage({ bible, pages }: { bible: StoryBible; pages: PageNumbers }) {
+  return (
+    <BiblePage bible={bible} header={CONTENTS_TITLE} bookmark={CONTENTS_TITLE}>
+      <View style={styles.sectionOpening}>
+        <Text style={styles.sectionTitle}>{CONTENTS_TITLE}</Text>
+      </View>
+      {contentsEntries(bible).map((entry) => (
+        <Link key={entry.anchor} src={`#${entry.anchor}`} style={styles.contentsLink}>
+          <View style={entry.level === 1 ? styles.contentsRow : styles.contentsSubRow} wrap={false}>
+            <Text style={styles.contentsTitle}>{entry.title}</Text>
+            <Text style={styles.contentsNumber} render={() => String(pages.get(entry.anchor) ?? '')} />
+          </View>
+        </Link>
+      ))}
+    </BiblePage>
+  )
+}
+
+// A section's pages: its title over a rule and its count line, or the empty
+// note when the project has nothing for it.
+function Section({ bible, section, pages, children }: {
+  bible: StoryBible
+  section: StoryBibleSection
+  pages: PageNumbers
+  children: React.ReactNode
+}) {
+  const title = SECTION_TITLES[section]
+  const summary = sectionSummary(bible, section)
+  return (
+    <BiblePage bible={bible} header={title} bookmark={title}>
+      <View style={styles.sectionOpening}>
+        <Text id={sectionAnchor(section)} style={styles.sectionTitle}>
+          {title}
+        </Text>
+        <PageMarker anchor={sectionAnchor(section)} pages={pages} />
+        {summary && <Text style={styles.sectionCount}>{summary}</Text>}
+      </View>
+      {summary === null ? <Text style={[styles.body, styles.empty]}>{SECTION_EMPTY_TEXT[section]}</Text> : children}
+    </BiblePage>
   )
 }
 
@@ -148,19 +232,26 @@ async function richSubsection(title: string, blocks: BlockNode[]) {
   )
 }
 
+// At most this many layouts. The second one normally agrees with the first,
+// since contents numbers sit in a fixed-width column and can't move anything;
+// the third is only a safety net.
+const MAX_LAYOUTS = 3
+
 export async function renderStoryBibleToPdf(bible: StoryBible): Promise<Buffer> {
   // Pages use the outline export's page style, which carries the font stack.
   registerPdfFonts(SERVER_FONTS_DIR)
+  const pageNumbers: PageNumbers = new Map()
   const pages: React.ReactNode[] = [
     <Page key="title" size="A4" style={pageStyle}>
       <TitlePageContent title={bible.title} subtitle="Story Bible" byline={bible.author} textHeight={LAYOUT.textHeight} />
     </Page>,
+    <ContentsPage key="contents" bible={bible} pages={pageNumbers} />,
   ]
 
   if (bible.characters) {
     const { entries, familyTrees } = bible.characters
     pages.push(
-      <Section key="characters" bible={bible} section="characters">
+      <Section key="characters" bible={bible} section="characters" pages={pageNumbers}>
         {entries.map((c, i) => (
           <View key={i} style={styles.entry}>
             <Heading level={2}>{c.name}</Heading>
@@ -180,7 +271,14 @@ export async function renderStoryBibleToPdf(bible: StoryBible): Promise<Buffer> 
           <View>
             {familyTrees.map((tree, i) => (
               <View key={i} style={styles.entry}>
-                {i === 0 && <Heading level={2}>Family Trees</Heading>}
+                {i === 0 && (
+                  <>
+                    <Heading level={2} anchor={FAMILY_TREES_ANCHOR}>
+                      {FAMILY_TREES_TITLE}
+                    </Heading>
+                    <PageMarker anchor={FAMILY_TREES_ANCHOR} pages={pageNumbers} />
+                  </>
+                )}
                 <Heading level={3}>{tree.name}</Heading>
                 <Meta label="Members" value={tree.members.length > 0 ? tree.members.join(', ') : 'None'} />
                 <Bullets items={tree.relationships} />
@@ -204,7 +302,7 @@ export async function renderStoryBibleToPdf(bible: StoryBible): Promise<Buffer> 
       ))
     )
     pages.push(
-      <Section key="places" bible={bible} section="places">
+      <Section key="places" bible={bible} section="places" pages={pageNumbers}>
         {entries}
       </Section>
     )
@@ -212,12 +310,19 @@ export async function renderStoryBibleToPdf(bible: StoryBible): Promise<Buffer> 
 
   if (bible.timeline) {
     pages.push(
-      <Section key="timeline" bible={bible} section="timeline">
+      <Section key="timeline" bible={bible} section="timeline" pages={pageNumbers}>
         {bible.timeline.map((group, gi) => (
           <View key={gi}>
             {group.events.map((e, ei) => (
               <View key={ei} style={styles.entry}>
-                {ei === 0 && <Heading level={2}>{group.heading}</Heading>}
+                {ei === 0 && (
+                  <>
+                    <Heading level={2} anchor={timelineGroupAnchor(gi)}>
+                      {group.heading}
+                    </Heading>
+                    <PageMarker anchor={timelineGroupAnchor(gi)} pages={pageNumbers} />
+                  </>
+                )}
                 <Heading level={3}>{e.title}</Heading>
                 <Meta label="Layer" value={e.layer} />
                 <Meta label="Status" value={e.status} />
@@ -239,9 +344,19 @@ export async function renderStoryBibleToPdf(bible: StoryBible): Promise<Buffer> 
     )
   }
 
-  return renderToBuffer(
+  const document = (
     <Document title={`${bible.title} – Story Bible`} author={bible.author ?? undefined}>
       {pages}
     </Document>
   )
+
+  // The contents prints each anchor's page from the layout before, so lay
+  // out until the pages it printed are the pages the anchors landed on.
+  let buffer = await renderToBuffer(document)
+  for (let i = 1; i < MAX_LAYOUTS; i++) {
+    const printed = new Map(pageNumbers)
+    buffer = await renderToBuffer(document)
+    if ([...pageNumbers].every(([anchor, page]) => printed.get(anchor) === page)) break
+  }
+  return buffer
 }

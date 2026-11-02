@@ -279,6 +279,43 @@ export const SECTION_EMPTY_TEXT: Record<StoryBibleSection, string> = {
   timeline: 'No events yet.',
 }
 
+export const FAMILY_TREES_TITLE = 'Family Trees'
+export const CONTENTS_TITLE = 'Contents'
+
+// A contents entry and the anchor it links to (a PDF destination, a Word
+// bookmark: letters, digits and underscores only). Level 1 is a section,
+// level 2 a part of one (the family trees, each timeline chapter).
+export interface ContentsEntry {
+  anchor: string
+  title: string
+  level: 1 | 2
+}
+
+export const sectionAnchor = (section: StoryBibleSection) => `section_${section}`
+export const FAMILY_TREES_ANCHOR = 'family_trees'
+export const timelineGroupAnchor = (index: number) => `timeline_${index}`
+
+// Every selected section, then the parts it shows: family trees and timeline
+// chapters, which an empty section doesn't have.
+export function contentsEntries(bible: StoryBible): ContentsEntry[] {
+  const entries: ContentsEntry[] = []
+  const add = (section: StoryBibleSection) =>
+    entries.push({ anchor: sectionAnchor(section), title: SECTION_TITLES[section], level: 1 })
+
+  if (bible.characters) {
+    add('characters')
+    if (bible.characters.entries.length > 0 && bible.characters.familyTrees.length > 0) {
+      entries.push({ anchor: FAMILY_TREES_ANCHOR, title: FAMILY_TREES_TITLE, level: 2 })
+    }
+  }
+  if (bible.places) add('places')
+  if (bible.timeline) {
+    add('timeline')
+    bible.timeline.forEach((group, i) => entries.push({ anchor: timelineGroupAnchor(i), title: group.heading, level: 2 }))
+  }
+  return entries
+}
+
 function count(n: number, singular: string, plural = `${singular}s`) {
   return `${n} ${n === 1 ? singular : plural}`
 }

@@ -6,6 +6,8 @@ import {
   HeadingLevel,
   BorderStyle,
   LineRuleType,
+  Bookmark,
+  InternalHyperlink,
   type ISectionOptions,
   type IStylesOptions,
 } from 'docx'
@@ -22,19 +24,25 @@ import {
 } from './outlineToDocx'
 import { DEFAULT_DOCUMENT_FONT } from '../documentFonts'
 import { MANUSCRIPT_PAGES } from './manuscriptLayout'
-import { BIBLE_BODY, META_TEXT, MUTED_COLOR, SECTION_TITLE } from './printTypography'
+import { BIBLE_BODY, CONTENTS, META_TEXT, MUTED_COLOR, SECTION_TITLE } from './printTypography'
 import type { BlockNode } from './outlineIR'
 import {
+  CONTENTS_TITLE,
+  FAMILY_TREES_ANCHOR,
+  FAMILY_TREES_TITLE,
   SECTION_EMPTY_TEXT,
   SECTION_TITLES,
+  contentsEntries,
+  sectionAnchor,
   sectionSummary,
+  timelineGroupAnchor,
   type StoryBible,
   type StoryBibleSection,
 } from './storyBible'
 
-// Heading scheme: a centred title page, then each section as its own Word
-// section (so it gets its own running header), opening with its title
-// (Heading 1) and count line; entry = H2, subsection = H3. Rich-text
+// Heading scheme: a centred title page, the contents, then each section as
+// its own Word section (so it gets its own running header), opening with its
+// title (Heading 1) and count line; entry = H2, subsection = H3. Rich-text
 // headings were already shifted by buildStoryBible to sit one level below
 // their container (H4+ in places).
 
@@ -77,8 +85,10 @@ const STYLES: IStylesOptions = {
   },
 }
 
-function heading(text: string, level: (typeof HeadingLevel)[keyof typeof HeadingLevel]) {
-  return new Paragraph({ heading: level, children: [new TextRun({ text })] })
+// anchor: a bookmark around the heading's text, for the contents to link to.
+function heading(text: string, level: (typeof HeadingLevel)[keyof typeof HeadingLevel], anchor?: string) {
+  const run = new TextRun({ text })
+  return new Paragraph({ heading: level, children: [anchor ? new Bookmark({ id: anchor, children: [run] }) : run] })
 }
 
 function plain(text: string) {
@@ -113,7 +123,7 @@ async function richSubsection(title: string, blocks: BlockNode[]) {
 // empty note when the project has nothing for it (empty: true).
 function sectionOpening(bible: StoryBible, section: StoryBibleSection): { paragraphs: Paragraph[]; empty: boolean } {
   const summary = sectionSummary(bible, section)
-  const title = heading(SECTION_TITLES[section], HeadingLevel.HEADING_1)
+  const title = heading(SECTION_TITLES[section], HeadingLevel.HEADING_1, sectionAnchor(section))
   if (summary === null) {
     return {
       paragraphs: [
@@ -147,7 +157,7 @@ function charactersBody(characters: NonNullable<StoryBible['characters']>): Para
     }
   }
   if (characters.familyTrees.length > 0) {
-    out.push(heading('Family Trees', HeadingLevel.HEADING_2))
+    out.push(heading(FAMILY_TREES_TITLE, HeadingLevel.HEADING_2, FAMILY_TREES_ANCHOR))
     for (const tree of characters.familyTrees) {
       out.push(
         heading(tree.name, HeadingLevel.HEADING_3),
@@ -174,8 +184,8 @@ async function placesBody(places: NonNullable<StoryBible['places']>): Promise<Pa
 
 async function timelineBody(timeline: NonNullable<StoryBible['timeline']>): Promise<Paragraph[]> {
   const out: Paragraph[] = []
-  for (const group of timeline) {
-    out.push(heading(group.heading, HeadingLevel.HEADING_2))
+  for (const [i, group] of timeline.entries()) {
+    out.push(heading(group.heading, HeadingLevel.HEADING_2, timelineGroupAnchor(i)))
     for (const e of group.events) {
       out.push(
         heading(e.title, HeadingLevel.HEADING_3),
@@ -194,6 +204,39 @@ async function timelineBody(timeline: NonNullable<StoryBible['timeline']>): Prom
   return out
 }
 
+// The contents: each entry links to its heading's bookmark. No page numbers:
+// Word's own contents field would need updating in Word to show them, and
+// other apps may never fill it in.
+function contentsParagraphs(bible: StoryBible): Paragraph[] {
+  return [
+    new Paragraph({ heading: HeadingLevel.HEADING_1, children: [new TextRun({ text: CONTENTS_TITLE })] }),
+    // The first entry sits the usual gap below the title's rule, as a
+    // section's count line does.
+    ...contentsEntries(bible).map(
+      (entry, i) =>
+        new Paragraph({
+          spacing: {
+            before: twips(i === 0 ? SECTION_TITLE.after : entry.level === 1 ? CONTENTS.gap : CONTENTS.subGap),
+            after: 0,
+          },
+          indent: entry.level === 2 ? { left: twips(CONTENTS.subIndent) } : undefined,
+          children: [
+            new InternalHyperlink({
+              anchor: entry.anchor,
+              children: [
+                new TextRun(
+                  entry.level === 1
+                    ? { text: entry.title, size: CONTENTS.size * 2 }
+                    : { text: entry.title, size: CONTENTS.subSize * 2, color: docxColor(CONTENTS.subColor) }
+                ),
+              ],
+            }),
+          ],
+        })
+    ),
+  ]
+}
+
 export async function renderStoryBibleToDocx(bible: StoryBible): Promise<Buffer> {
   const sections: ISectionOptions[] = [
     { properties: { page: PAGE_PROPS }, children: titlePageParagraphs(bible.title, 'Story Bible', PAGE.textHeightPt, bible.author) },
@@ -204,13 +247,19 @@ export async function renderStoryBibleToDocx(bible: StoryBible): Promise<Buffer>
   if (bible.places) bodies.push(['places', () => placesBody(bible.places!)])
   if (bible.timeline) bodies.push(['timeline', () => timelineBody(bible.timeline!)])
 
-  // Each section's opening page shows no running header (project · section);
-  // every page is numbered, from 1 on the first section.
-  for (let i = 0; i < bodies.length; i++) {
-    const [section, body] = bodies[i]
+  // The contents and each section open on a page with no running header
+  // (project · section); every page is numbered, from 1 on the contents.
+  sections.push({
+    properties: { titlePage: true, page: { ...PAGE_PROPS, pageNumbers: { start: 1 } } },
+    headers: { default: runningHeader(`${bible.title} · ${CONTENTS_TITLE}`), first: runningHeader(null) },
+    footers: { default: pageNumberFooter(true), first: pageNumberFooter(true) },
+    children: contentsParagraphs(bible),
+  })
+
+  for (const [section, body] of bodies) {
     const opening = sectionOpening(bible, section)
     sections.push({
-      properties: { titlePage: true, page: { ...PAGE_PROPS, ...(i === 0 ? { pageNumbers: { start: 1 } } : {}) } },
+      properties: { titlePage: true, page: PAGE_PROPS },
       headers: { default: runningHeader(`${bible.title} · ${SECTION_TITLES[section]}`), first: runningHeader(null) },
       footers: { default: pageNumberFooter(true), first: pageNumberFooter(true) },
       children: [...opening.paragraphs, ...(opening.empty ? [] : await body())],
