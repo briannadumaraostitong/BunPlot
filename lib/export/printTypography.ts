@@ -37,6 +37,18 @@ export const SECTION_TITLE = {
 // smaller, each with its page number in the PDF.
 export const CONTENTS = { size: 11, gap: 8, subSize: 10, subGap: 3, subIndent: 14, subColor: '#444444', numberWidth: 36 }
 
+// Story bible cards (colours from printColors): a bar down the left edge, a
+// faint tint, rounded in the PDF (DOCX tables can't be), and this gap
+// between cards.
+export const CARD = { accentWidth: 3, radius: 6, paddingX: 10, paddingY: 8, gap: 8 }
+
+// Small coloured labels on a card (status, layer, place type): pills in the
+// PDF, shaded words in the DOCX.
+export const LABEL = { size: 8.5, paddingX: 5, paddingY: 1.5, gap: 4 }
+
+// A card's field heading ("NOTES", "RELATIONSHIPS"): small tracked capitals.
+export const FIELD_LABEL = { size: 8, tracking: 0.8, color: '#666666', before: 8, after: 2 }
+
 // Secondary text: labelled details ("Role: …") and empty-section notes.
 export const META_TEXT = { size: 10, color: '#444444' }
 export const MUTED_COLOR = '#666666'

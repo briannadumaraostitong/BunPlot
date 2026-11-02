@@ -82,12 +82,14 @@ const EMU_PER_PX = 9525
 const WRAP_GAP_SIDE = 24 * EMU_PER_PX
 const WRAP_GAP_BOTTOM = 16 * EMU_PER_PX
 
-// A page's size and margins in twips, its text width in the 96-dpi px
-// ImageRun sizes use, and its text height in points. Every image (wrapped or
-// in line) keeps the width set in the editor, clamped to the text width.
+// A page's size and margins in twips, its text width in twips (tables) and
+// in the 96-dpi px ImageRun sizes use, and its text height in points. Every
+// image (wrapped or in line) keeps the width set in the editor, clamped to the
+// text width.
 export interface DocxPage {
   size: { width: number; height: number }
   margin: { top: number; right: number; bottom: number; left: number }
+  textWidthTwips: number
   textWidthPx: number
   textHeightPt: number
 }
@@ -96,6 +98,7 @@ function docxPage(width: number, height: number, marginX: number, marginY: numbe
   return {
     size: { width: twips(width), height: twips(height) },
     margin: { top: twips(marginY), right: twips(marginX), bottom: twips(marginY), left: twips(marginX) },
+    textWidthTwips: twips(width) - 2 * twips(marginX),
     textWidthPx: Math.floor(((twips(width) - 2 * twips(marginX)) / 1440) * 96),
     textHeightPt: height - 2 * marginY,
   }
