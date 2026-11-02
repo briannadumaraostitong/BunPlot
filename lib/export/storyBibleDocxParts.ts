@@ -16,7 +16,7 @@ import {
 } from 'docx'
 import { docxColor, twips } from './outlineToDocx'
 import { cardColors, labelColors, type CardLabel } from './printColors'
-import { BIBLE_BODY, CARD, FIELD_LABEL, LABEL } from './printTypography'
+import { CARD, CARD_PADDING_BOTTOM, FIELD_LABEL, LABEL } from './printTypography'
 
 const NO_BORDER = { style: BorderStyle.NONE, size: 0, color: 'auto' }
 
@@ -56,11 +56,9 @@ export function card(
               bottom: NO_BORDER,
               right: NO_BORDER,
             },
-            // The last paragraph's own gap after it counts towards the bottom
-            // padding.
             margins: {
               top: twips(CARD.paddingY),
-              bottom: twips(Math.max(0, CARD.paddingY - BIBLE_BODY.paragraphGap)),
+              bottom: twips(CARD_PADDING_BOTTOM),
               left: twips(CARD.paddingX),
               right: twips(CARD.paddingX),
             },

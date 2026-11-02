@@ -22,11 +22,27 @@ import type {
 export const STORY_BIBLE_SECTIONS = ['characters', 'places', 'timeline'] as const
 export type StoryBibleSection = (typeof STORY_BIBLE_SECTIONS)[number]
 
+// One of a character's relationships, from their side: the other character,
+// and what they are to this one ("Parent"), or a sentence when a custom
+// one-way label has no word for the other way round.
+export interface CharacterRelation {
+  name: string
+  relation: string
+}
+
+// description and notes: plain textarea text, one paragraph per line.
 export interface CharacterEntry {
   name: string
+  color: string | null
   role: string | null
-  description: string | null
-  relationships: string[]
+  description: string[]
+  notes: string[]
+  relationships: CharacterRelation[]
+}
+
+// Nothing but a name (and maybe a role): shown as a slim card.
+export function hasDetails(c: CharacterEntry): boolean {
+  return c.description.length > 0 || c.notes.length > 0 || c.relationships.length > 0
 }
 
 export interface FamilyTreeEntry {
@@ -108,6 +124,50 @@ function relationshipSentence(rel: CharacterRelationship, nameById: Map<string, 
   return `${source} is the ${label ?? rel.relationship_type} of ${target}.`
 }
 
+// RelationshipModal's labels for the built-in types, and what the two
+// one-way types are called from the other end. "other" alone reads as
+// "Related".
+const TYPE_LABELS: Record<RelationshipType, string> = {
+  parent: 'Parent',
+  sibling: 'Sibling',
+  spouse: 'Spouse',
+  friend: 'Friend',
+  enemy: 'Enemy',
+  mentor: 'Mentor',
+  rival: 'Rival',
+  other: 'Related',
+}
+const INVERSE_LABELS: Partial<Record<RelationshipType, string>> = { parent: 'Child', mentor: 'Student' }
+
+// A relationship as seen from characterId's side: the other character and
+// what they are to this one. For a one-way relationship this character is
+// the source of ("this is the mentor of other"), the built-in types have a
+// word for the other end (other is their Student); a custom label doesn't,
+// so it reads as a sentence ("Ilsa is their guardian").
+function relationFor(
+  rel: CharacterRelationship,
+  characterId: string,
+  nameById: Map<string, string>
+): CharacterRelation | null {
+  const isSource = rel.source_character_id === characterId
+  const self = nameById.get(characterId)
+  const other = nameById.get(isSource ? rel.target_character_id : rel.source_character_id)
+  if (!self || !other) return null
+  const label = rel.relationship_label?.trim() || null
+
+  if (SYMMETRIC_TYPES.has(rel.relationship_type) || !isSource) {
+    // A custom label starts with a capital, as the built-in ones do.
+    return { name: other, relation: label ? label[0].toUpperCase() + label.slice(1) : TYPE_LABELS[rel.relationship_type] }
+  }
+  const inverse = label ? null : INVERSE_LABELS[rel.relationship_type]
+  return { name: other, relation: inverse ?? `${self} is their ${label ?? rel.relationship_type}` }
+}
+
+// A textarea's text as paragraphs: one per non-blank line.
+function lines(text: string | null): string[] {
+  return text ? text.split(/\r?\n/).map((l) => l.trim()).filter(Boolean) : []
+}
+
 // Headings a writer typed inside rich text would otherwise render at the same
 // level as the export's own headings, so they're pushed down to sit one level
 // below whatever heading contains them, capped at H6: place description/notes
@@ -170,12 +230,15 @@ export function buildStoryBible(input: StoryBibleInput): StoryBible {
   if (input.sections.has('characters')) {
     const entries = [...input.characters].sort(byName).map((c) => ({
       name: c.name,
+      color: c.color,
       role: c.role?.trim() || null,
-      description: c.description?.trim() || null,
+      description: lines(c.description),
+      notes: lines(c.notes),
       relationships: input.relationships
         .filter((r) => r.source_character_id === c.id || r.target_character_id === c.id)
-        .map((r) => relationshipSentence(r, characterNameById))
-        .filter((s): s is string => s !== null),
+        .map((r) => relationFor(r, c.id, characterNameById))
+        .filter((r): r is CharacterRelation => r !== null)
+        .sort((a, b) => a.name.localeCompare(b.name) || a.relation.localeCompare(b.relation)),
     }))
 
     const familyTrees = [...input.familyTrees]

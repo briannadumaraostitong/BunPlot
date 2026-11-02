@@ -8,6 +8,9 @@ import {
   LineRuleType,
   Bookmark,
   InternalHyperlink,
+  Tab,
+  TabStopType,
+  type FileChild,
   type ISectionOptions,
   type IStylesOptions,
 } from 'docx'
@@ -22,9 +25,14 @@ import {
   titlePageParagraphs,
   twips,
 } from './outlineToDocx'
+import { SERVER_FONTS_DIR } from './outlineToPdf'
+import { registerPdfFonts } from './pdfFonts'
 import { DEFAULT_DOCUMENT_FONT } from '../documentFonts'
 import { MANUSCRIPT_PAGES } from './manuscriptLayout'
-import { BIBLE_BODY, CONTENTS, META_TEXT, MUTED_COLOR, SECTION_TITLE } from './printTypography'
+import { BIBLE_BODY, CHARACTER_CARD, CONTENTS, META_TEXT, MUTED_COLOR, SECTION_TITLE } from './printTypography'
+import { cardColors } from './printColors'
+import { card, fieldLabel } from './storyBibleDocxParts'
+import { cardTextWidth, characterCardHeight, keepCardTogether, relationColumns } from './storyBibleMeasure'
 import type { BlockNode } from './outlineIR'
 import {
   CONTENTS_TITLE,
@@ -33,9 +41,11 @@ import {
   SECTION_EMPTY_TEXT,
   SECTION_TITLES,
   contentsEntries,
+  hasDetails,
   sectionAnchor,
   sectionSummary,
   timelineGroupAnchor,
+  type CharacterEntry,
   type StoryBible,
   type StoryBibleSection,
 } from './storyBible'
@@ -50,6 +60,8 @@ import {
 const PAGE = printPage('a4')
 const EDGE = marginLineTwips(MANUSCRIPT_PAGES.a4.marginY)
 const PAGE_PROPS = { size: PAGE.size, margin: { ...PAGE.margin, header: EDGE, footer: EDGE } }
+// The text width in points, for the card estimates (storyBibleMeasure).
+const TEXT_WIDTH_PT = PAGE.textWidthTwips / twips(1)
 
 // Literata at the story bible's body size, lines at least BIBLE_BODY's
 // height (as in the Book DOCX, so nothing is clipped), black headings, and
@@ -109,11 +121,6 @@ function bullets(items: string[]) {
   return items.map((text) => new Paragraph({ bullet: { level: 0 }, children: [new TextRun({ text })] }))
 }
 
-// Character descriptions are plain textarea strings — one paragraph per line.
-function lines(text: string | null) {
-  return text ? text.split('\n').filter((l) => l.trim()).map(plain) : []
-}
-
 async function richSubsection(title: string, blocks: BlockNode[]) {
   if (blocks.length === 0) return []
   return [heading(title, HeadingLevel.HEADING_3), ...(await blocksToParagraphs(blocks))]
@@ -148,21 +155,69 @@ function sectionOpening(bible: StoryBible, section: StoryBibleSection): { paragr
   }
 }
 
-function charactersBody(characters: NonNullable<StoryBible['characters']>): Paragraph[] {
-  const out: Paragraph[] = []
-  for (const c of characters.entries) {
-    out.push(heading(c.name, HeadingLevel.HEADING_2), ...meta('Role', c.role), ...lines(c.description))
-    if (c.relationships.length > 0) {
-      out.push(heading('Relationships', HeadingLevel.HEADING_3), ...bullets(c.relationships))
-    }
+// A character's card, as in the PDF (storyBibleToPdf's CharacterCard). The
+// name stays a Heading 2, so characters are in Word's navigation pane.
+async function characterCard(c: CharacterEntry): Promise<FileChild[]> {
+  const { text } = cardColors(c.color)
+  const gap = twips(BIBLE_BODY.paragraphGap)
+  if (!hasDetails(c)) {
+    const name = new Paragraph({
+      heading: HeadingLevel.HEADING_2,
+      spacing: { before: 0, after: gap },
+      children: [
+        new TextRun({ text: c.name, size: CHARACTER_CARD.slimNameSize * 2 }),
+        ...(c.role
+          ? [new TextRun({ text: `  ·  ${c.role}`, size: CHARACTER_CARD.roleSize * 2, bold: false, color: docxColor(text) })]
+          : []),
+      ],
+    })
+    return card(c.color, [name], { textWidthTwips: PAGE.textWidthTwips, keepTogether: true })
   }
+
+  const columns = relationColumns(cardTextWidth(TEXT_WIDTH_PT))
+  const rowSize = CHARACTER_CARD.rowSize * 2
+  const children: Paragraph[] = [
+    new Paragraph({
+      heading: HeadingLevel.HEADING_2,
+      spacing: { before: 0, after: c.role ? twips(CHARACTER_CARD.nameGap) : gap },
+      children: [new TextRun({ text: c.name })],
+    }),
+    ...(c.role
+      ? [new Paragraph({ children: [new TextRun({ text: c.role, size: CHARACTER_CARD.roleSize * 2, color: docxColor(text) })] })]
+      : []),
+    ...c.description.map(plain),
+    ...(c.notes.length > 0 ? [fieldLabel('Notes'), ...c.notes.map(plain)] : []),
+    ...(c.relationships.length > 0 ? [fieldLabel('Relationships')] : []),
+    // The other character's name, then at the tab stop what they are to this
+    // one.
+    ...c.relationships.map(
+      (r, i) =>
+        new Paragraph({
+          tabStops: [{ type: TabStopType.LEFT, position: twips(columns.name + columns.gap) }],
+          spacing: { after: i === c.relationships.length - 1 ? gap : twips(CHARACTER_CARD.rowGap) },
+          children: [
+            new TextRun({ text: r.name, size: rowSize }),
+            new TextRun({ children: [new Tab()], size: rowSize }),
+            new TextRun({ text: r.relation, size: rowSize, color: docxColor(CHARACTER_CARD.relationColor) }),
+          ],
+        })
+    ),
+  ]
+  const keepTogether = keepCardTogether(await characterCardHeight(c, TEXT_WIDTH_PT), PAGE.textHeightPt)
+  return card(c.color, children, { textWidthTwips: PAGE.textWidthTwips, keepTogether })
+}
+
+async function charactersBody(characters: NonNullable<StoryBible['characters']>): Promise<FileChild[]> {
+  const out: FileChild[] = []
+  for (const c of characters.entries) out.push(...(await characterCard(c)))
   if (characters.familyTrees.length > 0) {
     out.push(heading(FAMILY_TREES_TITLE, HeadingLevel.HEADING_2, FAMILY_TREES_ANCHOR))
     for (const tree of characters.familyTrees) {
       out.push(
         heading(tree.name, HeadingLevel.HEADING_3),
-        ...meta('Members', tree.members.length > 0 ? tree.members.join(', ') : 'None'),
-        ...bullets(tree.relationships)
+        fieldLabel('Members'),
+        plain(tree.members.length > 0 ? tree.members.join(', ') : 'None'),
+        ...(tree.relationships.length > 0 ? [fieldLabel('Relationships'), ...bullets(tree.relationships)] : [])
       )
     }
   }
@@ -238,11 +293,14 @@ function contentsParagraphs(bible: StoryBible): Paragraph[] {
 }
 
 export async function renderStoryBibleToDocx(bible: StoryBible): Promise<Buffer> {
+  // The card estimates measure text with the PDF's fonts, so both formats
+  // keep the same cards together.
+  registerPdfFonts(SERVER_FONTS_DIR)
   const sections: ISectionOptions[] = [
     { properties: { page: PAGE_PROPS }, children: titlePageParagraphs(bible.title, 'Story Bible', PAGE.textHeightPt, bible.author) },
   ]
 
-  const bodies: [StoryBibleSection, () => Paragraph[] | Promise<Paragraph[]>][] = []
+  const bodies: [StoryBibleSection, () => FileChild[] | Promise<FileChild[]>][] = []
   if (bible.characters) bodies.push(['characters', () => charactersBody(bible.characters!)])
   if (bible.places) bodies.push(['places', () => placesBody(bible.places!)])
   if (bible.timeline) bodies.push(['timeline', () => timelineBody(bible.timeline!)])

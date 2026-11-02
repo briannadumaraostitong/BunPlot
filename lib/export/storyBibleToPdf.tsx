@@ -10,7 +10,18 @@ import {
 } from './outlineToPdf'
 import { registerPdfFonts } from './pdfFonts'
 import { MANUSCRIPT_PAGES } from './manuscriptLayout'
-import { BIBLE_BODY, CONTENTS, META_TEXT, MUTED_COLOR, SECTION_TITLE, marginLineOffset } from './printTypography'
+import {
+  BIBLE_BODY,
+  CHARACTER_CARD,
+  CONTENTS,
+  META_TEXT,
+  MUTED_COLOR,
+  SECTION_TITLE,
+  marginLineOffset,
+} from './printTypography'
+import { cardColors } from './printColors'
+import { Card, FieldLabel } from './storyBiblePdfParts'
+import { cardTextWidth, characterCardHeight, keepCardTogether, relationColumns } from './storyBibleMeasure'
 import type { BlockNode } from './outlineIR'
 import {
   CONTENTS_TITLE,
@@ -19,9 +30,11 @@ import {
   SECTION_EMPTY_TEXT,
   SECTION_TITLES,
   contentsEntries,
+  hasDetails,
   sectionAnchor,
   sectionSummary,
   timelineGroupAnchor,
+  type CharacterEntry,
   type StoryBible,
   type StoryBibleSection,
 } from './storyBible'
@@ -79,7 +92,29 @@ const styles = StyleSheet.create({
   },
   contentsTitle: { flex: 1 },
   contentsNumber: { width: CONTENTS.numberWidth, textAlign: 'right' },
+  // Character cards (CHARACTER_CARD).
+  characterName: { fontSize: CHARACTER_CARD.nameSize, lineHeight: CHARACTER_CARD.nameLineHeight, fontWeight: 700 },
+  characterRole: {
+    fontSize: CHARACTER_CARD.roleSize,
+    lineHeight: CHARACTER_CARD.roleLineHeight,
+    marginBottom: BIBLE_BODY.paragraphGap,
+  },
+  slimName: {
+    fontSize: CHARACTER_CARD.slimNameSize,
+    lineHeight: CHARACTER_CARD.roleLineHeight,
+    fontWeight: 700,
+    marginBottom: BIBLE_BODY.paragraphGap,
+  },
+  slimRole: { fontSize: CHARACTER_CARD.roleSize, fontWeight: 400 },
+  // The rows' last gap, plus this, makes a paragraph's gap.
+  relations: { marginBottom: BIBLE_BODY.paragraphGap - CHARACTER_CARD.rowGap },
+  relationRow: { flexDirection: 'row', marginBottom: CHARACTER_CARD.rowGap },
+  relationText: { fontSize: CHARACTER_CARD.rowSize, lineHeight: CHARACTER_CARD.rowLineHeight },
+  relation: { flex: 1, color: CHARACTER_CARD.relationColor },
 })
+
+// Relationship rows' name column, inside a card on this page.
+const RELATION_COLUMNS = relationColumns(cardTextWidth(LAYOUT.textWidth))
 
 const pageStyle = [outlineStyles.page, styles.page]
 
@@ -232,6 +267,51 @@ async function richSubsection(title: string, blocks: BlockNode[]) {
   )
 }
 
+// A character's card: their colour's accent, name and role (in the colour),
+// then the description, notes and relationships. A character with none of
+// those gets a slim one-line card: the name, and the role beside it.
+function CharacterCard({ c, keepTogether }: { c: CharacterEntry; keepTogether: boolean }) {
+  const { text } = cardColors(c.color)
+  if (!hasDetails(c)) {
+    return (
+      <Card color={c.color} keepTogether>
+        <Text style={styles.slimName}>
+          {c.name}
+          {c.role && <Text style={[styles.slimRole, { color: text }]}>{`  ·  ${c.role}`}</Text>}
+        </Text>
+      </Card>
+    )
+  }
+  return (
+    <Card color={c.color} keepTogether={keepTogether}>
+      <Text style={[styles.characterName, { marginBottom: c.role ? CHARACTER_CARD.nameGap : BIBLE_BODY.paragraphGap }]}>
+        {c.name}
+      </Text>
+      {c.role && <Text style={[styles.characterRole, { color: text }]}>{c.role}</Text>}
+      <Paragraphs items={c.description} />
+      {c.notes.length > 0 && (
+        <>
+          <FieldLabel>Notes</FieldLabel>
+          <Paragraphs items={c.notes} />
+        </>
+      )}
+      {c.relationships.length > 0 && (
+        <View style={styles.relations}>
+          <FieldLabel>Relationships</FieldLabel>
+          {c.relationships.map((r, i) => (
+            <View key={i} style={styles.relationRow} wrap={false}>
+              <Text style={[styles.relationText, { width: RELATION_COLUMNS.name, marginRight: RELATION_COLUMNS.gap }]}>
+                {r.name}
+              </Text>
+              <Text style={[styles.relationText, styles.relation]}>{r.relation}</Text>
+            </View>
+          ))}
+        </View>
+      )}
+    </Card>
+  )
+}
+
 // At most this many layouts. The second one normally agrees with the first,
 // since contents numbers sit in a fixed-width column and can't move anything;
 // the third is only a safety net.
@@ -250,20 +330,16 @@ export async function renderStoryBibleToPdf(bible: StoryBible): Promise<Buffer> 
 
   if (bible.characters) {
     const { entries, familyTrees } = bible.characters
+    // A card that fits in CARD.keepTogetherShare of a page stays in one piece.
+    const keep = await Promise.all(
+      entries.map(async (c) =>
+        hasDetails(c) ? keepCardTogether(await characterCardHeight(c, LAYOUT.textWidth), LAYOUT.textHeight) : true
+      )
+    )
     pages.push(
       <Section key="characters" bible={bible} section="characters" pages={pageNumbers}>
         {entries.map((c, i) => (
-          <View key={i} style={styles.entry}>
-            <Heading level={2}>{c.name}</Heading>
-            <Meta label="Role" value={c.role} />
-            <Paragraphs items={c.description ? c.description.split('\n').filter((l) => l.trim()) : []} />
-            {c.relationships.length > 0 && (
-              <>
-                <Heading level={3}>Relationships</Heading>
-                <Bullets items={c.relationships} />
-              </>
-            )}
-          </View>
+          <CharacterCard key={i} c={c} keepTogether={keep[i]} />
         ))}
         {/* A group heading goes inside its first entry, so it stays with it
             (minPresenceAhead only holds for the Text that follows it). */}
@@ -280,8 +356,14 @@ export async function renderStoryBibleToPdf(bible: StoryBible): Promise<Buffer> 
                   </>
                 )}
                 <Heading level={3}>{tree.name}</Heading>
-                <Meta label="Members" value={tree.members.length > 0 ? tree.members.join(', ') : 'None'} />
-                <Bullets items={tree.relationships} />
+                <FieldLabel>Members</FieldLabel>
+                <Text style={styles.body}>{tree.members.length > 0 ? tree.members.join(', ') : 'None'}</Text>
+                {tree.relationships.length > 0 && (
+                  <>
+                    <FieldLabel>Relationships</FieldLabel>
+                    <Bullets items={tree.relationships} />
+                  </>
+                )}
               </View>
             ))}
           </View>

@@ -39,15 +39,39 @@ export const CONTENTS = { size: 11, gap: 8, subSize: 10, subGap: 3, subIndent: 1
 
 // Story bible cards (colours from printColors): a bar down the left edge, a
 // faint tint, rounded in the PDF (DOCX tables can't be), and this gap
-// between cards.
-export const CARD = { accentWidth: 3, radius: 6, paddingX: 10, paddingY: 8, gap: 8 }
+// between cards. keepTogetherShare: a card estimated to fit in this share of
+// the page's text height isn't split across pages; a taller one is, rather
+// than leave a large gap.
+export const CARD = { accentWidth: 3, radius: 6, paddingX: 10, paddingY: 8, gap: 8, keepTogetherShare: 0.5 }
+
+// A card's bottom padding: its last line brings its own paragraph gap after
+// it, which counts towards it.
+export const CARD_PADDING_BOTTOM = Math.max(0, CARD.paddingY - BIBLE_BODY.paragraphGap)
+
+// A character card: the name, the role in the character's colour, then the
+// description, notes and relationships. Relationship rows put the other
+// character's name in the first rowNameShare of the card's width. A slim
+// card (a name with no details) is one line: the name, a little smaller.
+export const CHARACTER_CARD = {
+  nameSize: 15,
+  nameLineHeight: 1.25,
+  nameGap: 2,
+  roleSize: 10,
+  roleLineHeight: 1.3,
+  slimNameSize: 11,
+  rowSize: 10,
+  rowLineHeight: 1.4,
+  rowGap: 2,
+  rowNameShare: 0.4,
+  relationColor: '#444444',
+}
 
 // Small coloured labels on a card (status, layer, place type): pills in the
 // PDF, shaded words in the DOCX.
 export const LABEL = { size: 8.5, paddingX: 5, paddingY: 1.5, gap: 4 }
 
 // A card's field heading ("NOTES", "RELATIONSHIPS"): small tracked capitals.
-export const FIELD_LABEL = { size: 8, tracking: 0.8, color: '#666666', before: 8, after: 2 }
+export const FIELD_LABEL = { size: 8, lineHeight: 1.25, tracking: 0.8, color: '#666666', before: 8, after: 2 }
 
 // Secondary text: labelled details ("Role: …") and empty-section notes.
 export const META_TEXT = { size: 10, color: '#444444' }
