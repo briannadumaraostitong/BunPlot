@@ -54,6 +54,7 @@ export async function updateCharacter(
     role: string | null
     color: string
     description: string | null
+    notes: string | null
   }>
 ) {
   const supabase = await createClient()

@@ -114,10 +114,11 @@ function CharacterDetailContent({
   const [name, setName] = useState(character.name)
   const [role, setRole] = useState(character.role ?? '')
   const [description, setDescription] = useState(character.description ?? '')
+  const [notes, setNotes] = useState(character.notes ?? '')
   const colorInputRef = useRef<HTMLInputElement>(null)
 
   async function saveField(
-    updates: Partial<{ name: string; role: string | null; description: string | null }>
+    updates: Partial<{ name: string; role: string | null; description: string | null; notes: string | null }>
   ) {
     onUpdated(character.id, updates)
     const result = await settle(updateCharacter(character.id, character.project_id, updates))
@@ -217,6 +218,16 @@ function CharacterDetailContent({
               saveField({ description: description.trim() || null })
             }
             placeholder="Who are they? What drives them?"
+            className="text-xs min-h-24 bg-background"
+          />
+        </Field>
+
+        <Field label="Notes">
+          <Textarea
+            value={notes}
+            onChange={(e) => setNotes(e.target.value)}
+            onBlur={() => notes !== (character.notes ?? '') && saveField({ notes: notes.trim() || null })}
+            placeholder="Private notes, backstory, ideas..."
             className="text-xs min-h-24 bg-background"
           />
         </Field>
