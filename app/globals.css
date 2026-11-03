@@ -175,6 +175,64 @@
   --cut: 6px;
 }
 
+/* The border along each chamfer, which clip-path slices off. ::before draws
+   the top-right edge and ::after the bottom-left, each a 45° line whose
+   width, style and color are inherited from the element's own border: it
+   follows hover, focus and selected colors, and draws nothing where the
+   border is transparent or 0. Only the placement assumes a border width,
+   --cut-bw, since calc() can't read it. Elements that already use ::after
+   (ghost buttons' enlarged tap targets) are left without the diagonals. */
+@layer base {
+  :root[data-shape="cut"] :is(
+    .corner-cut,
+    .corner-cut-sm,
+    [data-slot="button"]:not(.rounded-full),
+    [data-slot="dialog-content"],
+    [data-slot="sheet-content"]
+  ):not([class*="after:"]) {
+    /* In the base layer so absolute/fixed classes (dialogs, sheet) win,
+       and a theme stylesheet can set --cut-bw for a thicker border. */
+    position: relative;
+    --cut-bw: 1px;
+  }
+}
+:root[data-shape="cut"] :is(
+  .corner-cut,
+  .corner-cut-sm,
+  [data-slot="button"]:not(.rounded-full),
+  [data-slot="dialog-content"],
+  [data-slot="sheet-content"]
+):not([class*="after:"]) {
+  &::before,
+  &::after {
+    content: "";
+    position: absolute;
+    width: calc(var(--cut) * 1.41421);
+    height: 0;
+    border: 0 solid;
+    transform-origin: 0 0;
+    pointer-events: none;
+  }
+  /* From the cut in the top edge, down-right to the right edge. */
+  &::before {
+    left: calc(100% + var(--cut-bw) - var(--cut));
+    top: calc(-1 * var(--cut-bw));
+    border-top-width: inherit;
+    border-top-style: inherit;
+    border-top-color: inherit;
+    rotate: 45deg;
+  }
+  /* From the cut in the bottom edge, up-left to the left edge. */
+  &::after {
+    left: calc(var(--cut) - var(--cut-bw));
+    top: calc(100% + var(--cut-bw));
+    border-bottom-width: inherit;
+    border-bottom-style: inherit;
+    border-bottom-color: inherit;
+    rotate: 225deg;
+  }
+}
+
 /* Background texture (data-texture). Goes on page backgrounds marked
    .bg-texture; cards and panels have solid backgrounds that cover it. */
 [data-texture="grid"] body,
