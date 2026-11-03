@@ -54,7 +54,7 @@ export function EventPlacesField({
 
   return (
     <div className="space-y-2">
-      <div className="flex items-center gap-1.5 text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">
+      <div data-slot="field-label" className="flex items-center gap-1.5 text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">
         <MapPin className="h-3 w-3" />
         Places
       </div>

@@ -431,7 +431,11 @@ function EventForm({
   }
 
   return (
-    <div className="flex flex-col max-h-dvh overflow-y-auto w-full md:h-160 md:max-h-none md:flex-row">
+    <div
+      data-slot="event-form"
+      className="flex flex-col max-h-dvh overflow-y-auto w-full md:h-160 md:max-h-none md:flex-row"
+      style={{ '--event-color': color } as React.CSSProperties}
+    >
       {/* Left metadata sidebar */}
       <div className="grid grid-cols-2 gap-4 border-b border-border p-5 shrink-0 bg-secondary/20 md:grid-cols-1 md:gap-6 md:w-56 md:border-b-0 md:border-r md:overflow-y-auto md:scrollbar-thin">
         <Field label="Layer">
@@ -503,7 +507,7 @@ function EventForm({
       {/* Right content area */}
       <div className="flex-1 flex flex-col min-w-0 bg-background">
         {/* Title */}
-        <div className="border-b border-border px-5 py-3 shrink-0">
+        <div data-slot="event-modal-header" className="border-b border-border px-5 py-3 shrink-0">
           <Input
             value={title}
             onChange={(e) => setTitle(e.target.value)}
@@ -677,7 +681,7 @@ function Field({
 }) {
   return (
     <div className="space-y-1.5">
-      <label className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">
+      <label data-slot="field-label" className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">
         {label}
       </label>
       {children}
