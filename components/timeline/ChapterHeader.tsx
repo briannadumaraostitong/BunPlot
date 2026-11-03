@@ -71,7 +71,12 @@ export function ChapterHeader({
   }
 
   return (
-    <div className="flex h-10 border-b border-border bg-secondary/50 shrink-0 shadow-sm">
+    // Sticks to the top edge of the grid's scroll area (-top-4 offsets that
+    // area's p-4, which sticky positioning otherwise leaves as a gap the lanes
+    // scroll through), above the lanes (z-20 clears a dragging card's z-10).
+    // Opaque, so lanes don't show through while stuck: the same 50% secondary
+    // as before, laid over the page background it used to show through.
+    <div className="sticky -top-4 z-20 flex h-10 border-b border-border bg-background bg-[linear-gradient(hsl(var(--secondary)/0.5),hsl(var(--secondary)/0.5))] shrink-0 shadow-sm">
       {/* Label column with resize handle */}
       <ResizableCell
         width={labelWidth}
