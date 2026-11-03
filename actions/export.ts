@@ -11,6 +11,7 @@ import { buildStoryBible, STORY_BIBLE_SECTIONS, type StoryBibleSection } from '@
 import { renderStoryBibleToDocx } from '@/lib/export/storyBibleToDocx'
 import { renderStoryBibleToPdf } from '@/lib/export/storyBibleToPdf'
 import { DOWNLOAD_CONCURRENCY, forEachWithConcurrency } from '@/lib/export/concurrency'
+import { isExportPath, storeExport } from '@/lib/storage/exports'
 import type {
   Chapter,
   Character,
@@ -25,11 +26,19 @@ import type {
   Status,
 } from '@/types/database'
 
-// notice: something left out of an otherwise good export (a Book cover, or a
-// story bible's place covers, that couldn't be used), to tell the user.
-export type ExportOutlinesResult =
-  | { base64: string; mimeType: string; filename: string; notice?: string }
-  | { error: string }
+// A finished export, stored for the browser to download (lib/storage/exports;
+// lib/export/fetchExport downloads it and discards the stored copy). notice:
+// something left out of an otherwise good export (a Book cover, or a story
+// bible's place covers, that couldn't be used), to tell the user.
+export interface ExportFile {
+  url: string
+  path: string
+  mimeType: string
+  filename: string
+  notice?: string
+}
+
+export type ExportOutlinesResult = ExportFile | { error: string }
 
 const COVER_NOTICE = "Couldn't include the cover image, so the book starts at its title page."
 
@@ -53,6 +62,20 @@ async function profileAuthor(supabase: Awaited<ReturnType<typeof createClient>>)
     .single()
   const p = profile as { display_name: string | null; username: string | null } | null
   return p?.display_name?.trim() || p?.username?.trim() || null
+}
+
+// Stores a rendered export for download and describes it for the dialog.
+async function deliver(
+  supabase: Awaited<ReturnType<typeof createClient>>,
+  projectId: string,
+  buffer: Buffer,
+  format: 'docx' | 'pdf',
+  filename: string,
+  notice: string | null
+): Promise<ExportOutlinesResult> {
+  const stored = await storeExport(supabase, projectId, buffer, MIME_TYPE[format], format)
+  if ('error' in stored) return stored
+  return { ...stored, mimeType: MIME_TYPE[format], filename, ...(notice ? { notice } : {}) }
 }
 
 // The Book style's title page: the project's title and cover, and the
@@ -130,10 +153,8 @@ async function placeCovers(
   return { covers, notice }
 }
 
-// Small enough (text-heavy, no per-project image volume like storyboards
-// will have) to return the file directly from the action as base64 rather
-// than uploading to Storage for a signed URL — see the manuscript-export
-// plan for why that tradeoff flips for image-heavy export types later.
+// The finished file goes through Storage (deliver), since covers and images
+// can make it bigger than a function's response may be.
 // options: the style and page size, for either format.
 export async function exportOutlines(
   projectId: string,
@@ -169,24 +190,19 @@ export async function exportOutlines(
     notice = result.notice
   }
 
+  let buffer: Buffer
   try {
     const render = format === 'docx' ? renderOutlinesToDocx : renderOutlinesToPdf
-    const buffer = await render(sections, { style: options.style, pageSize: options.pageSize, book })
-    return {
-      base64: buffer.toString('base64'),
-      mimeType: MIME_TYPE[format],
-      filename: `${outlines.length === 1 ? outlines[0].name : 'Outline Export'}.${format}`,
-      ...(notice ? { notice } : {}),
-    }
+    buffer = await render(sections, { style: options.style, pageSize: options.pageSize, book })
   } catch (err) {
     console.error('Outline export error:', err)
     return { error: 'Failed to generate export' }
   }
+  const filename = `${outlines.length === 1 ? outlines[0].name : 'Outline Export'}.${format}`
+  return deliver(supabase, projectId, buffer, format, filename, notice)
 }
 
-// Same base64 delivery as exportOutlines: text-heavy, and the only images are
-// place covers (scaled down for print) and ones embedded in place
-// descriptions/notes. Always exports the whole
+// Delivered through Storage as exportOutlines is. Always exports the whole
 // project, regardless of any filters active on the Timeline tab.
 export async function exportStoryBible(
   projectId: string,
@@ -266,18 +282,24 @@ export async function exportStoryBible(
     eventPlaces: (eventPlacesRes.data ?? []) as { event_id: string; place_id: string }[],
   })
 
+  let buffer: Buffer
   try {
-    const buffer = format === 'docx' ? await renderStoryBibleToDocx(bible) : await renderStoryBibleToPdf(bible)
-    return {
-      base64: buffer.toString('base64'),
-      mimeType: MIME_TYPE[format],
-      filename: `${projectTitle} - Story Bible.${format}`,
-      ...(notice ? { notice } : {}),
-    }
+    buffer = format === 'docx' ? await renderStoryBibleToDocx(bible) : await renderStoryBibleToPdf(bible)
   } catch (err) {
     console.error('Story bible export error:', err)
     return { error: 'Failed to generate export' }
   }
+  return deliver(supabase, projectId, buffer, format, `${projectTitle} - Story Bible.${format}`, notice)
+}
+
+// Deletes an export's stored copy once the browser has it (fetchExport).
+// Only ever one of this project's exports.
+export async function discardExport(projectId: string, path: string) {
+  if (!isExportPath(projectId, path)) return { error: 'Not an export' }
+  const supabase = await createClient()
+  const { error } = await supabase.storage.from('attachments').remove([path])
+  if (error) return { error: error.message }
+  return { success: true }
 }
 
 // Long enough for a big export to download every image from the browser;

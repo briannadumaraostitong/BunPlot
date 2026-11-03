@@ -8,9 +8,8 @@ import { PdfPreview } from '@/components/ui/pdf-preview'
 import { cn } from '@/lib/utils'
 import { exportStoryBible } from '@/actions/export'
 import { settle } from '@/lib/notify'
-import { base64ToBlob } from '@/lib/export/base64ToBlob'
-import { downloadBase64 } from '@/lib/export/downloadBase64'
 import { downloadBlob } from '@/lib/export/downloadBlob'
+import { fetchExport } from '@/lib/export/fetchExport'
 import { STORY_BIBLE_SECTIONS, type StoryBibleSection } from '@/lib/export/storyBible'
 import { usePdfPreview } from '@/hooks/usePdfPreview'
 
@@ -81,8 +80,10 @@ export function ExportStoryBibleDialog({ projectId, open, onClose }: ExportStory
     const previewError = await preview.build(async () => {
       const result = await settle(exportStoryBible(projectId, orderedSections(), 'pdf'))
       if ('error' in result) return result
+      const file = await fetchExport(projectId, result)
+      if ('error' in file) return file
       if (result.notice) setNotice(result.notice)
-      return { blob: base64ToBlob(result.base64, result.mimeType), filename: result.filename }
+      return { blob: file.blob, filename: result.filename }
     })
     if (previewError) setError(previewError)
   }
@@ -100,13 +101,19 @@ export function ExportStoryBibleDialog({ projectId, open, onClose }: ExportStory
     setError(null)
     setNotice(null)
     const result = await settle(exportStoryBible(projectId, orderedSections(), format))
-    setExporting(false)
-
     if ('error' in result) {
+      setExporting(false)
       setError(result.error)
       return
     }
-    downloadBase64(result.base64, result.mimeType, result.filename)
+    const file = await fetchExport(projectId, result)
+    setExporting(false)
+
+    if ('error' in file) {
+      setError(file.error)
+      return
+    }
+    downloadBlob(file.blob, result.filename)
     // Stay open to say what was left out; otherwise done.
     if (result.notice) setNotice(result.notice)
     else close()
