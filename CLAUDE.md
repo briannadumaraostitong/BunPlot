@@ -74,7 +74,7 @@ Inspired by: Plottr, Notion, Linear, iA Writer.
 - Always add `bg-background` to inputs inside panels
 
 #### Status Pills
-- Always rounded-full pills, never badges with sharp corners
+- Shape is per theme. Classic: rounded-full pills, never badges with sharp corners. Cyberpunk: small square mono tags (`app/themes/cyberpunk.css`, `data-slot="event-card-status"`)
 - Colors per status:
   - draft: zinc
   - outline: blue
@@ -88,11 +88,12 @@ Inspired by: Plottr, Notion, Linear, iA Writer.
 - Collapsible panels use chevron icons (`ChevronLeft`/`ChevronRight`)
 
 #### Event Cards (on timeline)
-- Left accent border: `borderLeftWidth: 3px`, `borderLeftColor: color`
-- Background: `color + '18'` (very subtle tint)
-- Rounded: `rounded-lg`
+- Colors come from the `--event-color` CSS variable (never inline color styles), with `data-slot="event-card"` hooks so a theme stylesheet in `app/themes/` can restyle them
+- Left accent border: `border-l-3 border-l-(color:--event-color)`, last in `cn()` so tailwind-merge keeps it
+- Background (Classic): `bg-(--event-color)/[9.41%]` (very subtle tint), title in the layer color; Cyberpunk uses a flat surface and a foreground-colored title
+- Rounded: `rounded-lg` (square under the cut shape)
 - Show: title (truncated), description preview (stripped HTML, 80 chars max), status pill
-- Selected state: `ring-2 ring-offset-1 shadow-lg`
+- Selected state is per theme. Classic: `ring-2 ring-offset-1 shadow-lg`. Cyberpunk: a 2px `--accent-2` (cyan) outline, no ring or shadow
 - Hover: `hover:brightness-110 hover:shadow-md`
 
 #### Layer Panel

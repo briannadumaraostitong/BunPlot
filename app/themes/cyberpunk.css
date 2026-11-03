@@ -10,3 +10,35 @@
   border-width: 2px;
   --cut-bw: 2px;
 }
+
+/* Timeline event cards (grid, flow view and drag preview): a flat surface
+   instead of the layer-color tint, neutral edges, and only the 3px left bar
+   in the layer color. Square corners come from the cut shape's --radius. */
+[data-theme="cyberpunk"] [data-slot="event-card"] {
+  background-color: hsl(var(--card));
+  border-color: hsl(var(--input));
+  border-left-color: var(--event-color);
+}
+/* Flat: no drop shadow, so no ring either. The drag preview keeps its
+   shadow, since it floats above the grid. */
+[data-theme="cyberpunk"] [data-slot="event-card"]:not([data-drag-preview]) {
+  box-shadow: none;
+}
+/* Titles in the foreground color: the left bar already carries the layer,
+   and dark layer colors read too weakly on the dark surface. */
+[data-theme="cyberpunk"] [data-slot="event-card-title"] {
+  color: hsl(var(--foreground));
+}
+/* Selected: a cyan outline in place of the ring. */
+[data-theme="cyberpunk"] [data-slot="event-card"][data-selected] {
+  outline: 2px solid hsl(var(--accent-2));
+  outline-offset: 1px;
+}
+
+/* Status: a small square mono tag rather than a pill. */
+[data-theme="cyberpunk"] [data-slot="event-card-status"] {
+  border-radius: 0;
+  font-family: var(--theme-font-mono);
+  font-weight: 500;
+  letter-spacing: 0.06em;
+}
