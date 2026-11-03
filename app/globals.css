@@ -19,6 +19,10 @@
    don't exist. Used for controls only touch devices need, like RenameButton. */
 @custom-variant no-hover (@media (hover: none));
 
+/* Themes with the cut shape (data-shape, set per theme by lib/themes.ts).
+   For what clip-path takes away there, like a card's hover shadow. */
+@custom-variant cut (&:is([data-shape="cut"] *));
+
 @theme inline {
   --color-background: hsl(var(--background));
   --color-foreground: hsl(var(--foreground));
@@ -135,6 +139,40 @@
 }
 :root[data-shape="cut"] .rounded {
   border-radius: 0;
+}
+
+/* Cut corners: the top-right and bottom-left chamfered, as the handoff's
+   .cut. Cards opt in with .corner-cut (16px) or .corner-cut-sm (8px), which
+   do nothing under other shapes. clip-path also clips box-shadows, so rings
+   draw inset; round buttons (avatar, theme menu) stay round, and menus and
+   popovers stay square rather than cut. */
+:root[data-shape="cut"] :is(
+  .corner-cut,
+  .corner-cut-sm,
+  [data-slot="button"]:not(.rounded-full),
+  [data-slot="dialog-content"],
+  [data-slot="sheet-content"]
+) {
+  --tw-ring-inset: inset;
+  clip-path: polygon(
+    0 0,
+    calc(100% - var(--cut)) 0,
+    100% var(--cut),
+    100% 100%,
+    var(--cut) 100%,
+    0 calc(100% - var(--cut))
+  );
+}
+:root[data-shape="cut"] :is(.corner-cut, [data-slot="dialog-content"], [data-slot="sheet-content"]) {
+  --cut: 16px;
+}
+:root[data-shape="cut"] .corner-cut-sm {
+  --cut: 8px;
+}
+/* App buttons are 24–36px tall, smaller than the handoff's 44px ones, so a
+   proportionally smaller chamfer than .corner-cut-sm. */
+:root[data-shape="cut"] [data-slot="button"] {
+  --cut: 6px;
 }
 
 /* Background texture (data-texture). Goes on page backgrounds marked

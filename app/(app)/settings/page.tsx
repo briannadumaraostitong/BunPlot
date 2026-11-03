@@ -34,12 +34,12 @@ export default async function SettingsPage() {
         </p>
       </div>
 
-      <section className="rounded-xl border border-border bg-card p-4 space-y-4">
+      <section className="rounded-xl corner-cut border border-border bg-card p-4 space-y-4">
         <h2 className="text-lg font-semibold">Profile</h2>
         <ProfileForm profile={profile} email={user.email ?? ''} />
       </section>
 
-      <section className="rounded-xl border border-border bg-card p-4 space-y-4">
+      <section className="rounded-xl corner-cut border border-border bg-card p-4 space-y-4">
         <h2 className="text-lg font-semibold">Appearance</h2>
 
         <div className="flex items-center justify-between max-w-sm">
@@ -48,7 +48,7 @@ export default async function SettingsPage() {
         </div>
       </section>
 
-      <section className="rounded-xl border border-border bg-card p-4 space-y-4">
+      <section className="rounded-xl corner-cut border border-border bg-card p-4 space-y-4">
         <h2 className="text-lg font-semibold">Sound</h2>
         <SoundSettings profile={profile} />
       </section>

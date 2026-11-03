@@ -44,7 +44,7 @@ export function PlaceCard({ place, chapters, selected, onSelect }: PlaceCardProp
         onSelect()
       }}
       className={cn(
-        'group flex flex-col overflow-hidden rounded-xl border border-border bg-card cursor-pointer transition-all hover:shadow-md hover:brightness-105',
+        'group flex flex-col overflow-hidden rounded-xl corner-cut border border-border bg-card cursor-pointer transition-all hover:shadow-md hover:brightness-105',
         selected && 'ring-2 ring-offset-1 shadow-lg'
       )}
     >
