@@ -14,7 +14,7 @@ export function AppShell({ children, profile }: AppShellProps) {
   const [navOpen, setNavOpen] = useState(false)
 
   return (
-    <div className="flex h-screen bg-background overflow-hidden">
+    <div className="flex h-screen bg-background bg-texture overflow-hidden">
       <Sidebar open={navOpen} onOpenChange={setNavOpen} />
       <div className="flex flex-col flex-1 min-w-0">
         <TopBar profile={profile} onMenuClick={() => setNavOpen(true)} />
