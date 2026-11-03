@@ -909,7 +909,8 @@ GRANT  EXECUTE ON FUNCTION duplicate_project(uuid, text, text) TO authenticated;
 -- The private 'attachments' bucket itself is created and configured in the
 -- Supabase dashboard; only its policies on storage.objects are recorded here.
 -- Every path is <folder>/<project_id>/... (projects/, places/, outlines/,
--- panels/, chapters/), so access is scoped to projects the caller owns. The
+-- panels/, chapters/, and exports/ for finished export files until they're
+-- downloaded), so access is scoped to projects the caller owns. The
 -- project id is compared as text, so a malformed path just doesn't match
 -- (storage.foldername returns NULL for a missing segment) rather than making
 -- a ::uuid cast throw.
