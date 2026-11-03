@@ -42,6 +42,8 @@ export function PlaceRow({ place, selected, onSelect, onColorChanged, onDeleted 
   return (
     <div
       onClick={onSelect}
+      data-slot="nav-item"
+      data-active={selected || undefined}
       className={cn(
         'group flex items-center gap-2 mx-1 px-2 py-1.5 rounded-md cursor-pointer transition-colors',
         selected ? 'bg-secondary' : 'hover:bg-secondary/50'
@@ -70,7 +72,7 @@ export function PlaceRow({ place, selected, onSelect, onColorChanged, onDeleted 
 
       <div className="flex-1 min-w-0">
         <p className="text-xs truncate">{place.name}</p>
-        <p className="text-[10px] text-muted-foreground truncate">{PLACE_TYPE_LABELS[place.type]}</p>
+        <p data-slot="place-type" className="text-[10px] text-muted-foreground truncate">{PLACE_TYPE_LABELS[place.type]}</p>
       </div>
 
       <button

@@ -69,6 +69,8 @@ export function CharacterRow({
         e.dataTransfer.setData('text/plain', character.id)
         e.dataTransfer.effectAllowed = 'copy'
       }}
+      data-slot="nav-item"
+      data-active={selected || undefined}
       className={cn(
         'group flex items-center gap-2 mx-1 px-2 py-1.5 rounded-md cursor-pointer transition-colors',
         selected ? 'bg-secondary' : 'hover:bg-secondary/50'

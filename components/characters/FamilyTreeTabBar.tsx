@@ -135,6 +135,8 @@ function FamilyTreeTab({
     <div
       onClick={onSelect}
       onDoubleClick={startEditing}
+      data-slot="tree-tab"
+      data-active={active || undefined}
       className={cn(
         // isolate + after:-z-10 keeps the enlarged hit area behind the tab's
         // own content, so it extends the tap target without covering the

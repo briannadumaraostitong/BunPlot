@@ -260,6 +260,7 @@ export const RelationshipCanvas = forwardRef<RelationshipCanvasHandle, Relations
               return (
                 <div
                   key={rel.id}
+                  data-slot="relationship-tag"
                   className="group absolute z-10 flex items-center gap-1 -translate-x-1/2 -translate-y-1/2 rounded-full border border-border bg-card px-2 py-0.5 text-[10px] text-muted-foreground shadow-sm"
                   style={{ left: midX, top: midY }}
                 >

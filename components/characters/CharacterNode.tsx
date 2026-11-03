@@ -80,9 +80,15 @@ export function CharacterNode({
       onPointerDown={handlePointerDown}
       onPointerMove={handlePointerMove}
       onPointerUp={handlePointerUp}
+      data-slot="character-node"
+      data-pending={pending || undefined}
+      data-selected={selected || undefined}
+      data-dragging={dragging || undefined}
       className={cn(
         'group absolute flex items-center gap-2 rounded-lg bg-card px-2.5 py-2 shadow-sm select-none touch-none cursor-grab active:cursor-grabbing transition-shadow',
-        pending ? 'border-2' : 'border',
+        // The border color comes from --character-color rather than an inline
+        // style, so a theme stylesheet can restyle the node.
+        pending ? 'border-2 border-accent' : 'border border-(color:--character-color)/[33.33%]',
         dragging ? 'shadow-lg z-20' : 'z-10 hover:shadow-md',
         selected && 'ring-2 ring-ring ring-offset-1'
       )}
@@ -90,8 +96,8 @@ export function CharacterNode({
         left: x,
         top: y,
         width: NODE_WIDTH,
-        borderColor: pending ? 'hsl(var(--accent))' : (character.color ?? '#6366F1') + '55',
-      }}
+        '--character-color': character.color ?? '#6366F1',
+      } as React.CSSProperties}
     >
       {pending && (
         <span

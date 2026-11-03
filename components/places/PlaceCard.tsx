@@ -43,10 +43,13 @@ export function PlaceCard({ place, chapters, selected, onSelect }: PlaceCardProp
         playClickSound()
         onSelect()
       }}
+      data-slot="place-card"
+      data-selected={selected || undefined}
       className={cn(
         'group flex flex-col overflow-hidden rounded-xl corner-cut border border-border bg-card cursor-pointer transition-all hover:shadow-md hover:brightness-105',
         selected && 'ring-2 ring-offset-1 shadow-lg'
       )}
+      style={{ '--place-color': color } as React.CSSProperties}
     >
       <div className="relative aspect-video w-full shrink-0 overflow-hidden bg-secondary/20">
         {place.cover_url ? (
@@ -67,7 +70,7 @@ export function PlaceCard({ place, chapters, selected, onSelect }: PlaceCardProp
 
       <div className="flex flex-col gap-1 p-3">
         <p className="text-sm font-semibold truncate">{place.name}</p>
-        <p className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">
+        <p data-slot="place-type" className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">
           {PLACE_TYPE_LABELS[place.type]}
         </p>
 
