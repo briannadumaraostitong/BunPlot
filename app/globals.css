@@ -185,8 +185,13 @@
   background-size: 48px 48px;
 }
 
-* {
-  border-color: hsl(var(--border));
+/* In the base layer, below utilities, so border-color classes
+   (border-transparent, focus:border-primary, …) can override it. Unlayered,
+   it beat every one of them: cascade layers ignore specificity. */
+@layer base {
+  * {
+    border-color: hsl(var(--border));
+  }
 }
 
 body {
