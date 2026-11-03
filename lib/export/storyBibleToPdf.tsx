@@ -1,4 +1,4 @@
-import { Document, Page, View, Text, Link, StyleSheet, renderToBuffer } from '@react-pdf/renderer'
+import { Document, Page, View, Text, Link, Image, StyleSheet, renderToBuffer } from '@react-pdf/renderer'
 import {
   layoutFor,
   printStyles,
@@ -14,15 +14,22 @@ import {
   BIBLE_BODY,
   CHARACTER_CARD,
   CONTENTS,
+  LABEL,
   META_TEXT,
   MUTED_COLOR,
+  PLACE_CARD,
   SECTION_TITLE,
   marginLineOffset,
 } from './printTypography'
 import { cardColors } from './printColors'
-import { Card, FieldLabel } from './storyBiblePdfParts'
-import { cardTextWidth, characterCardHeight, keepCardTogether, relationColumns } from './storyBibleMeasure'
-import type { BlockNode } from './outlineIR'
+import { Card, FieldLabel, Labels } from './storyBiblePdfParts'
+import {
+  cardTextWidth,
+  characterCardHeight,
+  keepCardTogether,
+  placeCardHeight,
+  relationColumns,
+} from './storyBibleMeasure'
 import {
   CONTENTS_TITLE,
   FAMILY_TREES_ANCHOR,
@@ -31,21 +38,22 @@ import {
   SECTION_TITLES,
   contentsEntries,
   hasDetails,
+  placeHasDetails,
   sectionAnchor,
   sectionSummary,
   timelineGroupAnchor,
   type CharacterEntry,
+  type PlaceEntry,
   type StoryBible,
   type StoryBibleSection,
 } from './storyBible'
 
 // Heading scheme mirrors storyBibleToDocx: a centred title page, the
 // contents, then each section on its own pages, opening with its title and
-// count line; entries use heading2, subsections heading3. Rich-text headings
-// were already shifted by buildStoryBible (level 4+ in places), but the
-// outline renderer styles every level past 3 as heading3 — so in PDF, place
-// headings match the "Description" / "Notes" subheading size rather than
-// sitting visibly below it.
+// count line; character and place cards, then group headings (family trees,
+// timeline chapters) at heading2 and their entries at heading3. Rich-text
+// headings were already shifted by buildStoryBible (level 3+ in places), and
+// the outline renderer styles every level past 3 as heading3.
 
 // Body text at the story bible's size (BIBLE_BODY), for its own paragraphs
 // and the rich text it lays out with renderBlocks.
@@ -92,8 +100,8 @@ const styles = StyleSheet.create({
   },
   contentsTitle: { flex: 1 },
   contentsNumber: { width: CONTENTS.numberWidth, textAlign: 'right' },
-  // Character cards (CHARACTER_CARD).
-  characterName: { fontSize: CHARACTER_CARD.nameSize, lineHeight: CHARACTER_CARD.nameLineHeight, fontWeight: 700 },
+  // Character and place cards (CHARACTER_CARD, PLACE_CARD).
+  cardName: { fontSize: CHARACTER_CARD.nameSize, lineHeight: CHARACTER_CARD.nameLineHeight, fontWeight: 700 },
   characterRole: {
     fontSize: CHARACTER_CARD.roleSize,
     lineHeight: CHARACTER_CARD.roleLineHeight,
@@ -105,16 +113,23 @@ const styles = StyleSheet.create({
     fontWeight: 700,
     marginBottom: BIBLE_BODY.paragraphGap,
   },
-  slimRole: { fontSize: CHARACTER_CARD.roleSize, fontWeight: 400 },
+  slimDetail: { fontSize: CHARACTER_CARD.roleSize, fontWeight: 400 },
   // The rows' last gap, plus this, makes a paragraph's gap.
   relations: { marginBottom: BIBLE_BODY.paragraphGap - CHARACTER_CARD.rowGap },
   relationRow: { flexDirection: 'row', marginBottom: CHARACTER_CARD.rowGap },
   relationText: { fontSize: CHARACTER_CARD.rowSize, lineHeight: CHARACTER_CARD.rowLineHeight },
   relation: { flex: 1, color: CHARACTER_CARD.relationColor },
+  // The labels' last gap, plus this, makes a paragraph's gap.
+  cardLabels: { marginBottom: BIBLE_BODY.paragraphGap - LABEL.gap },
 })
 
+// The text width inside a card, and rich text laid out at it.
+const CARD_WIDTH = cardTextWidth(LAYOUT.textWidth)
+const CARD_LAYOUT: PdfLayout = { ...LAYOUT, textWidth: CARD_WIDTH }
 // Relationship rows' name column, inside a card on this page.
-const RELATION_COLUMNS = relationColumns(cardTextWidth(LAYOUT.textWidth))
+const RELATION_COLUMNS = relationColumns(CARD_WIDTH)
+// A place's cover, across the card.
+const COVER = { width: CARD_WIDTH, height: CARD_WIDTH / PLACE_CARD.coverAspect, marginBottom: PLACE_CARD.coverGap }
 
 const pageStyle = [outlineStyles.page, styles.page]
 
@@ -257,34 +272,29 @@ function Section({ bible, section, pages, children }: {
   )
 }
 
-async function richSubsection(title: string, blocks: BlockNode[]) {
-  if (blocks.length === 0) return null
+// A slim one-line card, for an entry with no details: the name, and beside
+// it a detail (a character's role, a place's type) in the colour.
+function SlimCard({ color, name, detail }: { color: string | null; name: string; detail: string | null }) {
+  const { text } = cardColors(color)
   return (
-    <View>
-      <Heading level={3}>{title}</Heading>
-      {await renderBlocks(blocks, { layout: LAYOUT })}
-    </View>
+    <Card color={color} keepTogether>
+      <Text style={styles.slimName}>
+        {name}
+        {detail && <Text style={[styles.slimDetail, { color: text }]}>{`  ·  ${detail}`}</Text>}
+      </Text>
+    </Card>
   )
 }
 
 // A character's card: their colour's accent, name and role (in the colour),
 // then the description, notes and relationships. A character with none of
-// those gets a slim one-line card: the name, and the role beside it.
+// those gets a slim card.
 function CharacterCard({ c, keepTogether }: { c: CharacterEntry; keepTogether: boolean }) {
+  if (!hasDetails(c)) return <SlimCard color={c.color} name={c.name} detail={c.role} />
   const { text } = cardColors(c.color)
-  if (!hasDetails(c)) {
-    return (
-      <Card color={c.color} keepTogether>
-        <Text style={styles.slimName}>
-          {c.name}
-          {c.role && <Text style={[styles.slimRole, { color: text }]}>{`  ·  ${c.role}`}</Text>}
-        </Text>
-      </Card>
-    )
-  }
   return (
     <Card color={c.color} keepTogether={keepTogether}>
-      <Text style={[styles.characterName, { marginBottom: c.role ? CHARACTER_CARD.nameGap : BIBLE_BODY.paragraphGap }]}>
+      <Text style={[styles.cardName, { marginBottom: c.role ? CHARACTER_CARD.nameGap : BIBLE_BODY.paragraphGap }]}>
         {c.name}
       </Text>
       {c.role && <Text style={[styles.characterRole, { color: text }]}>{c.role}</Text>}
@@ -308,6 +318,33 @@ function CharacterCard({ c, keepTogether }: { c: CharacterEntry; keepTogether: b
           ))}
         </View>
       )}
+    </Card>
+  )
+}
+
+// A place's card: the cover, the name, the type as a label in the place's
+// colour, then the description and notes. A place with none of those gets a
+// slim card.
+async function placeCard(p: PlaceEntry, keepTogether: boolean, key: number) {
+  if (!placeHasDetails(p)) return <SlimCard key={key} color={p.color} name={p.name} detail={p.type} />
+  const rich = async (label: string, blocks: PlaceEntry['description']) =>
+    blocks.length > 0 && (
+      <>
+        <FieldLabel>{label}</FieldLabel>
+        {await renderBlocks(blocks, { layout: CARD_LAYOUT })}
+      </>
+    )
+  return (
+    <Card key={key} color={p.color} keepTogether={keepTogether}>
+      {/* react-pdf's Image (a PDF primitive), which has no alt. */}
+      {/* eslint-disable-next-line jsx-a11y/alt-text */}
+      {p.cover && <Image src={p.cover} style={COVER} />}
+      <Text style={[styles.cardName, { marginBottom: LABEL.gap }]}>{p.name}</Text>
+      <View style={styles.cardLabels}>
+        <Labels labels={[{ text: p.type, color: p.color }]} />
+      </View>
+      {await rich('Description', p.description)}
+      {await rich('Notes', p.notes)}
     </Card>
   )
 }
@@ -373,15 +410,15 @@ export async function renderStoryBibleToPdf(bible: StoryBible): Promise<Buffer> 
   }
 
   if (bible.places) {
+    // Kept in one piece as character cards are.
     const entries = await Promise.all(
-      bible.places.map(async (p, i) => (
-        <View key={i} style={styles.entry}>
-          <Heading level={2}>{p.name}</Heading>
-          <Meta label="Type" value={p.type} />
-          {await richSubsection('Description', p.description)}
-          {await richSubsection('Notes', p.notes)}
-        </View>
-      ))
+      bible.places.map(async (p, i) =>
+        placeCard(
+          p,
+          placeHasDetails(p) && keepCardTogether(await placeCardHeight(p, LAYOUT.textWidth), LAYOUT.textHeight),
+          i
+        )
+      )
     )
     pages.push(
       <Section key="places" bible={bible} section="places" pages={pageNumbers}>

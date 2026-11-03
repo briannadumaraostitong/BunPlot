@@ -51,11 +51,20 @@ export interface FamilyTreeEntry {
   relationships: string[]
 }
 
+// cover: the place's image, cropped to 16:9 for print (prepareImage), as a
+// URL the renderers can fetch; null when it has none or it couldn't be used.
 export interface PlaceEntry {
   name: string
+  color: string | null
   type: string
+  cover: string | null
   description: BlockNode[]
   notes: BlockNode[]
+}
+
+// Nothing but a name and type: shown as a slim card.
+export function placeHasDetails(p: PlaceEntry): boolean {
+  return p.cover !== null || p.description.length > 0 || p.notes.length > 0
 }
 
 export interface EventEntry {
@@ -96,6 +105,9 @@ export interface StoryBibleInput {
   familyTrees: FamilyTree[]
   familyTreeMembers: FamilyTreeMember[]
   places: Place[]
+  // Prepared cover URLs by place id (actions/export), for the places that
+  // have a usable one.
+  placeCovers: Map<string, string>
   chapters: Chapter[]
   events: Event[]
   layers: Layer[]
@@ -171,8 +183,8 @@ function lines(text: string | null): string[] {
 // Headings a writer typed inside rich text would otherwise render at the same
 // level as the export's own headings, so they're pushed down to sit one level
 // below whatever heading contains them, capped at H6: place description/notes
-// sit under an H3 "Description"/"Notes" subheading, so they shift by 3.
-const PLACE_HEADING_SHIFT = 3
+// sit in a card under the place's name (H2), so they shift by 2.
+const PLACE_HEADING_SHIFT = 2
 
 function shiftHeadings(blocks: BlockNode[], by: number): BlockNode[] {
   return blocks.map((block) => {
@@ -267,7 +279,9 @@ export function buildStoryBible(input: StoryBibleInput): StoryBible {
   const places = input.sections.has('places')
     ? [...input.places].sort(byName).map((p) => ({
         name: p.name,
+        color: p.color,
         type: PLACE_TYPE_LABELS[p.type] ?? p.type,
+        cover: input.placeCovers.get(p.id) ?? null,
         description: richText(p.description, PLACE_HEADING_SHIFT),
         notes: richText(p.notes, PLACE_HEADING_SHIFT),
       }))

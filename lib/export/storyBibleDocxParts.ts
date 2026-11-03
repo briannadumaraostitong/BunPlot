@@ -3,6 +3,7 @@
 // in the PDF. Word has no rounded boxes, so cards are square.
 
 import {
+  ImageRun,
   Paragraph,
   Table,
   TableCell,
@@ -15,8 +16,9 @@ import {
   WidthType,
 } from 'docx'
 import { docxColor, twips } from './outlineToDocx'
+import { fetchImageBytes } from './fetchImageBytes'
 import { cardColors, labelColors, type CardLabel } from './printColors'
-import { CARD, CARD_PADDING_BOTTOM, FIELD_LABEL, LABEL } from './printTypography'
+import { CARD, CARD_PADDING_BOTTOM, FIELD_LABEL, LABEL, PLACE_CARD } from './printTypography'
 
 const NO_BORDER = { style: BorderStyle.NONE, size: 0, color: 'auto' }
 
@@ -74,6 +76,31 @@ export function card(
     children: [],
   })
   return [table, gap]
+}
+
+// docx sizes images in 96-dpi pixels.
+const PX_PER_PT = 96 / 72
+
+// A place's cover (prepareImage has already cropped it to 16:9 as PNG or
+// JPEG) across a card's text width, or null when it can't be read.
+export async function coverParagraph(url: string, widthPt: number): Promise<Paragraph | null> {
+  const fetched = await fetchImageBytes(url)
+  const format = fetched?.info.format
+  if (!fetched || (format !== 'png' && format !== 'jpeg')) {
+    console.warn('Story bible cover left out (unreadable)')
+    return null
+  }
+  const width = Math.round(widthPt * PX_PER_PT)
+  return new Paragraph({
+    spacing: { after: twips(PLACE_CARD.coverGap) },
+    children: [
+      new ImageRun({
+        type: format === 'png' ? 'png' : 'jpg',
+        data: fetched.bytes,
+        transformation: { width, height: Math.round(width / PLACE_CARD.coverAspect) },
+      }),
+    ],
+  })
 }
 
 const NBSP = String.fromCharCode(0xa0)

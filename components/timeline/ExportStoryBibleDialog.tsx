@@ -31,13 +31,21 @@ export function ExportStoryBibleDialog({ projectId, open, onClose }: ExportStory
   const [format, setFormat] = useState<'docx' | 'pdf'>('docx')
   const [exporting, setExporting] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  // Something left out of an otherwise good export (place covers that
+  // couldn't be used). Belongs to that export, so it goes with the preview.
+  const [notice, setNotice] = useState<string | null>(null)
   const preview = usePdfPreview()
   const busy = exporting || preview.building
+
+  function clearPreview() {
+    preview.clear()
+    setNotice(null)
+  }
 
   // The dialog stays mounted while closed, so the preview is dropped here
   // rather than left holding its PDF until the next open.
   function close() {
-    preview.clear()
+    clearPreview()
     onClose()
   }
 
@@ -47,7 +55,7 @@ export function ExportStoryBibleDialog({ projectId, open, onClose }: ExportStory
 
   // Changing what's exported makes the preview out of date.
   function toggle(section: StoryBibleSection) {
-    preview.clear()
+    clearPreview()
     setSelected((prev) => {
       const next = new Set(prev)
       if (next.has(section)) next.delete(section)
@@ -57,7 +65,7 @@ export function ExportStoryBibleDialog({ projectId, open, onClose }: ExportStory
   }
 
   function chooseFormat(next: 'docx' | 'pdf') {
-    if (next !== format) preview.clear()
+    if (next !== format) clearPreview()
     setFormat(next)
   }
 
@@ -69,9 +77,11 @@ export function ExportStoryBibleDialog({ projectId, open, onClose }: ExportStory
   async function handlePreview() {
     if (selected.size === 0) return
     setError(null)
+    setNotice(null)
     const previewError = await preview.build(async () => {
       const result = await settle(exportStoryBible(projectId, orderedSections(), 'pdf'))
       if ('error' in result) return result
+      if (result.notice) setNotice(result.notice)
       return { blob: base64ToBlob(result.base64, result.mimeType), filename: result.filename }
     })
     if (previewError) setError(previewError)
@@ -88,6 +98,7 @@ export function ExportStoryBibleDialog({ projectId, open, onClose }: ExportStory
     if (selected.size === 0) return
     setExporting(true)
     setError(null)
+    setNotice(null)
     const result = await settle(exportStoryBible(projectId, orderedSections(), format))
     setExporting(false)
 
@@ -96,7 +107,9 @@ export function ExportStoryBibleDialog({ projectId, open, onClose }: ExportStory
       return
     }
     downloadBase64(result.base64, result.mimeType, result.filename)
-    close()
+    // Stay open to say what was left out; otherwise done.
+    if (result.notice) setNotice(result.notice)
+    else close()
   }
 
   return (
@@ -148,10 +161,11 @@ export function ExportStoryBibleDialog({ projectId, open, onClose }: ExportStory
             </div>
 
             {error && <p className="text-sm text-destructive">{error}</p>}
+            {notice && <p className="text-sm text-muted-foreground">{notice}</p>}
 
             <div className="flex justify-end gap-2">
               <Button variant="outline" size="sm" onClick={close} disabled={exporting}>
-                Cancel
+                {notice && !preview.file ? 'Close' : 'Cancel'}
               </Button>
               {format === 'pdf' && !preview.file && (
                 <Button variant="outline" size="sm" onClick={handlePreview} disabled={busy || selected.size === 0}>

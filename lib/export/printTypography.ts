@@ -66,6 +66,11 @@ export const CHARACTER_CARD = {
   relationColor: '#444444',
 }
 
+// A place card: the cover across the card's text width at the app's 16:9
+// (aspect-video), then the name (as a character's), the type as a label,
+// and the description and notes under field headings.
+export const PLACE_CARD = { coverAspect: 16 / 9, coverGap: 8 }
+
 // Small coloured labels on a card (status, layer, place type): pills in the
 // PDF, shaded words in the DOCX.
 export const LABEL = { size: 8.5, paddingX: 5, paddingY: 1.5, gap: 4 }

@@ -5,9 +5,9 @@
 // Word lays out on its own, and only the share of the page matters.
 
 import { countLines } from './pdfTextMeasure'
-import { BIBLE_BODY, CARD, CARD_PADDING_BOTTOM, CHARACTER_CARD, FIELD_LABEL } from './printTypography'
-import type { CharacterEntry } from './storyBible'
-import type { InlineRun } from './outlineIR'
+import { BIBLE_BODY, CARD, CARD_PADDING_BOTTOM, CHARACTER_CARD, FIELD_LABEL, HEADINGS, LABEL, PLACE_CARD } from './printTypography'
+import type { CharacterEntry, PlaceEntry } from './storyBible'
+import type { BlockNode, InlineRun } from './outlineIR'
 
 // The width text has inside a card on a page with this text width.
 export function cardTextWidth(textWidth: number): number {
@@ -23,10 +23,24 @@ export function relationColumns(cardWidth: number): { name: number; relation: nu
 
 export const FIELD_LABEL_HEIGHT = FIELD_LABEL.before + FIELD_LABEL.size * FIELD_LABEL.lineHeight + FIELD_LABEL.after
 
+// A row of labels: a pill (storyBiblePdfParts' Labels) and the gap below it.
+export const LABEL_ROW_HEIGHT = LABEL.size * 1.2 + 2 * LABEL.paddingY + LABEL.gap
+
+// Literata's own line height, for text that doesn't set one (headings).
+const NATURAL_LINE_HEIGHT = 1.485
+// outlineToPdf's list marker column, row gap and quote indent.
+const LIST_MARKER_WIDTH = 18
+const LIST_ROW_GAP = 4
+const QUOTE_INDENT = 24
+
 const run = (text: string, bold = false): InlineRun[] => [{ text, bold: bold || undefined }]
 
+async function textHeightOf(runs: InlineRun[], width: number, size: number, lineHeight: number) {
+  return (await countLines(runs, width, size)) * size * lineHeight
+}
+
 async function textHeight(text: string, width: number, size: number, lineHeight: number, bold = false) {
-  return (await countLines(run(text, bold), width, size)) * size * lineHeight
+  return textHeightOf(run(text, bold), width, size, lineHeight)
 }
 
 async function paragraphsHeight(paragraphs: string[], width: number) {
@@ -57,6 +71,65 @@ export async function characterCardHeight(c: CharacterEntry, pageTextWidth: numb
       )
       height += lines * rowSize * rowLineHeight + rowGap
     }
+  }
+  return height
+}
+
+// Rich text as renderBlocks lays it out at the story bible's body size, or
+// null when it has an image (its height isn't known before it's fetched).
+async function blocksHeight(blocks: BlockNode[], width: number): Promise<number | null> {
+  let height = 0
+  for (const block of blocks) {
+    let h: number | null
+    switch (block.type) {
+      case 'paragraph':
+        h = (await textHeightOf(block.runs, width, BIBLE_BODY.fontSize, BIBLE_BODY.lineHeight)) + BIBLE_BODY.paragraphGap
+        break
+      case 'heading': {
+        // Levels past 3 look like level 3.
+        const style = HEADINGS[Math.min(3, Math.max(1, block.level)) as 1 | 2 | 3]
+        const runs = block.runs.map((r) => ({ ...r, bold: true }))
+        h = style.before + (await textHeightOf(runs, width, style.size, NATURAL_LINE_HEIGHT)) + style.after
+        break
+      }
+      case 'blockquote': {
+        const inner = await blocksHeight(block.children, width - QUOTE_INDENT)
+        h = inner === null ? null : inner + BIBLE_BODY.paragraphGap
+        break
+      }
+      case 'bulletList':
+      case 'orderedList':
+        h = 0
+        for (const item of block.items) {
+          const inner = await blocksHeight(item, width - LIST_MARKER_WIDTH)
+          if (inner === null) return null
+          h += inner + LIST_ROW_GAP
+        }
+        break
+      case 'image':
+        return null
+    }
+    if (h === null) return null
+    height += h
+  }
+  return height
+}
+
+// A place card with details (a slim card is one line, always kept
+// together), as storyBibleToPdf lays it out. Infinite when its rich text has
+// an image, so the card is allowed to split.
+export async function placeCardHeight(p: PlaceEntry, pageTextWidth: number): Promise<number> {
+  const width = cardTextWidth(pageTextWidth)
+  const { nameSize, nameLineHeight } = CHARACTER_CARD
+  let height = CARD.paddingY + CARD_PADDING_BOTTOM
+  if (p.cover) height += width / PLACE_CARD.coverAspect + PLACE_CARD.coverGap
+  height += (await textHeight(p.name, width, nameSize, nameLineHeight, true)) + LABEL.gap
+  height += LABEL_ROW_HEIGHT + BIBLE_BODY.paragraphGap - LABEL.gap
+  for (const blocks of [p.description, p.notes]) {
+    if (blocks.length === 0) continue
+    const rich = await blocksHeight(blocks, width)
+    if (rich === null) return Infinity
+    height += FIELD_LABEL_HEIGHT + rich
   }
   return height
 }

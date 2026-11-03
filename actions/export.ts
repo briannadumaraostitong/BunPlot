@@ -6,10 +6,11 @@ import { renderOutlinesToDocx, type OutlineSection } from '@/lib/export/outlineT
 import { renderOutlinesToPdf } from '@/lib/export/outlineToPdf'
 import type { BookDetails } from '@/lib/export/manuscriptLayout'
 import { DEFAULT_MANUSCRIPT_OPTIONS, type ManuscriptOptions } from '@/lib/export/manuscriptOptions'
-import { prepareCover } from '@/lib/export/prepareCover'
+import { COVER_SIZE, PLACE_COVER_SIZE, prepareImage } from '@/lib/export/prepareImage'
 import { buildStoryBible, STORY_BIBLE_SECTIONS, type StoryBibleSection } from '@/lib/export/storyBible'
 import { renderStoryBibleToDocx } from '@/lib/export/storyBibleToDocx'
 import { renderStoryBibleToPdf } from '@/lib/export/storyBibleToPdf'
+import { DOWNLOAD_CONCURRENCY, forEachWithConcurrency } from '@/lib/export/concurrency'
 import type {
   Chapter,
   Character,
@@ -24,13 +25,16 @@ import type {
   Status,
 } from '@/types/database'
 
-// notice: something left out of an otherwise good export (a Book cover that
-// couldn't be used), to tell the user.
+// notice: something left out of an otherwise good export (a Book cover, or a
+// story bible's place covers, that couldn't be used), to tell the user.
 export type ExportOutlinesResult =
   | { base64: string; mimeType: string; filename: string; notice?: string }
   | { error: string }
 
 const COVER_NOTICE = "Couldn't include the cover image, so the book starts at its title page."
+
+// Signed cover URLs only need to outlive the export itself.
+const EXPORT_SIGNED_URL_TTL = 60 * 5
 
 const MIME_TYPE = {
   docx: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
@@ -71,9 +75,10 @@ async function bookDetails(
   let coverUrl: string | null = null
   let notice: string | null = null
   if (includeCover && cover_image_url) {
-    // Only needs to outlive the export itself.
-    const { data } = await supabase.storage.from('attachments').createSignedUrl(cover_image_url, 60 * 5)
-    const cover = data?.signedUrl ? await prepareCover(data.signedUrl) : { error: "Couldn't sign the cover's URL." }
+    const { data } = await supabase.storage.from('attachments').createSignedUrl(cover_image_url, EXPORT_SIGNED_URL_TTL)
+    const cover = data?.signedUrl
+      ? await prepareImage(data.signedUrl, COVER_SIZE)
+      : { error: "Couldn't sign the cover's URL." }
     if ('url' in cover) {
       coverUrl = cover.url
     } else {
@@ -83,6 +88,46 @@ async function bookDetails(
   }
 
   return { details: { projectTitle: title, author, coverUrl }, notice }
+}
+
+// The story bible's place covers, cropped to 16:9 for print (prepareImage),
+// by place id. A cover that can't be used is left out, and the notice names
+// the place (or counts them).
+async function placeCovers(
+  supabase: Awaited<ReturnType<typeof createClient>>,
+  places: Place[]
+): Promise<{ covers: Map<string, string>; notice: string | null }> {
+  const covers = new Map<string, string>()
+  const withCover = places.filter((p): p is Place & { image_url: string } => p.image_url !== null)
+  if (withCover.length === 0) return { covers, notice: null }
+
+  // One batch call for every cover, as getStoryboardPanels does.
+  const { data } = await supabase.storage
+    .from('attachments')
+    .createSignedUrls([...new Set(withCover.map((p) => p.image_url))], EXPORT_SIGNED_URL_TTL)
+  const urlByPath = new Map(
+    (data ?? []).flatMap((entry) => (entry.path && entry.signedUrl ? [[entry.path, entry.signedUrl] as const] : []))
+  )
+
+  const failed: string[] = []
+  await forEachWithConcurrency(withCover, DOWNLOAD_CONCURRENCY, async (p) => {
+    const url = urlByPath.get(p.image_url)
+    const cover = url ? await prepareImage(url, PLACE_COVER_SIZE) : { error: "Couldn't sign the cover's URL." }
+    if ('url' in cover) {
+      covers.set(p.id, cover.url)
+    } else {
+      console.error(`Place cover left out (${p.id}):`, cover.error)
+      failed.push(p.name)
+    }
+  })
+
+  const notice =
+    failed.length === 0
+      ? null
+      : failed.length === 1
+        ? `Couldn't include the cover image for ${failed[0]}, so its card has none.`
+        : `Couldn't include the cover images for ${failed.length} places, so their cards have none.`
+  return { covers, notice }
 }
 
 // Small enough (text-heavy, no per-project image volume like storyboards
@@ -140,7 +185,8 @@ export async function exportOutlines(
 }
 
 // Same base64 delivery as exportOutlines: text-heavy, and the only images are
-// ones embedded in place descriptions/notes. Always exports the whole
+// place covers (scaled down for print) and ones embedded in place
+// descriptions/notes. Always exports the whole
 // project, regardless of any filters active on the Timeline tab.
 export async function exportStoryBible(
   projectId: string,
@@ -197,6 +243,10 @@ export async function exportStoryBible(
   if (failed?.error) return { error: failed.error.message }
 
   const projectTitle = (projectRes.data as { title: string } | null)?.title ?? 'Untitled'
+  const places = (placesRes.data ?? []) as Place[]
+  const { covers, notice } = selected.has('places')
+    ? await placeCovers(supabase, places)
+    : { covers: new Map<string, string>(), notice: null }
 
   const bible = buildStoryBible({
     projectTitle,
@@ -206,7 +256,8 @@ export async function exportStoryBible(
     relationships: (relationshipsRes.data ?? []) as CharacterRelationship[],
     familyTrees: (treesRes.data ?? []) as FamilyTree[],
     familyTreeMembers: (treeMembersRes.data ?? []) as FamilyTreeMember[],
-    places: (placesRes.data ?? []) as Place[],
+    places,
+    placeCovers: covers,
     chapters: (chaptersRes.data ?? []) as Chapter[],
     events: (eventsRes.data ?? []) as Event[],
     layers: (layersRes.data ?? []) as Layer[],
@@ -221,6 +272,7 @@ export async function exportStoryBible(
       base64: buffer.toString('base64'),
       mimeType: MIME_TYPE[format],
       filename: `${projectTitle} - Story Bible.${format}`,
+      ...(notice ? { notice } : {}),
     }
   } catch (err) {
     console.error('Story bible export error:', err)

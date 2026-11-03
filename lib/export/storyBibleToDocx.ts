@@ -24,16 +24,22 @@ import {
   runningHeader,
   titlePageParagraphs,
   twips,
+  type DocxLayout,
 } from './outlineToDocx'
 import { SERVER_FONTS_DIR } from './outlineToPdf'
 import { registerPdfFonts } from './pdfFonts'
 import { DEFAULT_DOCUMENT_FONT } from '../documentFonts'
 import { MANUSCRIPT_PAGES } from './manuscriptLayout'
-import { BIBLE_BODY, CHARACTER_CARD, CONTENTS, META_TEXT, MUTED_COLOR, SECTION_TITLE } from './printTypography'
+import { BIBLE_BODY, CHARACTER_CARD, CONTENTS, LABEL, META_TEXT, MUTED_COLOR, SECTION_TITLE } from './printTypography'
 import { cardColors } from './printColors'
-import { card, fieldLabel } from './storyBibleDocxParts'
-import { cardTextWidth, characterCardHeight, keepCardTogether, relationColumns } from './storyBibleMeasure'
-import type { BlockNode } from './outlineIR'
+import { card, coverParagraph, fieldLabel, labelRuns } from './storyBibleDocxParts'
+import {
+  cardTextWidth,
+  characterCardHeight,
+  keepCardTogether,
+  placeCardHeight,
+  relationColumns,
+} from './storyBibleMeasure'
 import {
   CONTENTS_TITLE,
   FAMILY_TREES_ANCHOR,
@@ -42,19 +48,22 @@ import {
   SECTION_TITLES,
   contentsEntries,
   hasDetails,
+  placeHasDetails,
   sectionAnchor,
   sectionSummary,
   timelineGroupAnchor,
   type CharacterEntry,
+  type PlaceEntry,
   type StoryBible,
   type StoryBibleSection,
 } from './storyBible'
 
 // Heading scheme: a centred title page, the contents, then each section as
 // its own Word section (so it gets its own running header), opening with its
-// title (Heading 1) and count line; entry = H2, subsection = H3. Rich-text
-// headings were already shifted by buildStoryBible to sit one level below
-// their container (H4+ in places).
+// title (Heading 1) and count line; card names and group headings (family
+// trees, timeline chapters) = H2, their entries = H3. Rich-text headings were
+// already shifted by buildStoryBible to sit one level below their container
+// (H3+ in places).
 
 // The PDF's A4 page, the header and page number centred in its margins.
 const PAGE = printPage('a4')
@@ -62,6 +71,9 @@ const EDGE = marginLineTwips(MANUSCRIPT_PAGES.a4.marginY)
 const PAGE_PROPS = { size: PAGE.size, margin: { ...PAGE.margin, header: EDGE, footer: EDGE } }
 // The text width in points, for the card estimates (storyBibleMeasure).
 const TEXT_WIDTH_PT = PAGE.textWidthTwips / twips(1)
+// The text width inside a card, and rich text laid out at it (in px).
+const CARD_WIDTH_PT = cardTextWidth(TEXT_WIDTH_PT)
+const CARD_LAYOUT: DocxLayout = { textWidth: Math.floor((CARD_WIDTH_PT * 96) / 72), book: false }
 
 // Literata at the story bible's body size, lines at least BIBLE_BODY's
 // height (as in the Book DOCX, so nothing is clipped), black headings, and
@@ -121,11 +133,6 @@ function bullets(items: string[]) {
   return items.map((text) => new Paragraph({ bullet: { level: 0 }, children: [new TextRun({ text })] }))
 }
 
-async function richSubsection(title: string, blocks: BlockNode[]) {
-  if (blocks.length === 0) return []
-  return [heading(title, HeadingLevel.HEADING_3), ...(await blocksToParagraphs(blocks))]
-}
-
 // A section's opening: its title over the rule, then its count line, or the
 // empty note when the project has nothing for it (empty: true).
 function sectionOpening(bible: StoryBible, section: StoryBibleSection): { paragraphs: Paragraph[]; empty: boolean } {
@@ -155,25 +162,29 @@ function sectionOpening(bible: StoryBible, section: StoryBibleSection): { paragr
   }
 }
 
+// A slim one-line card, as in the PDF (storyBibleToPdf's SlimCard). The name
+// is a Heading 2, as on a full card.
+function slimCard(color: string | null, name: string, detail: string | null): FileChild[] {
+  const { text } = cardColors(color)
+  const paragraph = new Paragraph({
+    heading: HeadingLevel.HEADING_2,
+    spacing: { before: 0, after: twips(BIBLE_BODY.paragraphGap) },
+    children: [
+      new TextRun({ text: name, size: CHARACTER_CARD.slimNameSize * 2 }),
+      ...(detail
+        ? [new TextRun({ text: `  ·  ${detail}`, size: CHARACTER_CARD.roleSize * 2, bold: false, color: docxColor(text) })]
+        : []),
+    ],
+  })
+  return card(color, [paragraph], { textWidthTwips: PAGE.textWidthTwips, keepTogether: true })
+}
+
 // A character's card, as in the PDF (storyBibleToPdf's CharacterCard). The
 // name stays a Heading 2, so characters are in Word's navigation pane.
 async function characterCard(c: CharacterEntry): Promise<FileChild[]> {
+  if (!hasDetails(c)) return slimCard(c.color, c.name, c.role)
   const { text } = cardColors(c.color)
   const gap = twips(BIBLE_BODY.paragraphGap)
-  if (!hasDetails(c)) {
-    const name = new Paragraph({
-      heading: HeadingLevel.HEADING_2,
-      spacing: { before: 0, after: gap },
-      children: [
-        new TextRun({ text: c.name, size: CHARACTER_CARD.slimNameSize * 2 }),
-        ...(c.role
-          ? [new TextRun({ text: `  ·  ${c.role}`, size: CHARACTER_CARD.roleSize * 2, bold: false, color: docxColor(text) })]
-          : []),
-      ],
-    })
-    return card(c.color, [name], { textWidthTwips: PAGE.textWidthTwips, keepTogether: true })
-  }
-
   const columns = relationColumns(cardTextWidth(TEXT_WIDTH_PT))
   const rowSize = CHARACTER_CARD.rowSize * 2
   const children: Paragraph[] = [
@@ -224,16 +235,30 @@ async function charactersBody(characters: NonNullable<StoryBible['characters']>)
   return out
 }
 
-async function placesBody(places: NonNullable<StoryBible['places']>): Promise<Paragraph[]> {
-  const out: Paragraph[] = []
-  for (const p of places) {
-    out.push(
-      heading(p.name, HeadingLevel.HEADING_2),
-      ...meta('Type', p.type),
-      ...(await richSubsection('Description', p.description)),
-      ...(await richSubsection('Notes', p.notes))
-    )
-  }
+// A place's card, as in the PDF (storyBibleToPdf's placeCard).
+async function placeCard(p: PlaceEntry): Promise<FileChild[]> {
+  if (!placeHasDetails(p)) return slimCard(p.color, p.name, p.type)
+  const cover = p.cover ? await coverParagraph(p.cover, CARD_WIDTH_PT) : null
+  const rich = async (label: string, blocks: PlaceEntry['description']) =>
+    blocks.length > 0 ? [fieldLabel(label), ...(await blocksToParagraphs(blocks, CARD_LAYOUT))] : []
+  const children: Paragraph[] = [
+    ...(cover ? [cover] : []),
+    new Paragraph({
+      heading: HeadingLevel.HEADING_2,
+      spacing: { before: 0, after: twips(LABEL.gap) },
+      children: [new TextRun({ text: p.name })],
+    }),
+    new Paragraph({ children: labelRuns([{ text: p.type, color: p.color }]) }),
+    ...(await rich('Description', p.description)),
+    ...(await rich('Notes', p.notes)),
+  ]
+  const keepTogether = keepCardTogether(await placeCardHeight(p, TEXT_WIDTH_PT), PAGE.textHeightPt)
+  return card(p.color, children, { textWidthTwips: PAGE.textWidthTwips, keepTogether })
+}
+
+async function placesBody(places: NonNullable<StoryBible['places']>): Promise<FileChild[]> {
+  const out: FileChild[] = []
+  for (const p of places) out.push(...(await placeCard(p)))
   return out
 }
 
