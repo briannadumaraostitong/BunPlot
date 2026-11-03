@@ -106,7 +106,7 @@ export default async function DashboardPage() {
     <div className="p-4 sm:p-6 max-w-[1600px] mx-auto space-y-6">
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <div>
-          <h1 className="text-2xl font-semibold tracking-tight">
+          <h1 data-slot="page-heading" className="text-2xl font-semibold tracking-tight">
             Your Projects
           </h1>
           <p className="text-sm text-muted-foreground mt-0.5">
@@ -124,7 +124,7 @@ export default async function DashboardPage() {
           {ungroupedProjects.length > 0 && (
             <div className="space-y-2">
               {folders.length > 0 && (
-                <h2 className="text-sm font-semibold text-muted-foreground">
+                <h2 data-slot="section-label" className="text-sm font-semibold text-muted-foreground">
                   All Projects
                 </h2>
               )}

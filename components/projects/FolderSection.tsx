@@ -116,6 +116,7 @@ export function FolderSection({ folder, projects, allFolders, statsByProject }: 
         ) : (
           <RenameHint name={folder.name}>
             <h2
+              data-slot="folder-name"
               className="text-sm font-semibold cursor-default"
               onDoubleClick={() => setEditing(true)}
             >

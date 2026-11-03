@@ -58,7 +58,7 @@ export function PanelGrid({ projectId, chapterId }: PanelGridProps) {
       <div className="h-full overflow-y-auto scrollbar-thin p-4">
         <div className={COVER_GRID_CLASS}>
           {Array.from({ length: 10 }).map((_, i) => (
-            <div key={i} className="overflow-hidden rounded-lg border border-border bg-card">
+            <div key={i} data-slot="panel-card" className="overflow-hidden rounded-lg corner-cut border border-border bg-card">
               <Skeleton className="aspect-3/4 w-full rounded-none" />
               <div className="p-2">
                 <Skeleton className="h-3 w-2/3" />
@@ -85,10 +85,11 @@ export function PanelGrid({ projectId, chapterId }: PanelGridProps) {
       <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
         <SortableContext items={panels.map((p) => p.id)} strategy={rectSortingStrategy}>
           <div className={COVER_GRID_CLASS}>
-            {panels.map((panel) => (
+            {panels.map((panel, index) => (
               <PanelCard
                 key={panel.id}
                 panel={panel}
+                number={index + 1}
                 onCaptionChanged={(caption) => editPanel(panel.id, { caption })}
                 onDeleted={() => removePanel(panel.id)}
                 onOpenSketch={() => setSketchingPanel(panel)}

@@ -230,11 +230,13 @@ export function ExportStoryboardDialog({ projectId, chapters, onClose }: ExportS
               )}
             </div>
 
-            <div className="inline-flex items-center gap-1 rounded-lg bg-secondary/50 p-1">
+            <div data-slot="view-toggle" className="inline-flex items-center gap-1 rounded-lg bg-secondary/50 p-1">
               {(['pdf', 'zip'] as const).map((f) => (
                 <button
                   key={f}
                   onClick={() => chooseFormat(f)}
+                  data-slot="view-toggle-item"
+                  data-active={format === f || undefined}
                   disabled={busy}
                   className={cn(
                     'relative rounded-md px-3 py-1 text-xs font-medium uppercase transition-all after:absolute after:-inset-y-1 after:-inset-x-0.5',

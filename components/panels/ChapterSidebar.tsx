@@ -56,6 +56,8 @@ export function ChapterSidebar({ chapters, selectedChapterId, onSelect }: Chapte
               <div
                 key={chapter.id}
                 onClick={() => onSelect(chapter.id)}
+                data-slot="nav-item"
+                data-active={chapter.id === selectedChapterId || undefined}
                 className={cn(
                   'mx-1 px-2 py-1.5 rounded-md cursor-pointer transition-colors text-xs truncate',
                   chapter.id === selectedChapterId ? 'bg-secondary' : 'hover:bg-secondary/50'

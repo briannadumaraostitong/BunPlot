@@ -15,6 +15,8 @@ const PANEL_SIGNED_URL_TTL = 60 * 60 * 24 // 24h
 
 interface PanelCardProps {
   panel: PanelWithCover
+  // 1-based place in the grid, for themes that label panels ("PNL 01").
+  number: number
   onCaptionChanged: (caption: string) => Promise<ActionResult>
   onDeleted: () => Promise<ActionResult>
   onOpenSketch: () => void
@@ -23,6 +25,7 @@ interface PanelCardProps {
 
 export function PanelCard({
   panel,
+  number,
   onCaptionChanged,
   onDeleted,
   onOpenSketch,
@@ -101,9 +104,14 @@ export function PanelCard({
     <div
       ref={setNodeRef}
       style={style}
-      className="group flex flex-col rounded-lg border border-border bg-card overflow-hidden"
+      data-slot="panel-card"
+      className="group flex flex-col rounded-lg corner-cut border border-border bg-card overflow-hidden"
     >
-      <div className="group/image relative flex aspect-3/4 w-full items-center justify-center bg-secondary/20">
+      <div
+        data-slot="panel-image"
+        data-panel-number={String(number).padStart(2, '0')}
+        className="group/image relative flex aspect-3/4 w-full items-center justify-center bg-secondary/20"
+      >
         {panel.cover_url && (
           <img src={panel.cover_url} alt={panel.caption ?? ''} className="h-full w-full object-cover" />
         )}

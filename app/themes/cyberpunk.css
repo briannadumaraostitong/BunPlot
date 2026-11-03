@@ -60,7 +60,9 @@
 [data-theme="cyberpunk"] [data-slot="timeline-corner-label"],
 [data-theme="cyberpunk"] [data-slot="panel-heading"],
 [data-theme="cyberpunk"] [data-slot="field-label"],
-[data-theme="cyberpunk"] [data-slot="place-type"] {
+[data-theme="cyberpunk"] [data-slot="place-type"],
+[data-theme="cyberpunk"] [data-slot="section-label"],
+[data-theme="cyberpunk"] [data-slot="folder-name"] {
   font-family: var(--theme-font-mono);
   font-size: 10px;
   font-weight: 500;
@@ -108,8 +110,9 @@
   color: hsl(var(--muted-foreground));
 }
 
-/* Project tabs, the Grid/Flow toggle and the event dialog's Description/
-   Notes switch (same view-toggle hooks): mono uppercase labels (generated
+/* Project tabs, the Grid/Flow toggle, the event dialog's Description/Notes
+   switch and the storyboard export's PDF/ZIP switch (same view-toggle
+   hooks): mono uppercase labels (generated
    UI text). The active one gets a 2px pink bar along its bottom edge:
    the tabs recolor the bar their primitive already draws (::after); the
    toggle's ::after is its tap target, so its bar is an inset shadow.
@@ -139,8 +142,8 @@
   box-shadow: inset 0 -2px hsl(var(--accent));
 }
 
-/* Sidebar, and the Outline documents, character and place lists (same
-   nav-item hook). The active
+/* Sidebar, and the Outline documents, character, place and storyboard
+   chapter lists (same nav-item hook). The active
    item trades the solid pink block (or gray fill) for foreground
    text, a 3px pink bar on the left edge (an inset shadow, so nothing shifts)
    and a faint pink tint. Inactive items keep their hover: classes, which only
@@ -238,6 +241,49 @@
    uppercase inherited from the tag. */
 [data-theme="cyberpunk"] [data-slot="relationship-tag"] > span {
   text-transform: uppercase;
+}
+
+/* Folder headers use the label style, but folder names are user content:
+   they keep their own case. */
+[data-theme="cyberpunk"] [data-slot="folder-name"] {
+  text-transform: none;
+}
+
+/* Panels (storyboard): flat cards with a neutral 1px edge and cut corners
+   (corner-cut), and a generated "PNL 01" tag at the image's bottom-left.
+   On the image, since the card's own ::before/::after draw the cut-corner
+   diagonals; captions are untouched. */
+[data-theme="cyberpunk"] [data-slot="panel-card"] {
+  border-color: hsl(var(--input));
+  box-shadow: none;
+}
+[data-theme="cyberpunk"] [data-slot="panel-image"]::before {
+  content: "PNL " attr(data-panel-number);
+  position: absolute;
+  left: 6px;
+  bottom: 6px;
+  padding: 2px 6px;
+  background-color: hsl(var(--background) / 0.85);
+  font-family: var(--theme-font-mono);
+  font-size: 10px;
+  font-weight: 500;
+  line-height: 1.3;
+  letter-spacing: 0.08em;
+  color: hsl(var(--muted-foreground));
+  pointer-events: none;
+}
+
+/* Dashboard: a "// DASHBOARD" label above "Your Projects", which keeps its
+   own case. */
+[data-theme="cyberpunk"] [data-slot="page-heading"]::before {
+  content: "// DASHBOARD";
+  display: block;
+  margin-bottom: 0.25rem;
+  font-family: var(--theme-font-mono);
+  font-size: 10px;
+  font-weight: 400;
+  letter-spacing: 0.08em;
+  color: hsl(var(--muted-foreground));
 }
 
 /* Status: a small square mono tag rather than a pill, on event cards and in
