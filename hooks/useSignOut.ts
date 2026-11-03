@@ -11,9 +11,9 @@ import { flushAllEdits, markSigningOut } from '@/lib/saveRegistry'
 // while still signed in, then signs out. Only if something didn't save, or a
 // backup is left (here or in another outline or project), it opens the
 // confirmation instead, since signing out deletes backups; confirmSignOut is
-// its "Sign out anyway". onSignOut: runs just before signing out (closing a
-// menu), only then so the confirmation isn't hidden with it.
-export function useSignOut({ onSignOut }: { onSignOut?: () => void } = {}) {
+// its "Sign out anyway". onConfirmNeeded: runs just as the confirmation
+// opens (closing the menu it was asked from).
+export function useSignOut({ onConfirmNeeded }: { onConfirmNeeded?: () => void } = {}) {
   const router = useRouter()
   const [signingOut, setSigningOut] = useState(false)
   const [confirmOpen, setConfirmOpen] = useState(false)
@@ -24,6 +24,7 @@ export function useSignOut({ onSignOut }: { onSignOut?: () => void } = {}) {
     const allSaved = await flushAllEdits()
     if (!allSaved || hasAnyBackup()) {
       setSigningOut(false)
+      onConfirmNeeded?.()
       setConfirmOpen(true)
       return
     }
@@ -33,7 +34,6 @@ export function useSignOut({ onSignOut }: { onSignOut?: () => void } = {}) {
   async function confirmSignOut() {
     setConfirmOpen(false)
     setSigningOut(true)
-    onSignOut?.()
     markSigningOut()
     await createClient().auth.signOut()
     // Local drafts belong to this account; remove them so the next person

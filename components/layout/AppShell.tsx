@@ -15,9 +15,9 @@ export function AppShell({ children, profile }: AppShellProps) {
 
   return (
     <div className="flex h-screen bg-background overflow-hidden">
-      <Sidebar profile={profile} open={navOpen} onOpenChange={setNavOpen} />
+      <Sidebar open={navOpen} onOpenChange={setNavOpen} />
       <div className="flex flex-col flex-1 min-w-0">
-        <TopBar onMenuClick={() => setNavOpen(true)} />
+        <TopBar profile={profile} onMenuClick={() => setNavOpen(true)} />
         <main className="flex-1 overflow-auto scrollbar-thin">
           {children}
         </main>

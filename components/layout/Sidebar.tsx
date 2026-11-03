@@ -3,14 +3,10 @@
 import Link from 'next/link'
 import Image from 'next/image'
 import { usePathname } from 'next/navigation'
-import { LayoutDashboard, FolderOpen, Settings, Search, LogOut, Loader2 } from 'lucide-react'
+import { LayoutDashboard, FolderOpen, Search } from 'lucide-react'
 import { cn } from '@/lib/utils'
-import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
 import { Separator } from '@/components/ui/separator'
 import { Sheet, SheetContent, SheetTitle, SheetDescription } from '@/components/ui/sheet'
-import { useSignOut } from '@/hooks/useSignOut'
-import { SignOutDialog } from './SignOutDialog'
-import type { Profile } from '@/types/database'
 
 const NAV_ITEMS = [
   { href: '/dashboard', label: 'Dashboard', icon: LayoutDashboard },
@@ -18,18 +14,18 @@ const NAV_ITEMS = [
   { href: '/search',    label: 'Search',    icon: Search },
 ]
 
+// Settings and Sign Out are in the top bar's profile menu.
 interface SidebarProps {
-  profile: Profile | null
   open: boolean
   onOpenChange: (open: boolean) => void
 }
 
-export function Sidebar({ profile, open, onOpenChange }: SidebarProps) {
+export function Sidebar({ open, onOpenChange }: SidebarProps) {
   return (
     <>
       {/* Desktop: persistent, always in flow — unchanged from before */}
       <aside className="hidden md:flex w-60 flex-col h-full shrink-0 border-r border-border bg-sidebar">
-        <SidebarContent profile={profile} onNavigate={() => {}} />
+        <SidebarContent onNavigate={() => {}} />
       </aside>
 
       {/* Mobile: hamburger-triggered overlay drawer, closes on outside-tap
@@ -41,32 +37,15 @@ export function Sidebar({ profile, open, onOpenChange }: SidebarProps) {
         >
           <SheetTitle className="sr-only">Navigation</SheetTitle>
           <SheetDescription className="sr-only">Main navigation menu</SheetDescription>
-          <SidebarContent profile={profile} onNavigate={() => onOpenChange(false)} />
+          <SidebarContent onNavigate={() => onOpenChange(false)} />
         </SheetContent>
       </Sheet>
     </>
   )
 }
 
-function SidebarContent({
-  profile,
-  onNavigate,
-}: {
-  profile: Profile | null
-  onNavigate: () => void
-}) {
+function SidebarContent({ onNavigate }: { onNavigate: () => void }) {
   const pathname = usePathname()
-  // Closes the mobile menu as it signs out.
-  const { signingOut, confirmOpen, setConfirmOpen, requestSignOut, confirmSignOut } = useSignOut({
-    onSignOut: onNavigate,
-  })
-
-  const initials = profile?.display_name
-    ?.split(' ')
-    .map((n) => n[0])
-    .join('')
-    .toUpperCase()
-    .slice(0, 2) ?? '?'
 
   return (
     <>
@@ -102,41 +81,6 @@ function SidebarContent({
           )
         })}
       </nav>
-
-      <Separator />
-
-      {/* Bottom */}
-      <div className="px-2 py-3 space-y-0.5">
-        <Link
-          href="/settings"
-          onClick={onNavigate}
-          className="flex items-center gap-2.5 rounded-md px-3 py-2 text-sm font-medium text-muted-foreground hover:bg-secondary hover:text-foreground transition-colors"
-        >
-          <Settings className="h-4 w-4" />
-          Settings
-        </Link>
-
-        <button
-          onClick={requestSignOut}
-          disabled={signingOut}
-          className="w-full flex items-center gap-2.5 rounded-md px-3 py-2 text-sm font-medium text-muted-foreground hover:bg-secondary hover:text-foreground transition-colors disabled:opacity-50"
-        >
-          {signingOut ? <Loader2 className="h-4 w-4 animate-spin" /> : <LogOut className="h-4 w-4" />}
-          {signingOut ? 'Signing out...' : 'Sign Out'}
-        </button>
-
-        <SignOutDialog open={confirmOpen} onOpenChange={setConfirmOpen} onConfirm={confirmSignOut} />
-
-        <div className="flex items-center gap-2.5 px-3 py-2 mt-1">
-          <Avatar className="h-7 w-7">
-            <AvatarImage src={profile?.avatar_url ?? undefined} />
-            <AvatarFallback className="text-xs">{initials}</AvatarFallback>
-          </Avatar>
-          <span className="text-sm font-medium truncate">
-            {profile?.display_name ?? 'User'}
-          </span>
-        </div>
-      </div>
     </>
   )
 }
