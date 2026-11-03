@@ -80,7 +80,7 @@ export function ChapterHeader({
         onWidthChange={onLabelWidthChange}
         className="border-r border-border bg-secondary/50"
       >
-        <span className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider px-2">
+        <span data-slot="timeline-corner-label" className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider px-2">
           Layer
         </span>
       </ResizableCell>
@@ -292,6 +292,9 @@ function ChapterCell({
   const [deleting, setDeleting] = useState(false)
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false)
   const chapterEventCount = events.filter((e) => e.chapter_id === chapter.id).length
+  // "01", "02"… by place in position order (hidden chapters still count), for
+  // themes that label the column; positions themselves can have gaps.
+  const chapterNumber = String(allChapters.findIndex((c) => c.id === chapter.id) + 1).padStart(2, '0')
 
   async function handleRename() {
     if (!title.trim() || title === chapter.title) {
@@ -344,6 +347,8 @@ function ChapterCell({
       ) : (
         <RenameHint name={chapter.title}>
           <span
+            data-slot="chapter-title"
+            data-chapter-number={chapterNumber}
             className="text-xs font-semibold truncate cursor-default flex-1"
             onDoubleClick={() => setEditing(true)}
           >

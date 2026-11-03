@@ -272,10 +272,12 @@ export function LayerRow({
     >
       {/* Layer name label */}
       <div
+        data-slot="lane-label"
         className="flex items-center px-2 shrink-0 border-r border-border bg-secondary/30"
         style={{ width: labelWidth, minWidth: labelWidth, height: dynamicHeight }}
       >
         <span
+          data-slot="lane-label-name"
           className="text-[11px] font-medium truncate"
           style={{ color: layer.color }}
         >
@@ -346,6 +348,7 @@ function ChapterCell({
   return (
     <div
       ref={setNodeRef}
+      data-slot="timeline-cell"
       className="relative border-r border-border timeline-track shrink-0 flex flex-col"
       style={{ width, minWidth: width, height }}
       onMouseEnter={() => setHovering(true)}

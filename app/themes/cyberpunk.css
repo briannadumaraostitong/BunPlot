@@ -35,6 +35,55 @@
   outline-offset: 1px;
 }
 
+/* Timeline grid: flat cells on the page background, so the cards stand
+   out. Column dividers are the cells' own right borders; the lane divider
+   is drawn on the cells, since they cover the row's bottom border (an inset
+   shadow, so no cell changes height). */
+[data-theme="cyberpunk"] :is([data-slot="timeline-cell"], [data-slot="lane-label"]) {
+  background-color: hsl(var(--background));
+  box-shadow: inset 0 -1px hsl(var(--border));
+}
+
+/* Chapter header: a generated "CH 01" label above the name, which keeps its
+   own case. The "Layer" corner cell uses the same mono label style. */
+[data-theme="cyberpunk"] [data-slot="chapter-title"] {
+  font-family: var(--theme-font-mono);
+  font-weight: 500;
+}
+[data-theme="cyberpunk"] [data-slot="chapter-title"]::before {
+  content: "CH " attr(data-chapter-number);
+  display: block;
+}
+[data-theme="cyberpunk"] [data-slot="chapter-title"]::before,
+[data-theme="cyberpunk"] [data-slot="timeline-corner-label"] {
+  font-family: var(--theme-font-mono);
+  font-size: 10px;
+  font-weight: 500;
+  line-height: 1.3;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: hsl(var(--muted-foreground));
+}
+
+/* Lane labels: mono, at the top of the lane in line with the first card,
+   with a small square marker in the layer color (the name's own color). */
+[data-theme="cyberpunk"] [data-slot="lane-label"] {
+  align-items: flex-start;
+  padding-top: 0.75rem;
+}
+[data-theme="cyberpunk"] [data-slot="lane-label-name"] {
+  font-family: var(--theme-font-mono);
+}
+[data-theme="cyberpunk"] [data-slot="lane-label-name"]::before {
+  content: "";
+  display: inline-block;
+  width: 6px;
+  height: 6px;
+  margin-right: 6px;
+  vertical-align: 1px;
+  background-color: currentColor;
+}
+
 /* Status: a small square mono tag rather than a pill. */
 [data-theme="cyberpunk"] [data-slot="event-card-status"] {
   border-radius: 0;
