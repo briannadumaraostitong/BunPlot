@@ -222,6 +222,8 @@ function TabButton({
   return (
     <button
       onClick={onClick}
+      data-slot="view-toggle-item"
+      data-active={active || undefined}
       className={cn(
         "px-4 py-1.5 text-xs font-medium rounded-md transition-all",
         active
@@ -437,7 +439,7 @@ function EventForm({
       style={{ '--event-color': color } as React.CSSProperties}
     >
       {/* Left metadata sidebar */}
-      <div className="grid grid-cols-2 gap-4 border-b border-border p-5 shrink-0 bg-secondary/20 md:grid-cols-1 md:gap-6 md:w-56 md:border-b-0 md:border-r md:overflow-y-auto md:scrollbar-thin">
+      <div className="grid grid-cols-2 content-start gap-4 border-b border-border p-5 shrink-0 bg-secondary/20 md:grid-cols-1 md:gap-6 md:w-56 md:border-b-0 md:border-r md:overflow-y-auto md:scrollbar-thin">
         <Field label="Layer">
           <Select value={layerId} onValueChange={setLayerId}>
             <SelectTrigger className="h-8 text-xs bg-background w-full md:w-fit">
@@ -518,7 +520,7 @@ function EventForm({
 
         {/* Tab bar */}
         <div className="px-5 pt-3 shrink-0">
-          <div className="inline-flex items-center bg-secondary/50 rounded-lg p-1 gap-1">
+          <div data-slot="view-toggle" className="inline-flex items-center bg-secondary/50 rounded-lg p-1 gap-1">
             <TabButton
               active={activeTab === "description"}
               onClick={() => setActiveTab("description")}

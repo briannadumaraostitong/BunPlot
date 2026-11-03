@@ -106,7 +106,8 @@
   color: hsl(var(--muted-foreground));
 }
 
-/* Project tabs and the Grid/Flow toggle: mono uppercase labels (generated
+/* Project tabs, the Grid/Flow toggle and the event dialog's Description/
+   Notes switch (same view-toggle hooks): mono uppercase labels (generated
    UI text). The active one gets a 2px pink bar along its bottom edge:
    the tabs recolor the bar their primitive already draws (::after); the
    toggle's ::after is its tap target, so its bar is an inset shadow.
