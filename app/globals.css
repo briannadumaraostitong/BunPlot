@@ -1,6 +1,8 @@
 /* app/globals.css */
 @import "tailwindcss";
 @import "tw-animate-css";
+/* Per-theme screen styles, every selector under that theme's data-theme. */
+@import "./themes/cyberpunk.css";
 
 @custom-variant dark (&:is(.dark *));
 

@@ -37,6 +37,7 @@ export function ProjectCard({ project: initialProject, folders = [], stats }: Pr
       <button
         type="button"
         onClick={() => setDetailOpen(true)}
+        data-slot="project-card"
         className={cn(
           'group block w-full overflow-hidden rounded-xl corner-cut border border-border bg-card text-left',
           // The cut shape clips the shadow, so the border carries the hover.

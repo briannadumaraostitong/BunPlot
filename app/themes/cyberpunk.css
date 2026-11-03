@@ -1,0 +1,12 @@
+/* app/themes/cyberpunk.css
+   Cyberpunk's restyling of the app's own screens. Every selector starts with
+   [data-theme="cyberpunk"], so Classic and later themes are untouched.
+   Components only carry neutral hooks (data-slot, CSS variables); the look
+   lives here. Unlayered, so it wins over Tailwind's utility classes. */
+
+/* Project cards: 1px pink reads too thin beside the cut diagonals. The
+   skeleton shares the slot so nothing shifts when cards load. */
+[data-theme="cyberpunk"] [data-slot="project-card"] {
+  border-width: 2px;
+  --cut-bw: 2px;
+}
