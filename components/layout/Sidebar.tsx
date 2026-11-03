@@ -1,19 +1,15 @@
 'use client'
 
-import { useState } from 'react'
 import Link from 'next/link'
 import Image from 'next/image'
-import { usePathname, useRouter } from 'next/navigation'
+import { usePathname } from 'next/navigation'
 import { LayoutDashboard, FolderOpen, Settings, Search, LogOut, Loader2 } from 'lucide-react'
 import { cn } from '@/lib/utils'
-import { createClient } from '@/lib/supabase/client'
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
 import { Separator } from '@/components/ui/separator'
 import { Sheet, SheetContent, SheetTitle, SheetDescription } from '@/components/ui/sheet'
-import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog'
-import { Button } from '@/components/ui/button'
-import { clearAllBackups, hasAnyBackup } from '@/lib/editorBackup'
-import { flushAllEdits, markSigningOut } from '@/lib/saveRegistry'
+import { useSignOut } from '@/hooks/useSignOut'
+import { SignOutDialog } from './SignOutDialog'
 import type { Profile } from '@/types/database'
 
 const NAV_ITEMS = [
@@ -60,40 +56,10 @@ function SidebarContent({
   onNavigate: () => void
 }) {
   const pathname = usePathname()
-  const router = useRouter()
-  const supabase = createClient()
-
-  const [signingOut, setSigningOut] = useState(false)
-  const [confirmOpen, setConfirmOpen] = useState(false)
-
-  // Save open edits and wait for saves in flight while still signed in. Only
-  // if something didn't save, or a backup is left (here or in another outline
-  // or project), ask first, since signing out deletes backups.
-  async function handleSignOut() {
-    if (signingOut) return
-    setSigningOut(true)
-    const allSaved = await flushAllEdits()
-    if (!allSaved || hasAnyBackup()) {
-      setSigningOut(false)
-      setConfirmOpen(true)
-      return
-    }
-    await signOut()
-  }
-
-  async function signOut() {
-    setConfirmOpen(false)
-    setSigningOut(true)
-    // Closes the mobile menu; only now, so the confirmation isn't hidden with it.
-    onNavigate()
-    markSigningOut()
-    await supabase.auth.signOut()
-    // Local drafts belong to this account; remove them so the next person
-    // using this browser doesn't inherit them.
-    clearAllBackups()
-    router.push('/login')
-    router.refresh()
-  }
+  // Closes the mobile menu as it signs out.
+  const { signingOut, confirmOpen, setConfirmOpen, requestSignOut, confirmSignOut } = useSignOut({
+    onSignOut: onNavigate,
+  })
 
   const initials = profile?.display_name
     ?.split(' ')
@@ -151,7 +117,7 @@ function SidebarContent({
         </Link>
 
         <button
-          onClick={handleSignOut}
+          onClick={requestSignOut}
           disabled={signingOut}
           className="w-full flex items-center gap-2.5 rounded-md px-3 py-2 text-sm font-medium text-muted-foreground hover:bg-secondary hover:text-foreground transition-colors disabled:opacity-50"
         >
@@ -159,25 +125,7 @@ function SidebarContent({
           {signingOut ? 'Signing out...' : 'Sign Out'}
         </button>
 
-        <Dialog open={confirmOpen} onOpenChange={setConfirmOpen}>
-          <DialogContent className="sm:max-w-md">
-            <DialogHeader>
-              <DialogTitle>Sign out?</DialogTitle>
-              <DialogDescription>
-                You have changes that haven&apos;t been saved. Signing out deletes them from this device.
-                Sign out anyway?
-              </DialogDescription>
-            </DialogHeader>
-            <div className="flex justify-end gap-2">
-              <Button variant="outline" size="sm" onClick={() => setConfirmOpen(false)}>
-                Cancel
-              </Button>
-              <Button variant="destructive" size="sm" onClick={signOut}>
-                Sign out anyway
-              </Button>
-            </div>
-          </DialogContent>
-        </Dialog>
+        <SignOutDialog open={confirmOpen} onOpenChange={setConfirmOpen} onConfirm={confirmSignOut} />
 
         <div className="flex items-center gap-2.5 px-3 py-2 mt-1">
           <Avatar className="h-7 w-7">
