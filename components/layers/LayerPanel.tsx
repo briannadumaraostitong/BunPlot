@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useId, useState } from 'react'
 import {
   DndContext,
   closestCenter,
@@ -48,6 +48,9 @@ export function LayerPanel({
   const collapsed = userCollapsed ?? isBelowMd
   const [adding, setAdding] = useState(false)
   const sensors = useDndSensors()
+  // Stable between the server and client render, unlike dnd-kit's own
+  // DndDescribedBy-N counter, so drag handles' aria-describedby hydrates.
+  const dndId = useId()
 
   async function handleAddLayer() {
     if (adding) return
@@ -105,6 +108,7 @@ export function LayerPanel({
         <>
           <div className="flex-1 overflow-y-auto scrollbar-thin py-1">
             <DndContext
+              id={dndId}
               sensors={sensors}
               collisionDetection={closestCenter}
               onDragEnd={handleDragEnd}

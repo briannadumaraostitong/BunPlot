@@ -1,6 +1,6 @@
 'use client'
 
-import { useRef, useState } from 'react'
+import { useId, useRef, useState } from 'react'
 import { DndContext, closestCenter, type DragEndEvent } from '@dnd-kit/core'
 import { SortableContext, useSortable, verticalListSortingStrategy } from '@dnd-kit/sortable'
 import { CSS } from '@dnd-kit/utilities'
@@ -31,6 +31,9 @@ interface StatusPickerProps {
 export function StatusPicker({ statuses, projectId, value, onChange, onReorder }: StatusPickerProps) {
   const [open, setOpen] = useState(false)
   const sensors = useDndSensors()
+  // Stable between the server and client render, unlike dnd-kit's own
+  // DndDescribedBy-N counter, so drag handles' aria-describedby hydrates.
+  const dndId = useId()
   const [adding, setAdding] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
@@ -95,7 +98,7 @@ export function StatusPicker({ statuses, projectId, value, onChange, onReorder }
         )}
 
         <div className="max-h-56 overflow-y-auto scrollbar-thin p-1">
-          <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
+          <DndContext id={dndId} sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
             <SortableContext items={statuses.map((s) => s.id)} strategy={verticalListSortingStrategy}>
               {statuses.map((status) => (
                 <StatusRow

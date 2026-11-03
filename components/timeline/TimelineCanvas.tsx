@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useId, useMemo, useState } from 'react'
 import {
   DndContext,
   DragOverlay,
@@ -189,6 +189,9 @@ export function TimelineCanvas({
   }, [project.id, projectListsAttempt])
 
   const sensors = useDndSensors()
+  // Stable between the server and client render, unlike dnd-kit's own
+  // DndDescribedBy-N counter, so drag handles' aria-describedby hydrates.
+  const dndId = useId()
 
   // Grouped once per link/data change, reused by every event on every
   // keystroke — avoids re-scanning the full link arrays per event per render.
@@ -490,6 +493,7 @@ export function TimelineCanvas({
                   </div>
                 ) : (
                   <DndContext
+                    id={dndId}
                     sensors={sensors}
                     collisionDetection={closestCenter}
                     onDragStart={handleDragStart}

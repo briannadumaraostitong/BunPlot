@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useId, useState } from 'react'
 import { DndContext, closestCenter, type DragEndEvent } from '@dnd-kit/core'
 import { SortableContext, rectSortingStrategy } from '@dnd-kit/sortable'
 import { Plus, Loader2 } from 'lucide-react'
@@ -29,6 +29,9 @@ export function PanelGrid({ projectId, chapterId }: PanelGridProps) {
   const [error, setError] = useState<string | null>(null)
   const [sketchingPanel, setSketchingPanel] = useState<PanelWithCover | null>(null)
   const sensors = useDndSensors()
+  // Stable between the server and client render, unlike dnd-kit's own
+  // DndDescribedBy-N counter, so drag handles' aria-describedby hydrates.
+  const dndId = useId()
 
   async function handleAddPanel() {
     if (adding) return
@@ -82,7 +85,7 @@ export function PanelGrid({ projectId, chapterId }: PanelGridProps) {
     <div className="h-full overflow-y-auto scrollbar-thin p-4">
       {error && <p className="mb-2 text-xs text-destructive">{error}</p>}
 
-      <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
+      <DndContext id={dndId} sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
         <SortableContext items={panels.map((p) => p.id)} strategy={rectSortingStrategy}>
           <div className={COVER_GRID_CLASS}>
             {panels.map((panel, index) => (
