@@ -58,12 +58,17 @@
   --color-popover: hsl(var(--popover));
   --color-card-foreground: hsl(var(--card-foreground));
   --color-card: hsl(var(--card));
-  /* 0.125rem under the default 0.5rem --radius, Tailwind's own value. */
-  --radius-xs: calc(var(--radius) - 6px);
-  --radius-sm: calc(var(--radius) - 4px);
-  --radius-md: calc(var(--radius) - 2px);
+  /* Multiples of --radius, so a theme that sets it to 0 squares the whole
+     scale (an offset like `+ 4px` would leave rounded-xl at 4px). Under the
+     default 0.5rem: 2, 4, 6, 8, 12, 16, 24, 32px, as before. */
+  --radius-xs: calc(var(--radius) * 0.25);
+  --radius-sm: calc(var(--radius) * 0.5);
+  --radius-md: calc(var(--radius) * 0.75);
   --radius-lg: var(--radius);
-  --radius-xl: calc(var(--radius) + 4px);
+  --radius-xl: calc(var(--radius) * 1.5);
+  --radius-2xl: calc(var(--radius) * 2);
+  --radius-3xl: calc(var(--radius) * 3);
+  --radius-4xl: calc(var(--radius) * 4);
 }
 
 :root {
@@ -229,7 +234,7 @@ body {
 
 .ProseMirror img {
   max-width: 100%;
-  border-radius: 0.5rem;
+  border-radius: var(--radius);
   margin: 1rem 0;
 }
 
@@ -305,7 +310,7 @@ body {
 
 .tiptap img {
   max-width: 100%;
-  border-radius: 0.5rem;
+  border-radius: var(--radius);
 }
 
 .tiptap::after {
