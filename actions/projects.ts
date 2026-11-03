@@ -3,6 +3,7 @@
 import { createClient } from '@/lib/supabase/server'
 import { revalidatePath } from 'next/cache'
 import { attachmentPathFromSignedUrl, listFilesRecursive, removeInBatches } from '@/lib/storage/attachments'
+import { EXPORTS_FOLDER } from '@/lib/storage/exports'
 import { forEachWithConcurrency } from '@/lib/export/concurrency'
 import type { AppMode, Project } from '@/types/database'
 
@@ -437,8 +438,9 @@ async function unshareDuplicatedPanelImages(
 }
 
 // Every top-level attachments folder that holds a project's files, each laid
-// out as {folder}/{projectId}/….
-const PROJECT_FILE_FOLDERS = ['projects', 'places', 'outlines', 'panels', 'chapters'] as const
+// out as {folder}/{projectId}/…. exports holds finished files only until
+// they're downloaded (lib/storage/exports).
+const PROJECT_FILE_FOLDERS = ['projects', 'places', 'outlines', 'panels', 'chapters', EXPORTS_FOLDER] as const
 
 // Attachment paths the caller's *other* projects still use: covers, place
 // covers and outline images. Old duplicates and failed copies can still
