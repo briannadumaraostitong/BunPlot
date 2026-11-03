@@ -166,7 +166,7 @@ export function OutlineMenuBar({
   }
 
   return (
-    <div className="flex h-10 shrink-0 items-center gap-2 border-b border-border bg-background px-2.5">
+    <div data-slot="outline-menubar" className="flex h-10 shrink-0 items-center gap-2 border-b border-border bg-background px-2.5">
       {rename.editing ? (
         <input
           autoFocus
@@ -248,7 +248,7 @@ export function OutlineMenuBar({
         </Menu>
       </Menubar>
 
-      <div className="ml-auto flex shrink-0 items-center gap-3 text-xs">{children}</div>
+      <div data-slot="outline-status" className="ml-auto flex shrink-0 items-center gap-3 text-xs">{children}</div>
 
       {/* Phones: File and Edit in one menu, without shortcuts. */}
       <DropdownMenu>

@@ -137,7 +137,8 @@
   box-shadow: inset 0 -2px hsl(var(--accent));
 }
 
-/* Sidebar. The active nav item trades the solid pink block for foreground
+/* Sidebar, and the Outline documents list (same nav-item hook). The active
+   item trades the solid pink block (or gray fill) for foreground
    text, a 3px pink bar on the left edge (an inset shadow, so nothing shifts)
    and a faint pink tint. Inactive items keep their hover: classes, which only
    apply on devices that can hover; the focus outline is untouched. */
@@ -167,6 +168,31 @@
 }
 [data-theme="cyberpunk"] [data-slot="event-form"] {
   border-left: 3px solid var(--event-color);
+}
+
+/* Outline chrome only; the writing surface, the text and its fonts are
+   untouched. Menu labels (File, Edit, Insert, Format) in mono uppercase;
+   toolbar buttons square (the cut shape's --radius) with a cyan active
+   state instead of the gray fill; the word count and "Saved ✓" in muted
+   mono ("Not saved" keeps its warning color). */
+[data-theme="cyberpunk"] [data-slot="outline-menubar"] [data-slot="menubar-trigger"] {
+  font-family: var(--theme-font-mono);
+  font-size: 11px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+[data-theme="cyberpunk"] [data-slot="outline-tool"][data-active] {
+  background-color: transparent;
+  color: hsl(var(--accent-2));
+  box-shadow: inset 0 0 0 1px hsl(var(--accent-2) / 0.5);
+}
+[data-theme="cyberpunk"] [data-slot="outline-status"] {
+  font-family: var(--theme-font-mono);
+  font-size: 11px;
+  letter-spacing: 0.04em;
+}
+[data-theme="cyberpunk"] [data-slot="save-status-saved"] {
+  color: hsl(var(--muted-foreground));
 }
 
 /* Status: a small square mono tag rather than a pill, on event cards and in

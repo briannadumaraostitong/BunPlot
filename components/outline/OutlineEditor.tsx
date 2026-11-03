@@ -705,7 +705,7 @@ function OutlineDocumentEditor({
         ) : saveStatus === 'error' ? (
           <span className="text-destructive">Not saved</span>
         ) : (
-          <span className="text-emerald-600 dark:text-emerald-500">Saved ✓</span>
+          <span data-slot="save-status-saved" className="text-emerald-600 dark:text-emerald-500">Saved ✓</span>
         )}
       </OutlineMenuBar>
 
@@ -865,6 +865,8 @@ function ToolbarBtn({
       title={title}
       aria-expanded={expanded}
       disabled={disabled}
+      data-slot="outline-tool"
+      data-active={(active && !disabled) || undefined}
       onMouseDown={(e) => {
         e.preventDefault()
         if (!disabled) onClick()
