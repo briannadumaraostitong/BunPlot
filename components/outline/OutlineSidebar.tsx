@@ -44,7 +44,7 @@ export function OutlineSidebar({
       <div className="h-10 border-b border-border flex items-center justify-between gap-2.5 px-2 shrink-0">
         {!collapsed && (
           <>
-            <span className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">
+            <span data-slot="panel-heading" className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">
               Documents
             </span>
             {/* Rename, export and delete are in the menu bar's File menu. */}

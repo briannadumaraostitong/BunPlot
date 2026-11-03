@@ -75,7 +75,7 @@ export function PlaceSidebar({
     >
       <div className="h-10 border-b border-border flex items-center justify-between px-2 shrink-0">
         {!collapsed && (
-          <span className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">
+          <span data-slot="panel-heading" className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">
             Places
           </span>
         )}

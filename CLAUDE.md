@@ -143,6 +143,9 @@ When working on a new feature, always read these first:
 - Event modal: metadata sidebar + tabbed rich text editor with toolbar
 - Theme: light/dark/system + 3 accent colors (blue, purple, emerald)
 
+## Known Issues
+- Tabs primitive (`components/ui/tabs.tsx`): the line variant's active underline is 0×0 in every theme, and the root's `data-horizontal:flex-col` never applies. Its `group-data-horizontal/tabs:` and `data-horizontal:` classes look for a `data-horizontal` attribute, but Radix sets `data-orientation="horizontal"`. Cyberpunk sizes the project tabs' bar itself in `app/themes/cyberpunk.css`; fixing the primitive will make the underline appear in Classic too.
+
 ## Pending Features
 - Project folders UI (DB schema already created)
 - Characters system (DB schema exists, UI pending)

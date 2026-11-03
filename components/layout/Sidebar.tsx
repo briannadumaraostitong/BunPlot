@@ -52,7 +52,7 @@ function SidebarContent({ onNavigate }: { onNavigate: () => void }) {
       {/* Logo */}
       <div className="h-14 flex items-center px-4 gap-1.5 shrink-0">
         <Image src="/logo.png" alt="" width={28} height={28} className="h-7 w-7" priority />
-        <span className="text-xl font-semibold tracking-tight">
+        <span data-slot="wordmark" className="text-xl font-semibold tracking-tight">
           BunPlot
         </span>
       </div>
@@ -68,6 +68,8 @@ function SidebarContent({ onNavigate }: { onNavigate: () => void }) {
               key={href}
               href={href}
               onClick={onNavigate}
+              data-slot="nav-item"
+              data-active={active || undefined}
               className={cn(
                 'flex items-center gap-2.5 rounded-md px-3 py-2 text-sm font-medium transition-colors',
                 active
