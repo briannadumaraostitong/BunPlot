@@ -71,6 +71,24 @@ export const CHARACTER_CARD = {
 // and the description and notes under field headings.
 export const PLACE_CARD = { coverAspect: 16 / 9, coverGap: 8 }
 
+// A timeline chapter's heading: its title over a hairline rule, with the
+// event count at the right.
+export const EVENT_GROUP = { size: 13, ruleWidth: 0.5, ruleColor: '#cccccc', ruleGap: 4, countSize: 9.5, before: 16, after: 10 }
+
+// An event card: the title, with the dates at the right; the status and
+// layer as labels; who's in it and where ("With … · At …"); then the
+// description and notes.
+export const EVENT_CARD = {
+  titleSize: 11,
+  titleLineHeight: 1.3,
+  titleGap: 4,
+  datesSize: 9.5,
+  datesGap: 8,
+  metaSize: 9.5,
+  metaLineHeight: 1.4,
+  secondaryColor: '#555555',
+}
+
 // Small coloured labels on a card (status, layer, place type): pills in the
 // PDF, shaded words in the DOCX.
 export const LABEL = { size: 8.5, paddingX: 5, paddingY: 1.5, gap: 4 }
@@ -78,8 +96,7 @@ export const LABEL = { size: 8.5, paddingX: 5, paddingY: 1.5, gap: 4 }
 // A card's field heading ("NOTES", "RELATIONSHIPS"): small tracked capitals.
 export const FIELD_LABEL = { size: 8, lineHeight: 1.25, tracking: 0.8, color: '#666666', before: 8, after: 2 }
 
-// Secondary text: labelled details ("Role: …") and empty-section notes.
-export const META_TEXT = { size: 10, color: '#444444' }
+// Secondary text: count lines and empty-section notes.
 export const MUTED_COLOR = '#666666'
 
 // Headings in the text, bold and black. Levels past 3 look like level 3.

@@ -4,9 +4,20 @@
 // the sizes storyBiblePdfParts and storyBibleToPdf set. Close, not exact:
 // Word lays out on its own, and only the share of the page matters.
 
-import { countLines } from './pdfTextMeasure'
-import { BIBLE_BODY, CARD, CARD_PADDING_BOTTOM, CHARACTER_CARD, FIELD_LABEL, HEADINGS, LABEL, PLACE_CARD } from './printTypography'
-import type { CharacterEntry, PlaceEntry } from './storyBible'
+import { countLines, textWidth } from './pdfTextMeasure'
+import {
+  BIBLE_BODY,
+  CARD,
+  CARD_PADDING_BOTTOM,
+  CHARACTER_CARD,
+  EVENT_CARD,
+  FIELD_LABEL,
+  HEADINGS,
+  LABEL,
+  PLACE_CARD,
+} from './printTypography'
+import { eventWithAt, type CharacterEntry, type EventEntry, type PlaceEntry } from './storyBible'
+import type { CardLabel } from './printColors'
 import type { BlockNode, InlineRun } from './outlineIR'
 
 // The width text has inside a card on a page with this text width.
@@ -131,6 +142,44 @@ export async function placeCardHeight(p: PlaceEntry, pageTextWidth: number): Pro
     if (rich === null) return Infinity
     height += FIELD_LABEL_HEIGHT + rich
   }
+  return height
+}
+
+// An event's dates column: the dates' width on one line, plus a point so
+// rounding can't wrap them (storyBibleToPdf gives the column this width).
+export async function datesWidth(dates: string): Promise<number> {
+  return (await textWidth(run(dates), EVENT_CARD.datesSize)) + 1
+}
+
+// Labels as storyBiblePdfParts' Labels lays them out: pills in rows,
+// wrapping when the next one doesn't fit.
+async function labelsHeight(labels: CardLabel[], width: number): Promise<number> {
+  if (labels.length === 0) return 0
+  let rows = 1
+  let x = 0
+  for (const label of labels) {
+    const w = (await textWidth(run(label.text), LABEL.size)) + 2 * LABEL.paddingX + LABEL.gap
+    if (x > 0 && x + w > width) {
+      rows++
+      x = 0
+    }
+    x += w
+  }
+  return rows * LABEL_ROW_HEIGHT
+}
+
+// An event card, as storyBibleToPdf lays it out.
+export async function eventCardHeight(e: EventEntry, pageTextWidth: number): Promise<number> {
+  const width = cardTextWidth(pageTextWidth)
+  const { titleSize, titleLineHeight, titleGap, datesGap, metaSize, metaLineHeight } = EVENT_CARD
+  let height = CARD.paddingY + CARD_PADDING_BOTTOM
+  const titleWidth = e.dates ? width - (await datesWidth(e.dates)) - datesGap : width
+  height += (await textHeight(e.title, titleWidth, titleSize, titleLineHeight, true)) + titleGap
+  if (e.labels.length > 0) height += (await labelsHeight(e.labels, width)) + BIBLE_BODY.paragraphGap - LABEL.gap
+  const withAt = eventWithAt(e)
+  if (withAt) height += (await textHeight(withAt, width, metaSize, metaLineHeight)) + BIBLE_BODY.paragraphGap
+  height += await paragraphsHeight(e.description, width)
+  if (e.notes.length > 0) height += FIELD_LABEL_HEIGHT + (await paragraphsHeight(e.notes, width))
   return height
 }
 

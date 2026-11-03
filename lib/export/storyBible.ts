@@ -6,6 +6,7 @@ import { tiptapToBlocks, type BlockNode } from './outlineIR'
 import { htmlToParagraphs } from './htmlToText'
 import { PLACE_TYPE_LABELS } from '@/lib/places.config'
 import { byPosition } from '@/lib/eventOrder'
+import type { CardLabel } from './printColors'
 import type {
   Chapter,
   Character,
@@ -67,15 +68,32 @@ export function placeHasDetails(p: PlaceEntry): boolean {
   return p.cover !== null || p.description.length > 0 || p.notes.length > 0
 }
 
+// color: the event's own, else its layer's (as on the grid). labels: its
+// status, then its layer, each in its own colour.
 export interface EventEntry {
   title: string
-  layer: string | null
-  status: string | null
+  color: string | null
+  labels: CardLabel[]
   dates: string | null
   characters: string[]
   places: string[]
   description: string[]
   notes: string[]
+}
+
+// Who's in an event and where, as one line ("With Ilsa, Tobin · At Merrow"),
+// or null when it has neither.
+export function eventWithAt(e: EventEntry): string | null {
+  const parts = [
+    e.characters.length > 0 ? `With ${e.characters.join(', ')}` : null,
+    e.places.length > 0 ? `At ${e.places.join(', ')}` : null,
+  ].filter((p): p is string => p !== null)
+  return parts.length > 0 ? parts.join(' · ') : null
+}
+
+// A timeline group's count, for the right of its heading ("4 events").
+export function eventCount(group: TimelineGroup): string {
+  return count(group.events.length, 'event')
 }
 
 // unassigned: the group of events in no chapter (always last).
@@ -289,8 +307,8 @@ export function buildStoryBible(input: StoryBibleInput): StoryBible {
 
   let timeline: StoryBible['timeline'] = null
   if (input.sections.has('timeline')) {
-    const layerNameById = new Map(input.layers.map((l) => [l.id, l.name]))
-    const statusNameById = new Map(input.statuses.map((s) => [s.id, s.name]))
+    const layerById = new Map(input.layers.map((l) => [l.id, l]))
+    const statusById = new Map(input.statuses.map((s) => [s.id, s]))
     const placeNameById = new Map(input.places.map((p) => [p.id, p.name]))
 
     const namesFor = <T extends { event_id: string }>(
@@ -304,19 +322,23 @@ export function buildStoryBible(input: StoryBibleInput): StoryBible {
         .filter((n): n is string => !!n)
         .sort((a, b) => a.localeCompare(b))
 
-    const toEntry = (e: Event): EventEntry => ({
-      title: e.title,
-      layer: layerNameById.get(e.layer_id) ?? null,
-      status: statusNameById.get(e.status_id) ?? null,
-      dates:
-        e.start_date && e.end_date && e.end_date !== e.start_date
-          ? `${e.start_date} – ${e.end_date}`
-          : (e.start_date ?? e.end_date ?? null),
-      characters: namesFor(input.eventCharacters, e.id, (l) => characterNameById.get(l.character_id)),
-      places: namesFor(input.eventPlaces, e.id, (l) => placeNameById.get(l.place_id)),
-      description: htmlToParagraphs(e.description),
-      notes: htmlToParagraphs(e.notes),
-    })
+    const toEntry = (e: Event): EventEntry => {
+      const layer = layerById.get(e.layer_id)
+      const status = statusById.get(e.status_id)
+      return {
+        title: e.title,
+        color: e.color ?? layer?.color ?? null,
+        labels: [status, layer].flatMap((l) => (l ? [{ text: l.name, color: l.color }] : [])),
+        dates:
+          e.start_date && e.end_date && e.end_date !== e.start_date
+            ? `${e.start_date} – ${e.end_date}`
+            : (e.start_date ?? e.end_date ?? null),
+        characters: namesFor(input.eventCharacters, e.id, (l) => characterNameById.get(l.character_id)),
+        places: namesFor(input.eventPlaces, e.id, (l) => placeNameById.get(l.place_id)),
+        description: htmlToParagraphs(e.description),
+        notes: htmlToParagraphs(e.notes),
+      }
+    }
 
     // Same order as the Grid: layers in their row order, then each layer's
     // events in cell order. Event positions only mean something within one

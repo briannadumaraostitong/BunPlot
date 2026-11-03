@@ -30,12 +30,22 @@ import { SERVER_FONTS_DIR } from './outlineToPdf'
 import { registerPdfFonts } from './pdfFonts'
 import { DEFAULT_DOCUMENT_FONT } from '../documentFonts'
 import { MANUSCRIPT_PAGES } from './manuscriptLayout'
-import { BIBLE_BODY, CHARACTER_CARD, CONTENTS, LABEL, META_TEXT, MUTED_COLOR, SECTION_TITLE } from './printTypography'
+import {
+  BIBLE_BODY,
+  CHARACTER_CARD,
+  CONTENTS,
+  EVENT_CARD,
+  EVENT_GROUP,
+  LABEL,
+  MUTED_COLOR,
+  SECTION_TITLE,
+} from './printTypography'
 import { cardColors } from './printColors'
 import { card, coverParagraph, fieldLabel, labelRuns } from './storyBibleDocxParts'
 import {
   cardTextWidth,
   characterCardHeight,
+  eventCardHeight,
   keepCardTogether,
   placeCardHeight,
   relationColumns,
@@ -47,12 +57,15 @@ import {
   SECTION_EMPTY_TEXT,
   SECTION_TITLES,
   contentsEntries,
+  eventCount,
+  eventWithAt,
   hasDetails,
   placeHasDetails,
   sectionAnchor,
   sectionSummary,
   timelineGroupAnchor,
   type CharacterEntry,
+  type EventEntry,
   type PlaceEntry,
   type StoryBible,
   type StoryBibleSection,
@@ -60,8 +73,9 @@ import {
 
 // Heading scheme: a centred title page, the contents, then each section as
 // its own Word section (so it gets its own running header), opening with its
-// title (Heading 1) and count line; card names and group headings (family
-// trees, timeline chapters) = H2, their entries = H3. Rich-text headings were
+// title (Heading 1) and count line; card names, the family trees' heading
+// and timeline chapters = H2, family trees and event titles = H3. Rich-text
+// headings were
 // already shifted by buildStoryBible to sit one level below their container
 // (H3+ in places).
 
@@ -117,16 +131,6 @@ function heading(text: string, level: (typeof HeadingLevel)[keyof typeof Heading
 
 function plain(text: string) {
   return new Paragraph({ children: [new TextRun({ text })] })
-}
-
-function meta(label: string, value: string | null) {
-  if (!value) return []
-  const run = { size: META_TEXT.size * 2, color: docxColor(META_TEXT.color) }
-  return [
-    new Paragraph({
-      children: [new TextRun({ ...run, text: `${label}: `, bold: true }), new TextRun({ ...run, text: value })],
-    }),
-  ]
 }
 
 function bullets(items: string[]) {
@@ -262,24 +266,62 @@ async function placesBody(places: NonNullable<StoryBible['places']>): Promise<Fi
   return out
 }
 
-async function timelineBody(timeline: NonNullable<StoryBible['timeline']>): Promise<Paragraph[]> {
-  const out: Paragraph[] = []
+// A timeline chapter's heading, as in the PDF: a Heading 2 (bookmarked for
+// the contents) over a hairline rule, the event count at the right.
+function groupHeading(text: string, count: string, anchor: string, first: boolean): Paragraph {
+  return new Paragraph({
+    heading: HeadingLevel.HEADING_2,
+    spacing: { before: first ? 0 : twips(EVENT_GROUP.before), after: twips(EVENT_GROUP.after) },
+    tabStops: [{ type: TabStopType.RIGHT, position: PAGE.textWidthTwips }],
+    border: {
+      bottom: {
+        style: BorderStyle.SINGLE,
+        size: EVENT_GROUP.ruleWidth * 8,
+        color: docxColor(EVENT_GROUP.ruleColor),
+        space: EVENT_GROUP.ruleGap,
+      },
+    },
+    children: [
+      new Bookmark({ id: anchor, children: [new TextRun({ text, size: EVENT_GROUP.size * 2 })] }),
+      new TextRun({ children: [new Tab(), count], size: EVENT_GROUP.countSize * 2, bold: false, color: docxColor(MUTED_COLOR) }),
+    ],
+  })
+}
+
+// An event's card, as in the PDF (storyBibleToPdf's EventCard). The title is
+// a Heading 3 with the dates at a right tab stop; a title too long for the
+// line pushes them onto the next.
+async function eventCard(e: EventEntry): Promise<FileChild[]> {
+  const secondary = docxColor(EVENT_CARD.secondaryColor)
+  const withAt = eventWithAt(e)
+  const children: Paragraph[] = [
+    new Paragraph({
+      heading: HeadingLevel.HEADING_3,
+      spacing: { before: 0, after: twips(EVENT_CARD.titleGap) },
+      tabStops: [{ type: TabStopType.RIGHT, position: twips(CARD_WIDTH_PT) }],
+      children: [
+        new TextRun({ text: e.title, size: EVENT_CARD.titleSize * 2 }),
+        ...(e.dates
+          ? [new TextRun({ children: [new Tab(), e.dates], size: EVENT_CARD.datesSize * 2, bold: false, color: secondary })]
+          : []),
+      ],
+    }),
+    ...(e.labels.length > 0 ? [new Paragraph({ children: labelRuns(e.labels) })] : []),
+    ...(withAt
+      ? [new Paragraph({ children: [new TextRun({ text: withAt, size: EVENT_CARD.metaSize * 2, color: secondary })] })]
+      : []),
+    ...e.description.map(plain),
+    ...(e.notes.length > 0 ? [fieldLabel('Notes'), ...e.notes.map(plain)] : []),
+  ]
+  const keepTogether = keepCardTogether(await eventCardHeight(e, TEXT_WIDTH_PT), PAGE.textHeightPt)
+  return card(e.color, children, { textWidthTwips: PAGE.textWidthTwips, keepTogether })
+}
+
+async function timelineBody(timeline: NonNullable<StoryBible['timeline']>): Promise<FileChild[]> {
+  const out: FileChild[] = []
   for (const [i, group] of timeline.entries()) {
-    out.push(heading(group.heading, HeadingLevel.HEADING_2, timelineGroupAnchor(i)))
-    for (const e of group.events) {
-      out.push(
-        heading(e.title, HeadingLevel.HEADING_3),
-        ...meta('Layer', e.layer),
-        ...meta('Status', e.status),
-        ...meta('Dates', e.dates),
-        ...meta('Characters', e.characters.join(', ') || null),
-        ...meta('Places', e.places.join(', ') || null),
-        ...e.description.map(plain)
-      )
-      if (e.notes.length > 0) {
-        out.push(new Paragraph({ children: [new TextRun({ text: 'Notes', bold: true })] }), ...e.notes.map(plain))
-      }
-    }
+    out.push(groupHeading(group.heading, eventCount(group), timelineGroupAnchor(i), i === 0))
+    for (const e of group.events) out.push(...(await eventCard(e)))
   }
   return out
 }

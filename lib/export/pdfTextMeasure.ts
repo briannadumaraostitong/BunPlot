@@ -31,6 +31,16 @@ async function loadFont(run: InlineRun): Promise<MeasuredFont | null> {
   return source.data as unknown as MeasuredFont | null
 }
 
+// The runs' width on one line, in points, at `fontSize`.
+export async function textWidth(runs: InlineRun[], fontSize: number): Promise<number> {
+  let width = 0
+  for (const run of runs) {
+    const font = await loadFont(run)
+    width += font ? (font.layout(run.text).advanceWidth / font.unitsPerEm) * fontSize : run.text.length * fontSize * 0.5
+  }
+  return width
+}
+
 // Lines the runs fill at `width` points and `fontSize`, with the first line
 // starting `indent` points in (a line break's next line isn't indented). Text
 // with no characters is 0 lines: react-pdf gives an empty paragraph no line

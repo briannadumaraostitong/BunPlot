@@ -14,8 +14,9 @@ import {
   BIBLE_BODY,
   CHARACTER_CARD,
   CONTENTS,
+  EVENT_CARD,
+  EVENT_GROUP,
   LABEL,
-  META_TEXT,
   MUTED_COLOR,
   PLACE_CARD,
   SECTION_TITLE,
@@ -26,6 +27,8 @@ import { Card, FieldLabel, Labels } from './storyBiblePdfParts'
 import {
   cardTextWidth,
   characterCardHeight,
+  datesWidth,
+  eventCardHeight,
   keepCardTogether,
   placeCardHeight,
   relationColumns,
@@ -37,12 +40,15 @@ import {
   SECTION_EMPTY_TEXT,
   SECTION_TITLES,
   contentsEntries,
+  eventCount,
+  eventWithAt,
   hasDetails,
   placeHasDetails,
   sectionAnchor,
   sectionSummary,
   timelineGroupAnchor,
   type CharacterEntry,
+  type EventEntry,
   type PlaceEntry,
   type StoryBible,
   type StoryBibleSection,
@@ -50,8 +56,8 @@ import {
 
 // Heading scheme mirrors storyBibleToDocx: a centred title page, the
 // contents, then each section on its own pages, opening with its title and
-// count line; character and place cards, then group headings (family trees,
-// timeline chapters) at heading2 and their entries at heading3. Rich-text
+// count line; character, place and event cards, with the family trees'
+// heading at heading2 and each tree's at heading3. Rich-text
 // headings were already shifted by buildStoryBible (level 3+ in places), and
 // the outline renderer styles every level past 3 as heading3.
 
@@ -83,8 +89,6 @@ const styles = StyleSheet.create({
     borderBottomColor: SECTION_TITLE.ruleColor,
   },
   sectionCount: { fontSize: SECTION_TITLE.countSize, marginTop: SECTION_TITLE.countGap, color: MUTED_COLOR },
-  meta: { fontSize: META_TEXT.size, marginBottom: 4, color: META_TEXT.color },
-  metaLabel: { fontWeight: 700 },
   empty: { fontStyle: 'italic', color: MUTED_COLOR },
   entry: { marginBottom: 10 },
   // Contents rows are links, which react-pdf would otherwise colour and
@@ -121,6 +125,33 @@ const styles = StyleSheet.create({
   relation: { flex: 1, color: CHARACTER_CARD.relationColor },
   // The labels' last gap, plus this, makes a paragraph's gap.
   cardLabels: { marginBottom: BIBLE_BODY.paragraphGap - LABEL.gap },
+  // Timeline chapter headings and event cards (EVENT_GROUP, EVENT_CARD).
+  groupHeading: {
+    flexDirection: 'row',
+    alignItems: 'flex-end',
+    paddingBottom: EVENT_GROUP.ruleGap,
+    borderBottomWidth: EVENT_GROUP.ruleWidth,
+    borderBottomColor: EVENT_GROUP.ruleColor,
+    marginBottom: EVENT_GROUP.after,
+  },
+  groupTitle: { flex: 1, fontSize: EVENT_GROUP.size, fontWeight: 700 },
+  groupCount: { fontSize: EVENT_GROUP.countSize, color: MUTED_COLOR, marginLeft: EVENT_CARD.datesGap },
+  eventTitleRow: { flexDirection: 'row', alignItems: 'flex-start', marginBottom: EVENT_CARD.titleGap },
+  eventTitle: { flex: 1, fontSize: EVENT_CARD.titleSize, lineHeight: EVENT_CARD.titleLineHeight, fontWeight: 700 },
+  // On the title's line height, so the two sit on one line.
+  eventDates: {
+    fontSize: EVENT_CARD.datesSize,
+    lineHeight: (EVENT_CARD.titleSize * EVENT_CARD.titleLineHeight) / EVENT_CARD.datesSize,
+    marginLeft: EVENT_CARD.datesGap,
+    textAlign: 'right',
+    color: EVENT_CARD.secondaryColor,
+  },
+  eventWithAt: {
+    fontSize: EVENT_CARD.metaSize,
+    lineHeight: EVENT_CARD.metaLineHeight,
+    marginBottom: BIBLE_BODY.paragraphGap,
+    color: EVENT_CARD.secondaryColor,
+  },
 })
 
 // The text width inside a card, and rich text laid out at it.
@@ -163,16 +194,6 @@ function Heading({ level, anchor, children }: { level: 2 | 3; anchor?: string; c
       minPresenceAhead={KEEP_WITH_NEXT}
     >
       {children}
-    </Text>
-  )
-}
-
-function Meta({ label, value }: { label: string; value: string | null }) {
-  if (!value) return null
-  return (
-    <Text style={styles.meta}>
-      <Text style={styles.metaLabel}>{`${label}: `}</Text>
-      {value}
     </Text>
   )
 }
@@ -349,6 +370,34 @@ async function placeCard(p: PlaceEntry, keepTogether: boolean, key: number) {
   )
 }
 
+// An event's card: its colour (else its layer's), the title with the dates
+// at the right (in a column datesWidth wide), the status and layer labels,
+// who's in it and where, then the description and notes.
+function EventCard({ e, keepTogether, datesWidth }: { e: EventEntry; keepTogether: boolean; datesWidth: number }) {
+  const withAt = eventWithAt(e)
+  return (
+    <Card color={e.color} keepTogether={keepTogether}>
+      <View style={styles.eventTitleRow}>
+        <Text style={styles.eventTitle}>{e.title}</Text>
+        {e.dates && <Text style={[styles.eventDates, { width: datesWidth }]}>{e.dates}</Text>}
+      </View>
+      {e.labels.length > 0 && (
+        <View style={styles.cardLabels}>
+          <Labels labels={e.labels} />
+        </View>
+      )}
+      {withAt && <Text style={styles.eventWithAt}>{withAt}</Text>}
+      <Paragraphs items={e.description} />
+      {e.notes.length > 0 && (
+        <>
+          <FieldLabel>Notes</FieldLabel>
+          <Paragraphs items={e.notes} />
+        </>
+      )}
+    </Card>
+  )
+}
+
 // At most this many layouts. The second one normally agrees with the first,
 // since contents numbers sit in a fixed-width column and can't move anything;
 // the third is only a safety net.
@@ -428,37 +477,42 @@ export async function renderStoryBibleToPdf(bible: StoryBible): Promise<Buffer> 
   }
 
   if (bible.timeline) {
+    // Each card's keep-together choice (as character cards) and dates column.
+    const layouts = await Promise.all(
+      bible.timeline.map((group) =>
+        Promise.all(
+          group.events.map(async (e) => ({
+            keep: keepCardTogether(await eventCardHeight(e, LAYOUT.textWidth), LAYOUT.textHeight),
+            datesWidth: e.dates ? await datesWidth(e.dates) : 0,
+          }))
+        )
+      )
+    )
     pages.push(
       <Section key="timeline" bible={bible} section="timeline" pages={pageNumbers}>
-        {bible.timeline.map((group, gi) => (
-          <View key={gi}>
-            {group.events.map((e, ei) => (
-              <View key={ei} style={styles.entry}>
-                {ei === 0 && (
-                  <>
-                    <Heading level={2} anchor={timelineGroupAnchor(gi)}>
-                      {group.heading}
-                    </Heading>
-                    <PageMarker anchor={timelineGroupAnchor(gi)} pages={pageNumbers} />
-                  </>
-                )}
-                <Heading level={3}>{e.title}</Heading>
-                <Meta label="Layer" value={e.layer} />
-                <Meta label="Status" value={e.status} />
-                <Meta label="Dates" value={e.dates} />
-                <Meta label="Characters" value={e.characters.join(', ') || null} />
-                <Meta label="Places" value={e.places.join(', ') || null} />
-                <Paragraphs items={e.description} />
-                {e.notes.length > 0 && (
-                  <>
-                    <Text style={[styles.body, styles.metaLabel]}>Notes</Text>
-                    <Paragraphs items={e.notes} />
-                  </>
-                )}
+        {bible.timeline.map((group, gi) => {
+          const cards = group.events.map((e, ei) => (
+            <EventCard key={ei} e={e} keepTogether={layouts[gi][ei].keep} datesWidth={layouts[gi][ei].datesWidth} />
+          ))
+          // The heading goes in one View with the first card, which keeps the
+          // two together when that card is kept in one piece (minPresenceAhead
+          // only holds for a Text after it).
+          return (
+            <View key={gi} style={gi > 0 ? { marginTop: EVENT_GROUP.before } : undefined}>
+              <View wrap={!layouts[gi][0].keep}>
+                <View style={styles.groupHeading}>
+                  <Text id={timelineGroupAnchor(gi)} style={styles.groupTitle}>
+                    {group.heading}
+                  </Text>
+                  <Text style={styles.groupCount}>{eventCount(group)}</Text>
+                </View>
+                <PageMarker anchor={timelineGroupAnchor(gi)} pages={pageNumbers} />
+                {cards[0]}
               </View>
-            ))}
-          </View>
-        ))}
+              {cards.slice(1)}
+            </View>
+          )
+        })}
       </Section>
     )
   }
