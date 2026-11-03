@@ -22,8 +22,9 @@
 @theme inline {
   --color-background: hsl(var(--background));
   --color-foreground: hsl(var(--foreground));
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
+  /* Per theme: lib/themes.ts sets --theme-font-* from the theme's fonts. */
+  --font-sans: var(--theme-font-sans);
+  --font-mono: var(--theme-font-mono);
   /* Outline documents: Literata, loaded by the outline editor (Fontsource). */
   --font-document: 'Literata', ui-serif, Georgia, serif;
   --color-sidebar-ring: hsl(var(--sidebar-ring));
@@ -63,6 +64,10 @@
 
 :root {
   --radius: 0.5rem;
+
+  /* Fonts — classic default (overridden per-theme by lib/themes.ts) */
+  --theme-font-sans: var(--font-geist-sans);
+  --theme-font-mono: var(--font-geist-mono);
 
   /* Base colors */
   --background:         0 0% 99%;

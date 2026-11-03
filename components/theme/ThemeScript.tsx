@@ -13,7 +13,11 @@ export function ThemeScript() {
     Object.keys(theme.tokens).forEach(function(key) {
       root.style.setProperty(key, theme.tokens[key]);
     });
+    root.style.setProperty('--theme-font-sans', 'var(' + theme.fonts.sans + ')');
+    root.style.setProperty('--theme-font-mono', 'var(' + theme.fonts.mono + ')');
     root.setAttribute('data-theme', theme.id);
+    root.setAttribute('data-shape', theme.shape);
+    root.setAttribute('data-texture', theme.texture);
     if (theme.isDark) root.classList.add('dark');
   } catch(e) {}
 })();

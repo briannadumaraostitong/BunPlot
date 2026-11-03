@@ -15,18 +15,44 @@ export type ThemeId =
   | 'redblack'
 export type ThemeSetting = ThemeId | 'sync'
 
+// Corners: 'cut' chamfers buttons, dialogs and card surfaces (globals.css,
+// [data-shape="cut"]); 'rounded' uses --radius as before.
+export type ThemeShape = 'rounded' | 'cut'
+export type ThemeTexture = 'none' | 'grid'
+export type ThemeFrames = 'nightcity'
+
+// CSS variable names that next/font defines on <html> (app/layout.tsx).
+export interface ThemeFonts {
+  sans: string
+  mono: string
+}
+
 export interface ThemeDefinition {
   id: ThemeId
   label: string
   isDark: boolean
+  shape: ThemeShape
+  texture: ThemeTexture
+  fonts: ThemeFonts
+  // Decorative frame set for a few feature spots; null falls back to a plain card.
+  frames: ThemeFrames | null
   tokens: Record<string, string>
 }
+
+// The look every theme has had so far: rounded corners, a plain background, Geist.
+const CLASSIC_LOOK = {
+  shape: 'rounded',
+  texture: 'none',
+  fonts: { sans: '--font-geist-sans', mono: '--font-geist-mono' },
+  frames: null,
+} satisfies Pick<ThemeDefinition, 'shape' | 'texture' | 'fonts' | 'frames'>
 
 export const THEMES: ThemeDefinition[] = [
   {
     id: 'classic-light',
     label: 'Classic Light',
     isDark: false,
+    ...CLASSIC_LOOK,
     tokens: {
       '--background':         '0 0% 99%',
       '--foreground':         '220 20% 10%',
@@ -70,6 +96,7 @@ export const THEMES: ThemeDefinition[] = [
     id: 'classic-dark',
     label: 'Classic Dark',
     isDark: true,
+    ...CLASSIC_LOOK,
     tokens: {
       '--background':         '222 25% 9%',
       '--foreground':         '210 20% 92%',
@@ -113,6 +140,7 @@ export const THEMES: ThemeDefinition[] = [
     id: 'parchment',
     label: 'Parchment',
     isDark: false,
+    ...CLASSIC_LOOK,
     tokens: {
       '--background':         '36 43% 93%',
       '--foreground':         '29 22% 19%',
@@ -156,6 +184,7 @@ export const THEMES: ThemeDefinition[] = [
     id: 'rose',
     label: 'Rosé',
     isDark: false,
+    ...CLASSIC_LOOK,
     tokens: {
       '--background':         '350 37% 97%',
       '--foreground':         '313 7% 25%',
@@ -199,6 +228,7 @@ export const THEMES: ThemeDefinition[] = [
     id: 'seafoam',
     label: 'Seafoam',
     isDark: false,
+    ...CLASSIC_LOOK,
     tokens: {
       '--background':         '163 41% 97%',
       '--foreground':         '169 44% 15%',
@@ -242,6 +272,7 @@ export const THEMES: ThemeDefinition[] = [
     id: 'honey',
     label: 'Honey',
     isDark: false,
+    ...CLASSIC_LOOK,
     tokens: {
       '--background':         '40 75% 94%',
       '--foreground':         '40 64% 18%',
@@ -285,6 +316,7 @@ export const THEMES: ThemeDefinition[] = [
     id: 'lilac',
     label: 'Lilac',
     isDark: false,
+    ...CLASSIC_LOOK,
     tokens: {
       '--background':         '263 50% 97%',
       '--foreground':         '259 23% 24%',
@@ -328,6 +360,7 @@ export const THEMES: ThemeDefinition[] = [
     id: 'nightfall',
     label: 'Nightfall',
     isDark: true,
+    ...CLASSIC_LOOK,
     tokens: {
       '--background':         '250 27% 9%',
       '--foreground':         '252 33% 91%',
@@ -371,6 +404,7 @@ export const THEMES: ThemeDefinition[] = [
     id: 'forest',
     label: 'Forest',
     isDark: true,
+    ...CLASSIC_LOOK,
     tokens: {
       '--background':         '94 19% 7%',
       '--foreground':         '79 25% 85%',
@@ -414,6 +448,7 @@ export const THEMES: ThemeDefinition[] = [
     id: 'ocean',
     label: 'Ocean',
     isDark: true,
+    ...CLASSIC_LOOK,
     tokens: {
       '--background':         '194 51% 8%',
       '--foreground':         '186 40% 90%',
@@ -457,6 +492,7 @@ export const THEMES: ThemeDefinition[] = [
     id: 'autumn',
     label: 'Autumn',
     isDark: true,
+    ...CLASSIC_LOOK,
     tokens: {
       '--background':         '41 44% 7%',
       '--foreground':         '45 57% 86%',
@@ -500,6 +536,7 @@ export const THEMES: ThemeDefinition[] = [
     id: 'cyberpunk',
     label: 'Cyberpunk',
     isDark: true,
+    ...CLASSIC_LOOK,
     tokens: {
       '--background':         '258 48% 5%',
       '--foreground':         '257 100% 94%',
@@ -543,6 +580,7 @@ export const THEMES: ThemeDefinition[] = [
     id: 'monochrome',
     label: 'Monochrome',
     isDark: true,
+    ...CLASSIC_LOOK,
     tokens: {
       '--background':         '0 0% 6%',
       '--foreground':         '0 0% 93%',
@@ -586,6 +624,7 @@ export const THEMES: ThemeDefinition[] = [
     id: 'redblack',
     label: 'Red/Black',
     isDark: true,
+    ...CLASSIC_LOOK,
     tokens: {
       '--background':         '0 24% 4%',
       '--foreground':         '0 35% 91%',
@@ -650,7 +689,11 @@ export function applyTheme(setting: ThemeSetting): ThemeId {
   Object.entries(theme.tokens).forEach(([key, value]) => {
     root.style.setProperty(key, value)
   })
+  root.style.setProperty('--theme-font-sans', `var(${theme.fonts.sans})`)
+  root.style.setProperty('--theme-font-mono', `var(${theme.fonts.mono})`)
   root.setAttribute('data-theme', theme.id)
+  root.setAttribute('data-shape', theme.shape)
+  root.setAttribute('data-texture', theme.texture)
   root.classList.toggle('dark', theme.isDark)
 
   return id
