@@ -206,13 +206,16 @@ function FlowCard({
         playClickSound()
         onClick()
       }}
+      data-slot="event-card"
+      data-variant="flow"
+      data-selected={selected || undefined}
       className={cn(
-        'flex w-44 shrink-0 flex-col gap-1 rounded-lg border border-border bg-card px-3 py-2.5 text-left shadow-sm transition-all hover:shadow-md hover:brightness-105',
+        'flex w-44 shrink-0 flex-col gap-1 rounded-lg border border-border border-l-3 border-l-(color:--event-color) bg-card px-3 py-2.5 text-left shadow-sm transition-all hover:shadow-md hover:brightness-105',
         selected && 'ring-2 ring-offset-1 shadow-lg'
       )}
-      style={{ borderLeftWidth: 3, borderLeftColor: color }}
+      style={{ '--event-color': color } as React.CSSProperties}
     >
-      <span className="truncate text-xs font-semibold" style={{ color }}>
+      <span data-slot="event-card-title" className="truncate text-xs font-semibold text-(--event-color)">
         {event.title}
       </span>
       <span className="truncate text-[10px] text-muted-foreground">{chapterTitle ?? 'No chapter'}</span>

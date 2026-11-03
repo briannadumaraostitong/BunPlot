@@ -418,9 +418,17 @@ function EventCardStacked({
     <div
       ref={setNodeRef}
       onClick={(e) => { e.stopPropagation(); playClickSound(); onSelect() }}
+      data-slot="event-card"
+      data-selected={selected || undefined}
       className={cn(
         'group relative rounded-lg pl-2.5 pr-4 py-1.5 cursor-pointer select-none',
         'flex flex-col gap-1 shadow-sm transition-all duration-100',
+        // Colors come from --event-color rather than inline styles, which no
+        // theme stylesheet could override. The left color goes last: cn()
+        // drops a side color that comes before an all-sides one.
+        'border border-l-3 bg-(--event-color)/[9.41%]',
+        selected ? 'border-(color:--event-color)' : 'border-(color:--event-color)/[25.1%]',
+        'border-l-(color:--event-color)',
         'hover:brightness-110 hover:shadow-md',
         selected && 'ring-2 ring-offset-1 shadow-lg',
         isDragging && 'z-10'
@@ -429,17 +437,8 @@ function EventCardStacked({
         transform: CSS.Transform.toString(transform),
         transition,
         opacity: isDragging ? 0.5 : 1,
-        backgroundColor: color + '18',
-        borderTopWidth: '1px',
-        borderRightWidth: '1px',
-        borderBottomWidth: '1px',
-        borderLeftWidth: '3px',
-        borderTopColor: selected ? color : color + '40',
-        borderRightColor: selected ? color : color + '40',
-        borderBottomColor: selected ? color : color + '40',
-        borderLeftColor: color,
-        borderStyle: 'solid',
-      }}
+        '--event-color': color,
+      } as React.CSSProperties}
     >
       <button
         {...attributes}
@@ -451,22 +450,23 @@ function EventCardStacked({
       </button>
 
       <span
-        className="text-[11px] font-semibold leading-tight truncate"
-        style={{ color }}
+        data-slot="event-card-title"
+        className="text-[11px] font-semibold leading-tight truncate text-(--event-color)"
       >
         {event.icon && <span className="mr-1">{event.icon}</span>}
         {event.title}
       </span>
 
       {description && (
-        <p className="text-[10px] text-muted-foreground leading-relaxed line-clamp-2">
+        <p data-slot="event-card-description" className="text-[10px] text-muted-foreground leading-relaxed line-clamp-2">
           {description}
         </p>
       )}
 
       <span
-        className="self-start px-1.5 py-0.5 rounded-full text-[9px] font-semibold uppercase tracking-wide leading-none text-foreground"
-        style={{ backgroundColor: statusColor + '66' }}
+        data-slot="event-card-status"
+        className="self-start px-1.5 py-0.5 rounded-full text-[9px] font-semibold uppercase tracking-wide leading-none text-foreground bg-(--status-color)/40"
+        style={{ '--status-color': statusColor } as React.CSSProperties}
       >
         {status?.name ?? 'Unknown'}
       </span>
@@ -492,35 +492,26 @@ export function EventCardPreview({
 
   return (
     <div
-      className="rounded-lg pl-2.5 pr-4 py-1.5 flex flex-col gap-1 shadow-lg cursor-grabbing"
-      style={{
-        width,
-        backgroundColor: color + '18',
-        borderTopWidth: '1px',
-        borderRightWidth: '1px',
-        borderBottomWidth: '1px',
-        borderLeftWidth: '3px',
-        borderTopColor: color,
-        borderRightColor: color,
-        borderBottomColor: color,
-        borderLeftColor: color,
-        borderStyle: 'solid',
-      }}
+      data-slot="event-card"
+      data-drag-preview=""
+      className="rounded-lg pl-2.5 pr-4 py-1.5 flex flex-col gap-1 shadow-lg cursor-grabbing border border-l-3 border-(color:--event-color) bg-(--event-color)/[9.41%]"
+      style={{ width, '--event-color': color } as React.CSSProperties}
     >
-      <span className="text-[11px] font-semibold leading-tight truncate" style={{ color }}>
+      <span data-slot="event-card-title" className="text-[11px] font-semibold leading-tight truncate text-(--event-color)">
         {event.icon && <span className="mr-1">{event.icon}</span>}
         {event.title}
       </span>
 
       {description && (
-        <p className="text-[10px] text-muted-foreground leading-relaxed line-clamp-2">
+        <p data-slot="event-card-description" className="text-[10px] text-muted-foreground leading-relaxed line-clamp-2">
           {description}
         </p>
       )}
 
       <span
-        className="self-start px-1.5 py-0.5 rounded-full text-[9px] font-semibold uppercase tracking-wide leading-none text-foreground"
-        style={{ backgroundColor: statusColor + '5c' }}
+        data-slot="event-card-status"
+        className="self-start px-1.5 py-0.5 rounded-full text-[9px] font-semibold uppercase tracking-wide leading-none text-foreground bg-(--status-color)/[36.08%]"
+        style={{ '--status-color': statusColor } as React.CSSProperties}
       >
         {status?.name ?? 'Unknown'}
       </span>
