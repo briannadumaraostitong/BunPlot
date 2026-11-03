@@ -73,7 +73,7 @@ export function ProjectView({ project, initialLayers, initialEvents, initialChap
 
   return (
     <div className="flex flex-col h-full overflow-hidden">
-      <div className="h-10 border-b border-border flex items-center px-3 shrink-0 bg-background">
+      <div data-slot="project-header" className="h-10 border-b border-border flex items-center px-3 shrink-0 bg-background">
         {editingTitle ? (
           <div className="flex items-center gap-1 max-w-xs flex-1 min-w-0">
             <input
@@ -112,7 +112,7 @@ export function ProjectView({ project, initialLayers, initialEvents, initialChap
         )}
       </div>
 
-      <div className="border-b border-border px-3 shrink-0 bg-background flex items-center justify-between">
+      <div data-slot="project-tabs" className="border-b border-border px-3 shrink-0 bg-background flex items-center justify-between">
         <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as TabId)}>
           <TabsList variant="line" className="h-11 md:h-8">
             {TABS.map(({ id, label, icon: Icon }) => (

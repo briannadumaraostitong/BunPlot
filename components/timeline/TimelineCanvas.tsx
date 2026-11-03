@@ -388,9 +388,11 @@ export function TimelineCanvas({
 
       <div className="flex flex-col flex-1 min-w-0 overflow-hidden">
         <div className="flex h-9 shrink-0 items-center gap-2 border-b border-border bg-secondary/20 px-3">
-          <div className="inline-flex items-center gap-1 rounded-lg bg-secondary/50 p-1">
+          <div data-slot="view-toggle" className="inline-flex items-center gap-1 rounded-lg bg-secondary/50 p-1">
             <button
               onClick={() => setViewMode('grid')}
+              data-slot="view-toggle-item"
+              data-active={viewMode === 'grid' || undefined}
               className={cn(
                 'relative rounded-md px-2.5 py-1 text-xs font-medium transition-all after:absolute after:-inset-y-1 after:-inset-x-0.5',
                 viewMode === 'grid'
@@ -402,6 +404,8 @@ export function TimelineCanvas({
             </button>
             <button
               onClick={() => setViewMode('flow')}
+              data-slot="view-toggle-item"
+              data-active={viewMode === 'flow' || undefined}
               className={cn(
                 'relative rounded-md px-2.5 py-1 text-xs font-medium transition-all after:absolute after:-inset-y-1 after:-inset-x-0.5',
                 viewMode === 'flow'
