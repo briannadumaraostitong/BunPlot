@@ -3,10 +3,12 @@
 import { createClient } from '@/lib/supabase/server'
 import { tiptapToBlocks } from '@/lib/export/outlineIR'
 import { renderOutlinesToDocx, type OutlineSection } from '@/lib/export/outlineToDocx'
-import { renderOutlinesToPdf } from '@/lib/export/outlineToPdf'
+import { layoutFor, renderOutlinesToPdf } from '@/lib/export/outlineToPdf'
 import type { BookDetails } from '@/lib/export/manuscriptLayout'
 import { DEFAULT_MANUSCRIPT_OPTIONS, type ManuscriptOptions } from '@/lib/export/manuscriptOptions'
 import { COVER_SIZE, PLACE_COVER_SIZE, prepareImage } from '@/lib/export/prepareImage'
+import { prepareBlockImages } from '@/lib/export/prepareBlockImages'
+import { cardTextWidth } from '@/lib/export/storyBibleMeasure'
 import { buildStoryBible, STORY_BIBLE_SECTIONS, type StoryBibleSection } from '@/lib/export/storyBible'
 import { renderStoryBibleToDocx } from '@/lib/export/storyBibleToDocx'
 import { renderStoryBibleToPdf } from '@/lib/export/storyBibleToPdf'
@@ -176,10 +178,12 @@ export async function exportOutlines(
   const outlines = (data ?? []) as Outline[]
   if (outlines.length === 0) return { error: 'No documents found' }
 
-  const sections: OutlineSection[] = outlines.map((o) => ({
-    title: o.name,
-    blocks: tiptapToBlocks(o.content),
-  }))
+  // Images scaled down for print, no wider than this layout's text.
+  const documents = await prepareBlockImages(
+    outlines.map((o) => tiptapToBlocks(o.content)),
+    layoutFor(options.style, options.pageSize).textWidth
+  )
+  const sections: OutlineSection[] = outlines.map((o, i) => ({ title: o.name, blocks: documents[i] }))
 
   let book: BookDetails | undefined
   let notice: string | null = null
@@ -264,7 +268,7 @@ export async function exportStoryBible(
     ? await placeCovers(supabase, places)
     : { covers: new Map<string, string>(), notice: null }
 
-  const bible = buildStoryBible({
+  const built = buildStoryBible({
     projectTitle,
     author,
     sections: selected,
@@ -281,6 +285,19 @@ export async function exportStoryBible(
     eventCharacters: (eventCharactersRes.data ?? []) as { event_id: string; character_id: string }[],
     eventPlaces: (eventPlacesRes.data ?? []) as { event_id: string; place_id: string }[],
   })
+  // Images in place descriptions and notes scaled down for print, no wider
+  // than a card's text on the story bible's A4 page.
+  let bible = built
+  if (built.places) {
+    const documents = await prepareBlockImages(
+      built.places.flatMap((p) => [p.description, p.notes]),
+      cardTextWidth(layoutFor('standard', 'a4').textWidth)
+    )
+    bible = {
+      ...built,
+      places: built.places.map((p, i) => ({ ...p, description: documents[2 * i], notes: documents[2 * i + 1] })),
+    }
+  }
 
   let buffer: Buffer
   try {

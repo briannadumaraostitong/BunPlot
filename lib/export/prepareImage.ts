@@ -1,5 +1,5 @@
 import sharp from 'sharp'
-import { fetchImageBytes } from './fetchImageBytes'
+import { fetchImageBytes, type FetchedImage } from './fetchImageBytes'
 import { PLACE_CARD } from './printTypography'
 
 // An image ready for react-pdf, which only takes PNG and JPEG. WebP and GIF
@@ -9,9 +9,10 @@ import { PLACE_CARD } from './printTypography'
 // that shape around its centre, as the app's object-cover frames show it.
 // Server-only (sharp).
 
+// maxHeight: none when only the width matters (images in rich text).
 export interface ImageSize {
   maxWidth: number
-  maxHeight: number
+  maxHeight?: number
   aspect?: number
 }
 
@@ -21,14 +22,50 @@ export const COVER_SIZE: ImageSize = { maxWidth: 1800, maxHeight: 2700 }
 // frames, about 260 dpi across a card on an A4 page.
 export const PLACE_COVER_SIZE: ImageSize = { maxWidth: 1600, maxHeight: 900, aspect: PLACE_CARD.coverAspect }
 
+// Images in rich text are printed at this resolution, at most.
+const PRINT_DPI = 300
+// The editor's (and the renderers') CSS pixels, at 96 to the inch.
+const PT_PER_PX = 0.75
+
 export type PreparedImage = { url: string } | { error: string }
 
 export async function prepareImage(src: string, size: ImageSize): Promise<PreparedImage> {
   const fetched = await fetchImageBytes(src)
   if (!fetched) return { error: "Couldn't download the image." }
+  return prepareFetched(src, fetched, size)
+}
+
+// An image in rich text (an outline, a place description), scaled down to
+// what it needs at PRINT_DPI where it's printed: at its editor width (CSS
+// px), or its own width if it was never resized, and no wider than the
+// text. width: the width it's shown at, for the caller to keep on the
+// block, since the renderers otherwise fall back to the image's own width,
+// which scaling down changes.
+export async function prepareInlineImage(
+  src: string,
+  editorWidth: number | null,
+  textWidthPt: number
+): Promise<{ url: string; width: number } | { error: string }> {
+  const fetched = await fetchImageBytes(src)
+  if (!fetched) return { error: "Couldn't download the image." }
+  // readImageInfo doesn't size WebP (the renderers can't embed it), so sharp
+  // does when it can't.
+  const ownWidth = fetched.info.width ?? (await sharp(fetched.bytes).metadata().catch(() => null))?.width
+  if (!ownWidth) return { error: "Couldn't read the image's size." }
+  const width = editorWidth ?? ownWidth
+  const printedPt = Math.min(width * PT_PER_PX, textWidthPt)
+  const prepared = await prepareFetched(src, fetched, { maxWidth: Math.ceil((printedPt / 72) * PRINT_DPI) })
+  return 'url' in prepared ? { url: prepared.url, width } : prepared
+}
+
+async function prepareFetched(src: string, fetched: FetchedImage, size: ImageSize): Promise<PreparedImage> {
   const { format, width, height } = fetched.info
 
-  const fits = width !== null && height !== null && width <= size.maxWidth && height <= size.maxHeight
+  const fits =
+    width !== null &&
+    height !== null &&
+    width <= size.maxWidth &&
+    (size.maxHeight === undefined || height <= size.maxHeight)
   if ((format === 'png' || format === 'jpeg') && fits && !size.aspect) return { url: src }
 
   try {
@@ -42,7 +79,7 @@ export async function prepareImage(src: string, size: ImageSize): Promise<Prepar
       const w = (upright ? metadata.height : metadata.width) ?? 0
       const h = (upright ? metadata.width : metadata.height) ?? 0
       // As wide as the image allows at this aspect, never enlarged.
-      const cropWidth = Math.round(Math.min(w, h * size.aspect, size.maxWidth, size.maxHeight * size.aspect))
+      const cropWidth = Math.round(Math.min(w, h * size.aspect, size.maxWidth, (size.maxHeight ?? Infinity) * size.aspect))
       const cropHeight = Math.round(cropWidth / size.aspect)
       if (cropWidth < 1 || cropHeight < 1) return { error: 'The image is too small to crop.' }
       image = image.rotate().resize({ width: cropWidth, height: cropHeight, fit: 'cover', position: 'centre' })
