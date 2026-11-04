@@ -5,15 +5,20 @@ BunPlot is a visual story timeline planner for writers. Think Plottr meets Notio
 Built with: Next.js 16 (16.2.6, App Router), TypeScript, Tailwind CSS v4, shadcn/ui (Nova preset, Radix), Supabase.
 
 ## Folder Structure
-- `app/` — Next.js App Router pages
-- `components/` — UI components (ui/, timeline/, layers/, events/, layout/, projects/, theme/)
-- `hooks/` — React hooks (useLayers, useEvents, useChapters)
-- `actions/` — Next.js server actions (projects, layers, events, chapters)
+- `app/` — Next.js App Router pages: `(app)/` (signed-in app), `(auth)/` (login, signup), `page.tsx` (landing page)
+- `app/themes/` — per-theme stylesheets (`cyberpunk.css`), keyed on `[data-theme]` and `data-slot` hooks
+- `components/` — UI components (ui/, timeline/, layers/, events/, layout/, projects/, characters/, places/, outline/, panels/, editor/, settings/, theme/, hud/, landing/, brand/, auth/)
+- `hooks/` — React hooks (useLayers, useEvents, useChapters, usePanels, useStatuses, useSearch, …)
+- `actions/` — Next.js server actions (projects, layers, events, chapters, …)
 - `types/database.ts` — All TypeScript types
 - `lib/supabase/` — client.ts and server.ts
-- `lib/themes.ts` — full-palette theme definitions (single source of truth for color tokens)
+- `lib/themes.ts` — theme definitions (single source of truth for color tokens, shape, texture, fonts and frames)
+- `lib/frames.ts` — the Nightcity frame registry (files, sizes, content slots)
+- `lib/brand.ts` — the logo file's path (`LOGO_SRC`)
 - `lib/theme.config.ts` — layer color palette (`LAYER_COLORS`)
 - `supabase/schema.sql` — full database schema
+- `ASSETS.md` — every third-party asset with its license
+- `design/landing/` — the landing page design handoff (`HANDOFF.md`) and mockup; a reference, not code
 
 ## Design System
 
@@ -23,12 +28,13 @@ Think: dark writing app meets visual planning tool. Not flashy. Not corporate.
 Inspired by: Plottr, Notion, Linear, iA Writer.
 
 ### Typography
-- Font: Geist Sans (body), Geist Mono (code/hex values)
+- Fonts come from the theme: Classic uses Geist Sans (body) and Geist Mono (code/hex values); Cyberpunk uses Chakra Petch and JetBrains Mono. Always use `font-sans` / `font-mono`, never a font name
 - Hierarchy: use font-weight and size, not color, to create hierarchy
 - Body text: text-sm (14px)
 - Labels/meta: text-xs (12px)
 - Tiny labels: text-[10px] or text-[11px]
 - Headings inside modals: text-lg font-semibold
+- Uppercase is for interface text only (labels, headings, buttons, tags), never user content: chapter, layer, character and place names keep the case the writer typed. Apply it with CSS (`uppercase`), so the source text keeps its case
 
 ### Colors
 - Never hardcode colors — always use CSS variables via Tailwind
@@ -38,17 +44,57 @@ Inspired by: Plottr, Notion, Linear, iA Writer.
   - Sidebar: `bg-sidebar`
   - Elevated: `bg-secondary/20` or `bg-secondary/30`
 - Text: `text-foreground` (primary), `text-muted-foreground` (secondary)
-- Borders: `border-border` always
+- Borders: `border-border` always. The global `* { border-color }` rule sits in `@layer base`, so border-color utilities override it
 - Accent: always `hsl(var(--accent))` — never hardcode blue/purple/green
 - Destructive: `text-destructive` / `bg-destructive/10`
 
-### Accent Colors (user-selectable, max 3)
-- Blue: `217 91% 60%`
-- Purple: `262 83% 63%`
-- Emerald: `158 64% 46%`
+### Accent Colors (per theme)
+Each theme defines three accents in `lib/themes.ts`: `--accent` (primary actions), `--accent-2` and `--accent-3` (highlights, a third storyline color). Classic: blue `217 91% 60%`, purple `262 83% 63%`, emerald `158 64% 46%`. Cyberpunk: hot pink, cyan, violet. Use the tokens, never the values.
+
+### Themes
+Themes are defined in `lib/themes.ts`: Classic Light, Classic Dark and Cyberpunk, plus the System setting (`sync`, Classic Light or Dark by OS setting). Saved ids of removed themes map to a current one through `normalizeThemeSetting()`. Besides its color tokens, each theme sets:
+- `shape`: `'rounded'` (corners from `--radius`) or `'cut'` (square, with chamfered corners on opted-in surfaces)
+- `texture`: `'none'` or `'grid'` (a faint grid on `body` and `.bg-texture` page backgrounds; cards stay solid)
+- `fonts`: the `next/font` variables (`app/layout.tsx`) for sans and mono
+- `frames`: `'nightcity'` or `null`, the decorative frame set for a few feature spots
+
+`ThemeScript` (before paint), `applyTheme()` and `ThemeScope` put these on the element as `data-theme`, `data-shape`, `data-texture` and `data-frames` (`none` when null). Style against them in CSS, never by branching on the theme id in components: the server doesn't know the visitor's theme (it's in localStorage), so theme-dependent markup would mismatch on hydration.
+- Tailwind variants (`app/globals.css`): `cut:` for themes with the cut shape (e.g. to drop a hover shadow that the clip-path cuts off); `frames:` and `plain:` for a framed spot shown as its frame or as its plain look (`frames:` follows the nearest `data-frames`, so a ThemeScope inside a page with a different setting gets its own)
+- Cut corners: dialogs, sheets and buttons are cut automatically (`rounded-full` ones stay round; menus and popovers stay square). Cards opt in with `corner-cut` (16px) or `corner-cut-sm` (8px), next to their `rounded-*` class for the rounded shape. The border continues along each chamfer as a diagonal; a 2px border needs `[--cut-bw:2px]`
+- Per-theme restyles go in that theme's stylesheet in `app/themes/`, keyed on `[data-theme="…"]` and `data-slot` hooks in the components (`event-card`, `field-label`, `panel-heading`, `status-tag`, `project-tabs`, …). Add a hook rather than a theme-specific class. A restyle for one theme must leave the others pixel-identical; check by comparing screenshots before and after
+- Shared mono label style: form labels use the Form Fields label style plus `data-slot="field-label"`, which Cyberpunk renders as its mono label (event dialog, character and place panels, auth forms)
+
+#### ThemeScope (`components/theme/ThemeScope.tsx`)
+Renders its children in a fixed theme, whatever the visitor's own, without touching their stored setting: tokens, fonts and radius as CSS variables, plus the `data-*` attributes. Server-rendered, so there's no flash. Use it for pages with their own look: the landing page (`app/page.tsx`) and login/signup (`app/(auth)/layout.tsx`), both Cyberpunk. Portals (dialogs, toasts) render outside it and keep the visitor's theme. One level of nesting is supported.
+
+#### ThemeFrame (`components/hud/ThemeFrame.tsx`)
+A framed spot that follows the theme's `frames` setting: under `'nightcity'` it's that frame (from `lib/frames.ts`) at its own aspect ratio, with content in the frame's measured slots (`<ThemeFrameSlot frame="…" slot="…">`); without a frame set it falls back. Both looks are in the markup and CSS picks one; the frame image is lazy and hidden in the plain look, so plain themes never download it. Classes for one look only go under `frames:` or `plain:`.
+- `plain="card"` (default): the plain look is a token card built from the slots (the landing page)
+- `plain="none"` with `fallback`: the plain look is the spot's existing markup, unchanged (an `EmptyState`, an avatar, a stats box), so Classic stays exactly as it was. `minWidth` (a fixed list: 280, 320) also shows the fallback when the spot is narrower than that
+- Use frames for a few feature spots only, never for everyday cards (those use `corner-cut`). Today: the landing page, the dashboard's empty state, the project dialog's stats and the character panel's portrait. Never stretch a frame; size it by width and let the aspect ratio set the height
+
+#### HUD pieces (`components/hud/`)
+`HudPanel` (the CSS panel with a header bar and progress bar; it grows with its content), `BannerStrip` and `Eyebrow` (`// 01 — LABEL`). Colors no token covers are `--hud-*` variables in `components/hud/hud.css`, with token stand-ins for other themes.
+
+### Brand
+- The logo file is named in one place, `lib/brand.ts` (`LOGO_SRC`, currently the placeholder `public/brand/logo.svg`). Swapping in the final logo means replacing that file
+- Show it with `components/brand/Logo.tsx` (`size`, `wordmark`, `wordmarkClassName`, `preload` above the fold), never an `<img>` of the file
+- The app icons (`app/icon.tsx`, `app/apple-icon.tsx`) are generated from the same file
+
+### Third-party assets
+- `ASSETS.md` lists every third-party file BunPlot ships, with author, source, license and changes. Add a row whenever you add one
+- The Nightcity frames (`public/frames/`, CC BY 4.0) require the credit line in `components/brand/AssetCredit.tsx`, shown in the landing footer and in Settings → Appearance. Keep both as long as the frames are used, and don't imply their creator endorses BunPlot
+
+### Landing Page
+- `app/page.tsx`: signed-out visitors only (`proxy.ts` sends signed-in ones on `/`, `/login` and `/signup` to `/dashboard`). Its theme is the `THEME` constant, applied through a ThemeScope (always Cyberpunk for now; see Pending Features)
+- Sections, in order (`components/landing/`): nav, hero (with a `HudPanel`), banner strip, Why BunPlot (`#why`, modal frame), Features (`#features`: three rows with the primary frame, the portrait frame plus a relationships card, and three plates), Also in BunPlot (four cut cards), About (`#about`, terminal frame), sign-up band, footer with the asset credit (`#credits`)
+- Built to the mockup in `design/landing/` at 1280, 768 and 390px: `components/landing/layout.ts` holds the content width (1248px: the mockup's 1200px content box plus padding) and shared type styles; the page sets `leading-[normal]` because the design sets line heights only where it needs them
+- Mock UI in the sections is a picture (`role="img"` with an `aria-label`), not working controls
+- Keep the placeholders visible until the owner replaces them: `[YOUR NAME]`, the About paragraph and the example numbers
+- Login and signup (`app/(auth)/`) share its look through `components/auth/AuthShell.tsx` (logo, eyebrow, heading, the form in a `HudPanel`). The wording is "Log in" and "Sign up", as on the landing page
 
 ### Spacing & Radius
-- Border radius: `rounded-lg` (panels), `rounded-xl` (modals/cards), `rounded-full` (pills/dots)
+- Border radius: `rounded-lg` (panels), `rounded-xl` (modals/cards), `rounded-full` (pills/dots); all square under the cut shape except `rounded-full`
 - Padding inside panels: `p-4`
 - Padding inside modals: `px-5 py-3`
 - Gap between items: `gap-2` (normal), `gap-1.5` (tight), `gap-4` (loose)
@@ -69,7 +115,7 @@ Inspired by: Plottr, Notion, Linear, iA Writer.
 - Layout: sidebar metadata (left, `w-56`) + content area (right, flex-1)
 
 #### Form Fields
-- Label style: `text-[10px] font-semibold uppercase tracking-wider text-muted-foreground`
+- Label style: `text-[10px] font-semibold uppercase tracking-wider text-muted-foreground`, with `data-slot="field-label"` (see Themes)
 - Input height: `h-8` for compact fields, default for normal
 - Always add `bg-background` to inputs inside panels
 
@@ -110,7 +156,7 @@ Inspired by: Plottr, Notion, Linear, iA Writer.
 ### Anti-patterns (never do these)
 - No `bg-white` or `bg-black` hardcoded
 - No large buttons — always `size="sm"` (landing page excepted, see Buttons)
-- No bullet point lists in UI copy — use prose
+- No bullet point lists in UI copy — use prose (the landing page's feature rows are the exception: each has three short points, as in the design handoff)
 - No excessive bold/headers — use weight hierarchy instead
 - No `backdrop-blur` on overlays — use solid `bg-background`
 - No dashed borders (`border-dashed`, `borderStyle: 'dashed'`) except on areas where you drag and drop files, and on selection outlines in the sketch tool. Empty and error states use `EmptyState` (icon circle, no box), or `LoadError` for failed loads
@@ -119,6 +165,7 @@ Inspired by: Plottr, Notion, Linear, iA Writer.
 - No `flex-shrink-0` — use `shrink-0`
 - No `[&:empty]` — use `empty:` shorthand
 - No hardcoded accent colors — always use `hsl(var(--accent))`
+- No theme checks in components (`theme === 'cyberpunk'`) — use the theme stylesheet, `data-slot` hooks and the `cut:` / `frames:` / `plain:` variants
 
 ## Key Files to Read First
 When working on a new feature, always read these first:
@@ -134,24 +181,22 @@ When working on a new feature, always read these first:
 - Realtime subscriptions are set up in `useLayers.ts`, `useEvents.ts`, `useChapters.ts`
 
 ## Current Features
-- Auth (Supabase email/password)
-- Projects with create/delete/archive
-- Project folders (DB ready, UI pending)
+- Auth (Supabase email/password), with Cyberpunk login and signup pages
+- Landing page at `/` for signed-out visitors
+- Projects with create/delete/archive/duplicate, project folders
 - Layers with color picker, rename, delete, visibility toggle, drag reorder
 - Chapters as timeline columns (add, rename, delete, resizable)
-- Events with rich text description/notes, status, color, duplicate
+- Events with rich text description/notes, status, color, duplicate, drag reorder; timeline filters
 - Event modal: metadata sidebar + tabbed rich text editor with toolbar
-- Themes: Classic Light, Classic Dark and Cyberpunk, plus System (Classic Light or Dark by OS setting); saved ids of removed themes map via `normalizeThemeSetting()` in `lib/themes.ts`
+- Characters (relationship maps, family trees), places, outlines, storyboard panels, exports (PDF/Word), search
+- Settings: profile, appearance (theme picker, asset credit), sound
+- Themes: Classic Light, Classic Dark and Cyberpunk, plus System (see Themes)
 
 ## Known Issues
 - Tabs primitive (`components/ui/tabs.tsx`): the line variant's active underline is 0×0 in every theme, and the root's `data-horizontal:flex-col` never applies. Its `group-data-horizontal/tabs:` and `data-horizontal:` classes look for a `data-horizontal` attribute, but Radix sets `data-orientation="horizontal"`. Cyberpunk sizes the project tabs' bar itself in `app/themes/cyberpunk.css`; fixing the primitive will make the underline appear in Classic too.
 - Sign-up check-email screen (`app/(auth)/signup/page.tsx`): "Back to log in" is a `<Button>` inside a `<Link>`, a button nested in a link, which is invalid HTML and gives two focus stops. It should be one element, e.g. `<Button asChild>` around the `Link`.
 
 ## Pending Features
-- Project folders UI (DB schema already created)
-- Characters system (DB schema exists, UI pending)
-- Event drag-to-reorder within chapter cells
 - Event connections/linking
-- Settings page (/settings is 404)
-- Search/filter events
+- Apply the theme saved in the profile (`profiles.theme`) after sign-in, through `normalizeThemeSetting()`
 - Landing, login and signup themes: they always render in Cyberpunk today (`THEME` in `app/page.tsx`, the ThemeScope in `app/(auth)/layout.tsx`). Once a second theme with its own landing look exists, they should follow the visitor’s stored theme instead, with Cyberpunk as the default for first-time visitors (no stored setting). The sections already take their frames from the theme (`ThemeFrame`), so only the theme choice changes
