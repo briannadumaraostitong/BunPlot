@@ -4,6 +4,7 @@ import { requireUser } from '@/lib/supabase/requireUser'
 import { ProfileForm } from '@/components/settings/ProfileForm'
 import { SoundSettings } from '@/components/settings/SoundSettings'
 import { ThemePicker } from '@/components/theme/ThemePicker'
+import { AssetCredit } from '@/components/brand/AssetCredit'
 import type { Metadata } from 'next'
 import type { Profile } from '@/types/database'
 
@@ -43,6 +44,9 @@ export default async function SettingsPage() {
         <h2 className="text-lg font-semibold">Appearance</h2>
 
         <ThemePicker />
+
+        {/* Required by the frames' CC BY 4.0 license; see ASSETS.md. */}
+        <AssetCredit className="text-xs leading-relaxed text-muted-foreground" />
       </section>
 
       <section className="rounded-xl corner-cut border border-border bg-card p-4 space-y-4">

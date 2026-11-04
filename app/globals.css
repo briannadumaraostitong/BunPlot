@@ -3,6 +3,8 @@
 @import "tw-animate-css";
 /* Per-theme screen styles, every selector under that theme's data-theme. */
 @import "./themes/cyberpunk.css";
+/* Colors for the HUD pieces and landing page (Cyberpunk only). */
+@import "../components/hud/hud.css";
 
 @custom-variant dark (&:is(.dark *));
 
@@ -135,12 +137,32 @@
 }
 
 /* Cut shape (data-shape, set per theme by lib/themes.ts): square corners.
-   The radius scale follows --radius, but bare `rounded` is a fixed .25rem. */
-:root[data-shape="cut"] {
+   The radius scale follows --radius, but bare `rounded` is a fixed .25rem.
+   These rules match any ancestor with data-shape, not just <html>, so a
+   ThemeScope (components/theme/ThemeScope.tsx) carries the shape too. */
+[data-shape="cut"] {
   --radius: 0rem;
 }
-:root[data-shape="cut"] .rounded {
+[data-shape="cut"] .rounded {
   border-radius: 0;
+}
+
+/* A ThemeScope's own copies of the root variables built from theme tokens.
+   A custom property resolves where it's declared, so inside a scope the
+   root's copies would keep the page theme's values (6px corners, the page's
+   fonts on <code>). The radius scale matches @theme inline above; keep the
+   two in sync. */
+[data-slot="theme-scope"] {
+  --radius-xs: calc(var(--radius) * 0.25);
+  --radius-sm: calc(var(--radius) * 0.5);
+  --radius-md: calc(var(--radius) * 0.75);
+  --radius-lg: var(--radius);
+  --radius-xl: calc(var(--radius) * 1.5);
+  --radius-2xl: calc(var(--radius) * 2);
+  --radius-3xl: calc(var(--radius) * 3);
+  --radius-4xl: calc(var(--radius) * 4);
+  --default-font-family: var(--theme-font-sans);
+  --default-mono-font-family: var(--theme-font-mono);
 }
 
 /* Cut corners: the top-right and bottom-left chamfered, as the handoff's
@@ -148,7 +170,7 @@
    do nothing under other shapes. clip-path also clips box-shadows, so rings
    draw inset; round buttons (avatar, theme menu) stay round, and menus and
    popovers stay square rather than cut. */
-:root[data-shape="cut"] :is(
+[data-shape="cut"] :is(
   .corner-cut,
   .corner-cut-sm,
   [data-slot="button"]:not(.rounded-full),
@@ -165,15 +187,15 @@
     0 calc(100% - var(--cut))
   );
 }
-:root[data-shape="cut"] :is(.corner-cut, [data-slot="dialog-content"], [data-slot="sheet-content"]) {
+[data-shape="cut"] :is(.corner-cut, [data-slot="dialog-content"], [data-slot="sheet-content"]) {
   --cut: 16px;
 }
-:root[data-shape="cut"] .corner-cut-sm {
+[data-shape="cut"] .corner-cut-sm {
   --cut: 8px;
 }
 /* App buttons are 24–36px tall, smaller than the handoff's 44px ones, so a
    proportionally smaller chamfer than .corner-cut-sm. */
-:root[data-shape="cut"] [data-slot="button"] {
+[data-shape="cut"] [data-slot="button"] {
   --cut: 6px;
 }
 
@@ -185,7 +207,7 @@
    --cut-bw, since calc() can't read it. Elements that already use ::after
    (ghost buttons' enlarged tap targets) are left without the diagonals. */
 @layer base {
-  :root[data-shape="cut"] :is(
+  [data-shape="cut"] :is(
     .corner-cut,
     .corner-cut-sm,
     [data-slot="button"]:not(.rounded-full),
@@ -198,7 +220,7 @@
     --cut-bw: 1px;
   }
 }
-:root[data-shape="cut"] :is(
+[data-shape="cut"] :is(
   .corner-cut,
   .corner-cut-sm,
   [data-slot="button"]:not(.rounded-full),
@@ -236,9 +258,11 @@
 }
 
 /* Background texture (data-texture). Goes on page backgrounds marked
-   .bg-texture; cards and panels have solid backgrounds that cover it. */
+   .bg-texture; cards and panels have solid backgrounds that cover it. The
+   last selector is a ThemeScope that carries the texture itself. */
 [data-texture="grid"] body,
-[data-texture="grid"] .bg-texture {
+[data-texture="grid"] .bg-texture,
+[data-texture="grid"].bg-texture {
   background-image:
     linear-gradient(hsl(var(--accent-2) / 0.045) 1px, transparent 1px),
     linear-gradient(90deg, hsl(var(--accent-2) / 0.045) 1px, transparent 1px);

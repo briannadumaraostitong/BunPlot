@@ -4,6 +4,14 @@
    Components only carry neutral hooks (data-slot, CSS variables); the look
    lives here. Unlayered, so it wins over Tailwind's utility classes. */
 
+/* A page wrapped in a Cyberpunk ThemeScope (the landing page) while the
+   visitor's own theme is something else: paint <html> dark too, so the
+   overscroll area past the page's edges matches. <html> can't read the
+   scope's variables, so this is Cyberpunk's --background value itself. */
+html:has([data-slot="theme-scope"][data-theme="cyberpunk"]) {
+  background-color: hsl(228 50% 3.9%);
+}
+
 /* Project cards: 1px pink reads too thin beside the cut diagonals. The
    skeleton shares the slot so nothing shifts when cards load. */
 [data-theme="cyberpunk"] [data-slot="project-card"] {

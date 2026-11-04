@@ -1,0 +1,20 @@
+/* components/hud/hud.css
+   Colors the HUD pieces (components/hud/) and the landing page need that no
+   theme token covers, defined once. Cyberpunk only: the pieces render inside
+   it (the landing page through a ThemeScope). Values are from the mockup and
+   design/landing/HANDOFF.md; tints are mixed from theme tokens. */
+
+[data-theme="cyberpunk"] {
+  /* Surfaces */
+  --hud-panel: #070b18;   /* the hero panel's inner surface */
+  --hud-header: #10284a;  /* panel header bars (HANDOFF "surface-alt") */
+  --hud-banner: #0b1124;  /* the banner strip */
+  --hud-segment: #3a4a6b; /* an empty progress segment's outline */
+
+  /* Text */
+  --hud-text-body: #a9bcdb; /* body copy (HANDOFF "text-muted, body") */
+
+  /* Tints of the accents, for small labels */
+  --hud-pink-soft: color-mix(in srgb, hsl(var(--accent)) 65%, white);
+  --hud-violet-soft: color-mix(in srgb, hsl(var(--accent-3)) 70%, white);
+}
