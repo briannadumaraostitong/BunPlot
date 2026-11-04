@@ -1,12 +1,12 @@
 'use client'
 
 import Link from 'next/link'
-import Image from 'next/image'
 import { usePathname } from 'next/navigation'
 import { LayoutDashboard, FolderOpen, Search } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { Separator } from '@/components/ui/separator'
 import { Sheet, SheetContent, SheetTitle, SheetDescription } from '@/components/ui/sheet'
+import { Logo } from '@/components/brand/Logo'
 
 const NAV_ITEMS = [
   { href: '/dashboard', label: 'Dashboard', icon: LayoutDashboard },
@@ -50,11 +50,8 @@ function SidebarContent({ onNavigate }: { onNavigate: () => void }) {
   return (
     <>
       {/* Logo */}
-      <div className="h-14 flex items-center px-4 gap-1.5 shrink-0">
-        <Image src="/logo.png" alt="" width={28} height={28} className="h-7 w-7" priority />
-        <span data-slot="wordmark" className="text-xl font-semibold tracking-tight">
-          BunPlot
-        </span>
+      <div className="h-14 flex items-center px-4 shrink-0">
+        <Logo size={28} wordmark preload />
       </div>
 
       <Separator />
