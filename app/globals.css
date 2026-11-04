@@ -32,7 +32,9 @@
   --color-foreground: hsl(var(--foreground));
   /* Per theme: lib/themes.ts sets --theme-font-* from the theme's fonts. */
   --font-sans: var(--theme-font-sans);
-  --font-mono: var(--theme-font-mono);
+  /* The generic fallback draws glyphs the theme's mono font lacks (e.g. ▸,
+     not in JetBrains Mono's Latin subset) in a monospace face. */
+  --font-mono: var(--theme-font-mono), ui-monospace, monospace;
   /* Outline documents: Literata, loaded by the outline editor (Fontsource). */
   --font-document: 'Literata', ui-serif, Georgia, serif;
   --color-sidebar-ring: hsl(var(--sidebar-ring));
