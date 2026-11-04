@@ -1,18 +1,36 @@
-import { THEMES, DEFAULT_THEME_SETTING, THEME_SETTINGS, LEGACY_THEME_MAP } from '@/lib/themes'
+import {
+  THEMES,
+  DEFAULT_THEME_SETTING,
+  THEME_SETTINGS,
+  LEGACY_THEME_MAP,
+  THEME_STORAGE_KEY,
+  THEME_UNSYNCED_KEY,
+  type ThemeSetting,
+} from '@/lib/themes'
 
-export function ThemeScript() {
+// Applies the theme to <html> before paint. Without `setting` (the root
+// layout) it applies this device's stored setting. With `setting` (the
+// (app) layout, from profiles.theme, already normalized) the profile's
+// setting wins: it's applied and stored, unless a failed save is pending on
+// this device (the unsynced marker), which keeps the device's own.
+export function ThemeScript({ setting }: { setting?: ThemeSetting } = {}) {
   // The setting is normalized as in normalizeThemeSetting() (lib/themes.ts),
   // which this inline script can't import, and written back so a removed
   // theme's id heals on first load.
   const script = `
 (function() {
   try {
-    var stored = localStorage.getItem('plottr-theme');
+    var storageKey = ${JSON.stringify(THEME_STORAGE_KEY)};
+    var profile = ${JSON.stringify(setting ?? null)};
+    if (profile !== null && localStorage.getItem(${JSON.stringify(THEME_UNSYNCED_KEY)}) === null) {
+      localStorage.setItem(storageKey, profile);
+    }
+    var stored = localStorage.getItem(storageKey);
     var legacy = ${JSON.stringify(LEGACY_THEME_MAP)};
     var settings = ${JSON.stringify(THEME_SETTINGS)};
     var setting = Object.prototype.hasOwnProperty.call(legacy, stored) ? legacy[stored]
       : settings.indexOf(stored) >= 0 ? stored : ${JSON.stringify(DEFAULT_THEME_SETTING)};
-    if (stored !== null && stored !== setting) localStorage.setItem('plottr-theme', setting);
+    if (stored !== null && stored !== setting) localStorage.setItem(storageKey, setting);
     var themes = ${JSON.stringify(THEMES)};
     var root = document.documentElement;
     var prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
@@ -27,7 +45,8 @@ export function ThemeScript() {
     root.setAttribute('data-shape', theme.shape);
     root.setAttribute('data-texture', theme.texture);
     root.setAttribute('data-frames', theme.frames || 'none');
-    if (theme.isDark) root.classList.add('dark');
+    // Toggle, not add: the profile's run can follow a dark device setting.
+    root.classList.toggle('dark', !!theme.isDark);
   } catch(e) {}
 })();
   `.trim()

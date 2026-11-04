@@ -52,7 +52,7 @@ Inspired by: Plottr, Notion, Linear, iA Writer.
 Each theme defines three accents in `lib/themes.ts`: `--accent` (primary actions), `--accent-2` and `--accent-3` (highlights, a third storyline color). Classic: blue `217 91% 60%`, purple `262 83% 63%`, emerald `158 64% 46%`. Cyberpunk: hot pink, cyan, violet. Use the tokens, never the values.
 
 ### Themes
-Themes are defined in `lib/themes.ts`: Classic Light, Classic Dark and Cyberpunk, plus the System setting (`sync`, Classic Light or Dark by OS setting). Saved ids of removed themes map to a current one through `normalizeThemeSetting()`. Besides its color tokens, each theme sets:
+Themes are defined in `lib/themes.ts`: Classic Light, Classic Dark and Cyberpunk, plus the System setting (`sync`, Classic Light or Dark by OS setting). Saved ids of removed themes map to a current one through `normalizeThemeSetting()`. The setting lives in the profile (`profiles.theme`) and, as this device's copy, in localStorage (`THEME_STORAGE_KEY`). Signed in, the profile's wins: the `(app)` layout's ThemeScript applies it before paint on a full load, login applies it before navigating, and `AppShell` catches anything else. The exception is a change whose save failed (`THEME_UNSYNCED_KEY`): it stays on this device and is retried on the next load. Don't add a `loading.tsx` directly in `app/` or `app/(app)/`: it would let the page body, and with it the `(app)` layout's ThemeScript, stream after `<head>`, bringing back a theme flash on fresh devices. Besides its color tokens, each theme sets:
 - `shape`: `'rounded'` (corners from `--radius`) or `'cut'` (square, with chamfered corners on opted-in surfaces)
 - `texture`: `'none'` or `'grid'` (a faint grid on `body` and `.bg-texture` page backgrounds; cards stay solid)
 - `fonts`: the `next/font` variables (`app/layout.tsx`) for sans and mono
@@ -198,5 +198,4 @@ When working on a new feature, always read these first:
 
 ## Pending Features
 - Event connections/linking
-- Apply the theme saved in the profile (`profiles.theme`) after sign-in, through `normalizeThemeSetting()`
 - Landing, login and signup themes: they always render in Cyberpunk today (`THEME` in `app/page.tsx`, the ThemeScope in `app/(auth)/layout.tsx`). Once a second theme with its own landing look exists, they should follow the visitor’s stored theme instead, with Cyberpunk as the default for first-time visitors (no stored setting). The sections already take their frames from the theme (`ThemeFrame`), so only the theme choice changes

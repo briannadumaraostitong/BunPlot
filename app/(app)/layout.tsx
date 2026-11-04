@@ -2,6 +2,9 @@ import { redirect } from 'next/navigation'
 import { createClient } from '@/lib/supabase/server'
 import { isAuthOutage } from '@/lib/supabase/authOutage'
 import { AppShell } from '@/components/layout/AppShell'
+import { ThemeScript } from '@/components/theme/ThemeScript'
+import { normalizeThemeSetting } from '@/lib/themes'
+import type { Profile } from '@/types/database'
 
 export default async function AppLayout({
   children,
@@ -16,9 +19,18 @@ export default async function AppLayout({
   // since a layout's errors go to the boundary above it, and there isn't one.
   if (!user && !isAuthOutage(error)) redirect('/login')
 
-  const { data: profile } = user
+  const { data } = user
     ? await supabase.from('profiles').select('*').eq('id', user.id).single()
     : { data: null }
+  const profile = data as Profile | null
 
-  return <AppShell profile={profile}>{children}</AppShell>
+  // The profile's theme, applied before paint on a full load (a new device,
+  // or one changed on another device). Without a profile (a failed fetch, an
+  // auth outage) the device keeps its own.
+  return (
+    <>
+      {profile && <ThemeScript setting={normalizeThemeSetting(profile.theme)} />}
+      <AppShell profile={profile}>{children}</AppShell>
+    </>
+  )
 }

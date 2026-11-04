@@ -9,11 +9,14 @@ import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Loader2 } from 'lucide-react'
 import { AuthShell, AUTH_LABEL, AUTH_LINK } from '@/components/auth/AuthShell'
+import { useTheme } from '@/components/theme/ThemeProvider'
+import { normalizeThemeSetting } from '@/lib/themes'
 
 function LoginForm() {
   const router = useRouter()
   const searchParams = useSearchParams()
   const supabase = createClient()
+  const { adoptTheme } = useTheme()
 
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
@@ -25,13 +28,19 @@ function LoginForm() {
     setLoading(true)
     setError(null)
 
-    const { error } = await supabase.auth.signInWithPassword({ email, password })
+    const { data, error } = await supabase.auth.signInWithPassword({ email, password })
 
     if (error) {
       setError(error.message)
       setLoading(false)
       return
     }
+
+    // The profile's theme, applied before the app renders so it doesn't
+    // first appear in this device's. Best effort: if the read fails, the app
+    // applies it later (AppShell).
+    const { data: row } = await supabase.from('profiles').select('theme').eq('id', data.user.id).single()
+    if (row) adoptTheme(normalizeThemeSetting((row as { theme: unknown }).theme))
 
     // proxy.ts sets redirectTo when it bounces an unauthenticated request, so
     // signing in returns you where you were headed. Only same-origin relative

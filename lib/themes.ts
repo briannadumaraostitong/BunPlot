@@ -181,6 +181,13 @@ export const THEMES: ThemeDefinition[] = [
 
 export const DEFAULT_THEME_SETTING: ThemeSetting = 'sync'
 
+// localStorage keys. The setting is this device's copy of the profile's
+// (profiles.theme), which wins when they differ, except while the unsynced
+// marker is set: a change whose save to the profile failed, kept on this
+// device and retried on the next app load (ThemeProvider).
+export const THEME_STORAGE_KEY = 'plottr-theme'
+export const THEME_UNSYNCED_KEY = 'plottr-theme-unsynced'
+
 export const THEME_SETTINGS: ThemeSetting[] = ['sync', ...THEMES.map((t) => t.id)]
 
 // Themes that have been removed, mapped to the Classic theme of the same
