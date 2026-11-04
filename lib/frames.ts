@@ -2,7 +2,7 @@
 // viewBox sizes and measured content areas, from design/landing/HANDOFF.md.
 // Insets are percentages of the frame; content goes only inside them, since
 // the frames' edges carry notches and marks. Frames are never stretched:
-// <Frame> keeps each one at its own aspect ratio.
+// <ThemeFrame> keeps each one at its own aspect ratio.
 
 export interface FrameInset {
   left?: number

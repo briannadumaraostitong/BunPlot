@@ -1,9 +1,6 @@
-import type { ThemeFrames } from '@/lib/themes'
 import { Eyebrow } from '@/components/hud/Eyebrow'
 import { ThemeFrame, ThemeFrameSlot } from '@/components/hud/ThemeFrame'
 import { BAND, BODY, CONTAINER, H2, H3, SECTION_EYEBROW, SPLIT, SPLIT_TEXT } from './layout'
-
-type Frames = ThemeFrames | null
 
 // Each feature: a label, a heading, a paragraph and three short points, with
 // a picture of that part of the app beside it.
@@ -47,7 +44,7 @@ function FeatureRow({
 
 const VISUAL = 'min-w-0 max-w-[560px] flex-[1_1_480px]'
 
-export function FeaturesSection({ frames }: { frames: Frames }) {
+export function FeaturesSection() {
   return (
     <section id="features" className={BAND}>
       <div className={`${CONTAINER} py-[104px]`}>
@@ -63,7 +60,7 @@ export function FeaturesSection({ frames }: { frames: Frames }) {
           pointTone="text-accent"
           className="mb-[104px]"
         >
-          <OutlinePicture frames={frames} />
+          <OutlinePicture />
         </FeatureRow>
 
         <FeatureRow
@@ -75,7 +72,7 @@ export function FeaturesSection({ frames }: { frames: Frames }) {
           pointTone="text-accent-2"
           className="mb-[104px]"
         >
-          <CharacterPicture frames={frames} />
+          <CharacterPicture />
         </FeatureRow>
 
         <FeatureRow
@@ -86,18 +83,18 @@ export function FeaturesSection({ frames }: { frames: Frames }) {
           points={['Book style at A4 or 6×9', 'Story bible with a contents page', 'Storyboard as PDF or images']}
           pointTone="text-accent"
         >
-          <ExportsPicture frames={frames} />
+          <ExportsPicture />
         </FeatureRow>
       </div>
     </section>
   )
 }
 
-function OutlinePicture({ frames }: { frames: Frames }) {
+function OutlinePicture() {
   return (
     <div role="img" aria-label="A chapter in the outline editor, 2,481 words, saved" className={VISUAL}>
-      <ThemeFrame frames={frames} name="primary" className="w-full">
-        <ThemeFrameSlot frames={frames} frame="primary" className="flex flex-col justify-between gap-2 overflow-hidden">
+      <ThemeFrame name="primary" className="w-full">
+        <ThemeFrameSlot frame="primary" className="flex flex-col justify-between gap-2 overflow-hidden">
           <p className="font-mono text-[11px] text-accent-2 uppercase">Chapter 03 · The Flood</p>
           <p className="font-serif text-[15px] leading-[1.6] text-foreground">
             The river took the old bridge at dawn. Tobin was on it, halfway across, when the first plank gave.
@@ -117,15 +114,15 @@ const RELATIONS = [
   { name: 'Merrow Docks', kind: 'Hometown', tone: 'text-(--hud-pink-soft)' },
 ]
 
-function CharacterPicture({ frames }: { frames: Frames }) {
+function CharacterPicture() {
   return (
     <div
       role="img"
       aria-label="A character, Ilsa Varn, protagonist, with her relationships: Mira Varn, parent; Kit Varn, sibling; Tobin Hale, mentor; and her hometown, Merrow Docks"
       className={`${VISUAL} flex flex-wrap items-stretch gap-5`}
     >
-      <ThemeFrame frames={frames} name="portrait" className="w-[200px] flex-[0_0_200px]" plainClassName="justify-center">
-        <ThemeFrameSlot frames={frames} frame="portrait" className="flex flex-col items-center justify-center gap-1.5 text-center">
+      <ThemeFrame name="portrait" className="w-[200px] flex-[0_0_200px] plain:justify-center">
+        <ThemeFrameSlot frame="portrait" className="flex flex-col items-center justify-center gap-1.5 text-center">
           {/* 54px inside its 2px border, as in the mockup. */}
           <span className="flex size-[58px] items-center justify-center border-2 border-accent-2 text-[22px] font-bold text-accent-2">IV</span>
           <span className="mt-2 text-[17px] font-bold tracking-[1px] text-primary uppercase">Ilsa Varn</span>
@@ -154,7 +151,7 @@ const EXPORTS = [
   { name: 'Storyboard', meta: 'PDF · Images', tone: 'text-(--hud-violet-soft)', icon: 'M3 5h8v6H3z M13 5h8v6h-8z M3 13h8v6H3z M13 13h8v6h-8z' },
 ]
 
-function ExportsPicture({ frames }: { frames: Frames }) {
+function ExportsPicture() {
   return (
     <div
       role="img"
@@ -162,13 +159,13 @@ function ExportsPicture({ frames }: { frames: Frames }) {
       className={`${VISUAL} flex flex-col gap-3.5`}
     >
       {EXPORTS.map(({ name, meta, tone, icon }) => (
-        <ThemeFrame key={name} frames={frames} name="plate" plainClassName="flex-row items-center gap-4 px-5 py-4">
-          <ThemeFrameSlot frames={frames} frame="plate" slot="icon" plainClassName="size-6 shrink-0">
+        <ThemeFrame key={name} name="plate" className="plain:flex-row plain:items-center plain:gap-4 plain:px-5 plain:py-4">
+          <ThemeFrameSlot frame="plate" slot="icon" className="plain:size-6 plain:shrink-0">
             <svg viewBox="0 0 24 24" className={`size-full ${tone}`}>
               <path d={icon} fill="none" stroke="currentColor" strokeWidth="1.6" />
             </svg>
           </ThemeFrameSlot>
-          <ThemeFrameSlot frames={frames} frame="plate" className="flex items-center justify-between gap-3" plainClassName="min-w-0 flex-1">
+          <ThemeFrameSlot frame="plate" className="flex items-center justify-between gap-3 plain:min-w-0 plain:flex-1">
             <span className="text-[17px] font-semibold text-primary">{name}</span>
             <span className={`font-mono text-[12px] uppercase ${tone}`}>{meta}</span>
           </ThemeFrameSlot>

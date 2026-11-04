@@ -1,9 +1,8 @@
-import type { ThemeFrames } from '@/lib/themes'
 import { Eyebrow } from '@/components/hud/Eyebrow'
 import { ThemeFrame, ThemeFrameSlot } from '@/components/hud/ThemeFrame'
 import { BAND, BODY, CONTAINER, H2, SECTION_EYEBROW, SPLIT, SPLIT_TEXT } from './layout'
 
-export function AboutSection({ frames }: { frames: ThemeFrames | null }) {
+export function AboutSection() {
   return (
     <section id="about" className={BAND}>
       <div className={`${CONTAINER} ${SPLIT} gap-y-12 py-[104px]`}>
@@ -22,9 +21,8 @@ export function AboutSection({ frames }: { frames: ThemeFrames | null }) {
           aria-label="A terminal: open project, 12 chapters, 48 events, 9 characters; status, everything in its place"
           className="min-w-0 max-w-[520px] flex-[1_1_440px]"
         >
-          <ThemeFrame frames={frames} name="terminal" className="w-full">
+          <ThemeFrame name="terminal" className="w-full">
             <ThemeFrameSlot
-              frames={frames}
               frame="terminal"
               className="flex flex-col justify-center gap-2.5 font-mono text-[14px] leading-[1.5] text-secondary-foreground"
             >

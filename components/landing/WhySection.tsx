@@ -1,4 +1,3 @@
-import type { ThemeFrames } from '@/lib/themes'
 import { Eyebrow } from '@/components/hud/Eyebrow'
 import { ThemeFrame, ThemeFrameSlot } from '@/components/hud/ThemeFrame'
 import { BODY, CONTAINER, H2, SECTION_EYEBROW, SPLIT, SPLIT_TEXT } from './layout'
@@ -12,8 +11,7 @@ const FIELDS = [
 
 const BUTTON = 'corner-cut-sm inline-block px-[22px] py-3 font-mono text-[12px] tracking-[1px] uppercase'
 
-export function WhySection({ frames }: { frames: ThemeFrames | null }) {
-  const slot = { frames, frame: 'modal' } as const
+export function WhySection() {
   return (
     <section id="why" className={`${CONTAINER} ${SPLIT} gap-y-12 py-[104px]`}>
       <div className={SPLIT_TEXT}>
@@ -34,16 +32,15 @@ export function WhySection({ frames }: { frames: ThemeFrames | null }) {
         aria-label="An event in BunPlot: Bridge falls, in chapter 3, with Ilsa Varn and Tobin Hale at Merrow Docks, drafted"
         className="min-w-0 max-w-[560px] flex-[1_1_480px]"
       >
-        <ThemeFrame frames={frames} name="modal" className="w-full">
+        <ThemeFrame name="modal" className="w-full">
           <ThemeFrameSlot
-            {...slot}
+            frame="modal"
             slot="title"
-            className="flex items-center font-mono text-[12px] tracking-[1px] text-foreground uppercase"
-            plainClassName="border-b border-border pb-3"
+            className="flex items-center font-mono text-[12px] tracking-[1px] text-foreground uppercase plain:border-b plain:border-border plain:pb-3"
           >
             Event // Bridge falls
           </ThemeFrameSlot>
-          <ThemeFrameSlot {...slot} className="grid grid-cols-[104px_minmax(0,1fr)] content-center gap-x-3.5 gap-y-2 text-[15px]">
+          <ThemeFrameSlot frame="modal" className="grid grid-cols-[104px_minmax(0,1fr)] content-center gap-x-3.5 gap-y-2 text-[15px]">
             {FIELDS.map(({ label, value, tone }) => (
               <div key={label} className="contents">
                 <span className="self-center font-mono text-[11px] text-muted-foreground uppercase">{label}</span>
@@ -51,7 +48,7 @@ export function WhySection({ frames }: { frames: ThemeFrames | null }) {
               </div>
             ))}
           </ThemeFrameSlot>
-          <ThemeFrameSlot {...slot} slot="actions" className="flex justify-between gap-3">
+          <ThemeFrameSlot frame="modal" slot="actions" className="flex justify-between gap-3">
             <span className={`${BUTTON} border border-accent-2 bg-(--hud-button) text-secondary-foreground`}>Close</span>
             <span className={`${BUTTON} bg-(--hud-button-primary) font-medium text-(--hud-button-primary-text)`}>Open in timeline</span>
           </ThemeFrameSlot>

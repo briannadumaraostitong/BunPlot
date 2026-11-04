@@ -3,10 +3,10 @@ import { getTheme, type ThemeId } from '@/lib/themes'
 
 // Renders its children in a given theme, whatever theme the visitor has
 // chosen, without touching their stored setting: the theme's tokens, fonts and
-// radius as CSS variables on this element, plus the data-theme, data-shape and
-// data-texture attributes the theme stylesheets key on. Server-rendered, so
-// there's no flash. Portals (dialogs, toasts) render outside it and keep the
-// visitor's theme.
+// radius as CSS variables on this element, plus the data-theme, data-shape,
+// data-texture and data-frames attributes the theme stylesheets key on.
+// Server-rendered, so there's no flash. Portals (dialogs, toasts) render
+// outside it and keep the visitor's theme.
 export function ThemeScope({ theme: id, className, children }: { theme: ThemeId; className?: string; children: React.ReactNode }) {
   const theme = getTheme(id)
   const style = {
@@ -24,6 +24,7 @@ export function ThemeScope({ theme: id, className, children }: { theme: ThemeId;
       data-theme={theme.id}
       data-shape={theme.shape}
       data-texture={theme.texture}
+      data-frames={theme.frames ?? 'none'}
       style={style}
       // bg-texture goes after cn(): tailwind-merge reads it as a background
       // color and would drop bg-background in its favor.

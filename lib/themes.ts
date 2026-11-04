@@ -235,6 +235,7 @@ export function applyTheme(setting: ThemeSetting): ThemeId {
   root.setAttribute('data-theme', theme.id)
   root.setAttribute('data-shape', theme.shape)
   root.setAttribute('data-texture', theme.texture)
+  root.setAttribute('data-frames', theme.frames ?? 'none')
   root.classList.toggle('dark', theme.isDark)
 
   return id

@@ -1,5 +1,5 @@
 import type { Metadata } from 'next'
-import { getTheme, type ThemeId } from '@/lib/themes'
+import type { ThemeId } from '@/lib/themes'
 import { ThemeScope } from '@/components/theme/ThemeScope'
 import { BannerStrip } from '@/components/hud/BannerStrip'
 import { LandingNav } from '@/components/landing/LandingNav'
@@ -18,7 +18,7 @@ export const metadata: Metadata = {
 }
 
 // The landing page's theme, whatever the visitor's own. The sections take
-// their look from it: tokens and shape through the ThemeScope, and the framed
+// their look from it through the ThemeScope: tokens, shape, and the framed
 // spots from its `frames` setting (a plain card when it has none).
 const THEME: ThemeId = 'cyberpunk'
 
@@ -28,7 +28,6 @@ const APP_PARTS = ['Timeline', 'Outline', 'Characters', 'Places', 'Storyboard', 
 // the dashboard). The ThemeScope applies THEME to this page only and leaves
 // the visitor's setting alone.
 export default function HomePage() {
-  const { frames } = getTheme(THEME)
   return (
     // leading-[normal]: the design sets line heights only where it needs them.
     <ThemeScope theme={THEME} className="min-h-dvh overflow-x-clip leading-[normal]">
@@ -38,10 +37,10 @@ export default function HomePage() {
         <div className={`${CONTAINER} mb-2`}>
           <BannerStrip items={APP_PARTS} />
         </div>
-        <WhySection frames={frames} />
-        <FeaturesSection frames={frames} />
+        <WhySection />
+        <FeaturesSection />
         <AlsoSection />
-        <AboutSection frames={frames} />
+        <AboutSection />
         <SignUpBand />
       </main>
       <LandingFooter />

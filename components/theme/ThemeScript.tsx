@@ -26,6 +26,7 @@ export function ThemeScript() {
     root.setAttribute('data-theme', theme.id);
     root.setAttribute('data-shape', theme.shape);
     root.setAttribute('data-texture', theme.texture);
+    root.setAttribute('data-frames', theme.frames || 'none');
     if (theme.isDark) root.classList.add('dark');
   } catch(e) {}
 })();

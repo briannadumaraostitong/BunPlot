@@ -27,6 +27,23 @@
    For what clip-path takes away there, like a card's hover shadow. */
 @custom-variant cut (&:is([data-shape="cut"] *));
 
+/* Themes with a frame set (data-frames, set per theme by lib/themes.ts and on
+   a ThemeScope): frames: styles a framed spot as its frame, plain: as the
+   card it falls back to (components/hud/ThemeFrame.tsx). In CSS rather than
+   from React state because the server doesn't know the visitor's theme. The
+   nearest setting wins, so a frameless ThemeScope inside a framed page (or
+   the reverse) gets its own; one level of nesting, which is all ThemeScope
+   is used for. */
+@custom-variant frames (&:is([data-frames="nightcity"] *):not([data-frames="nightcity"] [data-frames="none"] *));
+@custom-variant plain {
+  &:not([data-frames="nightcity"] *) {
+    @slot;
+  }
+  &:is([data-frames="nightcity"] [data-frames="none"] *) {
+    @slot;
+  }
+}
+
 @theme inline {
   --color-background: hsl(var(--background));
   --color-foreground: hsl(var(--foreground));
@@ -199,6 +216,11 @@
    proportionally smaller chamfer than .corner-cut-sm. */
 [data-shape="cut"] [data-slot="button"] {
   --cut: 6px;
+}
+/* A framed spot (ThemeFrame) is cut only as its plain card: shown as a frame,
+   the art has its own outline. Same condition as the frames: variant. */
+[data-frames="nightcity"] [data-slot="frame"].corner-cut:not([data-frames="nightcity"] [data-frames="none"] *) {
+  clip-path: none;
 }
 
 /* The border along each chamfer, which clip-path slices off. ::before draws
