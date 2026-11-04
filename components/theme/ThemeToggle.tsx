@@ -19,22 +19,11 @@ const SYNC_OPTION: { value: ThemeSetting; label: string; icon: React.ComponentTy
 
 const LIGHT_THEME_OPTIONS: { value: ThemeSetting; label: string }[] = [
   { value: 'classic-light', label: 'Classic Light' },
-  { value: 'parchment',     label: 'Parchment' },
-  { value: 'rose',          label: 'Rosé' },
-  { value: 'seafoam',       label: 'Seafoam' },
-  { value: 'honey',         label: 'Honey' },
-  { value: 'lilac',         label: 'Lilac' },
 ]
 
 const DARK_THEME_OPTIONS: { value: ThemeSetting; label: string }[] = [
   { value: 'classic-dark', label: 'Classic Dark' },
-  { value: 'nightfall',    label: 'Nightfall' },
-  { value: 'forest',       label: 'Forest' },
-  { value: 'ocean',        label: 'Ocean' },
-  { value: 'autumn',       label: 'Autumn' },
   { value: 'cyberpunk',    label: 'Cyberpunk' },
-  { value: 'monochrome',   label: 'Monochrome' },
-  { value: 'redblack',     label: 'Red/Black' },
 ]
 
 export function ThemeToggle() {

@@ -15,6 +15,8 @@ CREATE TABLE profiles (
   display_name    TEXT,
   avatar_url      TEXT,
   app_mode        app_mode    NOT NULL DEFAULT 'basic',
+  -- 'sync', 'classic-light', 'classic-dark' or 'cyberpunk'. Ids of removed
+  -- themes are mapped by normalizeThemeSetting() (lib/themes.ts).
   theme           TEXT        NOT NULL DEFAULT 'sync',
   sound_enabled   BOOLEAN     NOT NULL DEFAULT TRUE,
   sound_volume    SMALLINT    NOT NULL DEFAULT 70,

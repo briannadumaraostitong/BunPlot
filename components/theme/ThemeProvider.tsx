@@ -2,7 +2,7 @@
 
 import React, { createContext, useContext, useEffect, useState, useCallback, useMemo } from 'react'
 import type { ThemeSetting } from '@/lib/themes'
-import { applyTheme, getTheme, resolveThemeId, DEFAULT_THEME_SETTING } from '@/lib/themes'
+import { applyTheme, getTheme, resolveThemeId, normalizeThemeSetting, DEFAULT_THEME_SETTING } from '@/lib/themes'
 import { createClient } from '@/lib/supabase/client'
 import { isAuthSessionMissingError } from '@supabase/supabase-js'
 import { notifyError } from '@/lib/notify'
@@ -40,10 +40,11 @@ function getSystemDark() {
 
 // Lazy init reads what ThemeScript already painted onto the DOM pre-hydration,
 // so React state agrees with localStorage instead of resetting to the default.
+// Normalized the same way, so a removed theme's id agrees too.
 function getStoredTheme(fallback: ThemeSetting): ThemeSetting {
   if (typeof window === 'undefined') return fallback
-  const stored = localStorage.getItem('plottr-theme') as ThemeSetting | null
-  return stored ?? fallback
+  const stored = localStorage.getItem('plottr-theme')
+  return stored === null ? fallback : normalizeThemeSetting(stored)
 }
 
 export function ThemeProvider({
