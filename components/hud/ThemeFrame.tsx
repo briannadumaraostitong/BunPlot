@@ -22,6 +22,7 @@ const PLAIN_CARD = 'plain:flex plain:flex-col plain:gap-4 plain:rounded-xl plain
 // text isn't squeezed into the frame's slots. Container queries need literal
 // values, hence a fixed list.
 const MIN_WIDTH = {
+  280: { frame: 'frames:@min-[280px]/frame-spot:block', fallback: 'frames:@min-[280px]/frame-spot:hidden' },
   320: { frame: 'frames:@min-[320px]/frame-spot:block', fallback: 'frames:@min-[320px]/frame-spot:hidden' },
 } as const
 

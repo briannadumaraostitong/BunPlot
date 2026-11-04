@@ -41,6 +41,8 @@ import {
   updateProject,
 } from '@/actions/projects'
 import { DuplicateProjectDialog } from './DuplicateProjectDialog'
+import { ThemeFrame, ThemeFrameSlot } from '@/components/hud/ThemeFrame'
+import { cn } from '@/lib/utils'
 import type { ProjectFolder } from '@/types/database'
 import type { ProjectWithCover } from '@/actions/projects'
 import type { ProjectStats } from './ProjectCard'
@@ -59,10 +61,16 @@ interface ProjectDetailModalProps {
   onUpdated: (updates: Partial<ProjectWithCover>) => void
 }
 
-function Field({ label, children }: { label: string; children: React.ReactNode }) {
+const MATCH_FRAME = 'frames:@min-[580px]/project-fields:flex frames:@min-[580px]/project-fields:flex-col'
+// In a flex column the label is its own box, 15px tall at its 1.5 line
+// height, where inline it sat 17px above the field; a 13px line height (its
+// text box) and 4px below keep it at 17px.
+const MATCH_FRAME_LABEL = 'frames:@min-[580px]/project-fields:mb-1 frames:@min-[580px]/project-fields:leading-[13px]'
+
+function Field({ label, className, children }: { label: string; className?: string; children: React.ReactNode }) {
   return (
-    <div className="space-y-1.5">
-      <label className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">
+    <div className={cn('space-y-1.5', className)}>
+      <label className={cn('text-[10px] font-semibold uppercase tracking-wider text-muted-foreground', MATCH_FRAME_LABEL)}>
         {label}
       </label>
       {children}
@@ -271,24 +279,44 @@ export function ProjectDetailModal({ project, folders, stats, open, onClose, onU
               </div>
             </div>
 
-            <div className="grid grid-cols-2 gap-5">
-              <Field label="Description">
+            {/* While the stats show in the terminal frame (a frame set, and a
+                column at least its 280px minimum: 2 × 280 + the 20px gap),
+                both fields become flex columns so the description stretches
+                to the frame's height. Both, so their labels stay level. */}
+            <div className="grid grid-cols-2 gap-5 frames:@container/project-fields">
+              <Field label="Description" className={MATCH_FRAME}>
                 <Textarea
                   value={description}
                   onChange={(e) => setDescription(e.target.value)}
                   onBlur={saveDescription}
                   placeholder="No description yet"
-                  className="min-h-32 bg-background text-xs"
+                  className="min-h-32 bg-background text-xs frames:@min-[580px]/project-fields:flex-1"
                 />
               </Field>
 
-              <Field label="Stats">
-                <div className="space-y-2 rounded-lg border border-border bg-background/50 p-3">
-                  <StatRow label="Words" value={stats.wordCount} />
-                  <StatRow label="Events" value={stats.eventCount} />
-                  <StatRow label="Chapters" value={stats.chapterCount} />
-                  <StatRow label="Characters" value={stats.characterCount} />
-                </div>
+              <Field label="Stats" className={MATCH_FRAME}>
+                {/* A terminal readout under a frame set (Cyberpunk); the box
+                    otherwise, and on phones, where the column is too narrow. */}
+                <ThemeFrame
+                  name="terminal"
+                  plain="none"
+                  minWidth={280}
+                  fallback={
+                    <div className="space-y-2 rounded-lg border border-border bg-background/50 p-3">
+                      <StatRow label="Words" value={stats.wordCount} />
+                      <StatRow label="Events" value={stats.eventCount} />
+                      <StatRow label="Chapters" value={stats.chapterCount} />
+                      <StatRow label="Characters" value={stats.characterCount} />
+                    </div>
+                  }
+                >
+                  <ThemeFrameSlot frame="terminal" className="flex flex-col justify-center gap-1.5 font-mono text-xs">
+                    <ReadoutLine label="words" value={stats.wordCount} />
+                    <ReadoutLine label="events" value={stats.eventCount} />
+                    <ReadoutLine label="chapters" value={stats.chapterCount} />
+                    <ReadoutLine label="characters" value={stats.characterCount} />
+                  </ThemeFrameSlot>
+                </ThemeFrame>
               </Field>
             </div>
           </div>
@@ -324,6 +352,19 @@ function StatRow({ label, value }: { label: string; value: number }) {
     <div className="flex items-center justify-between text-xs">
       <span className="text-muted-foreground">{label}</span>
       <span className="font-semibold">{value.toLocaleString()}</span>
+    </div>
+  )
+}
+
+// A stat as a line in the terminal frame: "> words" with the count at the
+// right edge.
+function ReadoutLine({ label, value }: { label: string; value: number }) {
+  return (
+    <div className="flex items-baseline justify-between gap-3">
+      <span className="text-secondary-foreground">
+        <span className="text-accent-2">&gt;</span> {label}
+      </span>
+      <span className="tabular-nums text-primary">{value.toLocaleString()}</span>
     </div>
   )
 }
