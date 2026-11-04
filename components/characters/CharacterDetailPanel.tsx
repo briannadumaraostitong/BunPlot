@@ -9,6 +9,7 @@ import { Textarea } from '@/components/ui/textarea'
 import { updateCharacter } from '@/actions/characters'
 import { reportResult, settle } from '@/lib/notify'
 import { getInitials } from './CharacterRow'
+import { ThemeFrame, ThemeFrameSlot } from '@/components/hud/ThemeFrame'
 import type { Character, CharacterRelationship } from '@/types/database'
 
 interface CharacterDetailPanelProps {
@@ -155,15 +156,37 @@ function CharacterDetailContent({
       <div className="flex-1 overflow-y-auto scrollbar-thin p-4 space-y-5">
         <div className="flex items-center gap-3">
           <div className="relative shrink-0">
-            <div
-              className="h-12 w-12 rounded-full flex items-center justify-center text-sm font-semibold text-white"
-              style={{ backgroundColor: character.color ?? '#6366F1' }}
+            {/* The portrait frame under a frame set (Cyberpunk), with square
+                initials; today's round avatar otherwise. The color dot and
+                input below are shared by both, so there's one of each. */}
+            <ThemeFrame
+              name="portrait"
+              plain="none"
+              className="size-28"
+              fallback={
+                <div
+                  className="h-12 w-12 rounded-full flex items-center justify-center text-sm font-semibold text-white"
+                  style={{ backgroundColor: character.color ?? '#6366F1' }}
+                >
+                  {getInitials(character.name)}
+                </div>
+              }
             >
-              {getInitials(character.name)}
-            </div>
+              <ThemeFrameSlot frame="portrait" className="flex items-center justify-center">
+                <div
+                  className="flex size-12 items-center justify-center text-sm font-semibold text-white"
+                  style={{ backgroundColor: character.color ?? '#6366F1' }}
+                >
+                  {getInitials(character.name)}
+                </div>
+              </ThemeFrameSlot>
+            </ThemeFrame>
+            {/* Under the frame, at the corner of the initials: centered in the
+                slot, they span 32–80px of the 112px frame across and 33–81px
+                down. */}
             <button
               onClick={() => colorInputRef.current?.click()}
-              className="absolute -bottom-0.5 -right-0.5 h-4 w-4 rounded-full border-2 border-card transition-transform hover:scale-125 after:absolute after:-inset-3.5"
+              className="absolute -bottom-0.5 -right-0.5 frames:bottom-7.25 frames:right-7.5 h-4 w-4 rounded-full border-2 border-card transition-transform hover:scale-125 after:absolute after:-inset-3.5"
               style={{ backgroundColor: character.color ?? '#6366F1' }}
               title="Click to change color"
             />
