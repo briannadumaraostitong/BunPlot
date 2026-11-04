@@ -145,6 +145,7 @@ When working on a new feature, always read these first:
 
 ## Known Issues
 - Tabs primitive (`components/ui/tabs.tsx`): the line variant's active underline is 0×0 in every theme, and the root's `data-horizontal:flex-col` never applies. Its `group-data-horizontal/tabs:` and `data-horizontal:` classes look for a `data-horizontal` attribute, but Radix sets `data-orientation="horizontal"`. Cyberpunk sizes the project tabs' bar itself in `app/themes/cyberpunk.css`; fixing the primitive will make the underline appear in Classic too.
+- Sign-up check-email screen (`app/(auth)/signup/page.tsx`): "Back to log in" is a `<Button>` inside a `<Link>`, a button nested in a link, which is invalid HTML and gives two focus stops. It should be one element, e.g. `<Button asChild>` around the `Link`.
 
 ## Pending Features
 - Project folders UI (DB schema already created)
@@ -153,3 +154,4 @@ When working on a new feature, always read these first:
 - Event connections/linking
 - Settings page (/settings is 404)
 - Search/filter events
+- Landing, login and signup themes: they always render in Cyberpunk today (`THEME` in `app/page.tsx`, the ThemeScope in `app/(auth)/layout.tsx`). Once a second theme with its own landing look exists, they should follow the visitor’s stored theme instead, with Cyberpunk as the default for first-time visitors (no stored setting). The sections already take their frames from the theme (`ThemeFrame`), so only the theme choice changes
