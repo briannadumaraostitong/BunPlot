@@ -1,8 +1,24 @@
 /* components/hud/hud.css
    Colors the HUD pieces (components/hud/) and the landing page need that no
-   theme token covers, defined once. Cyberpunk only: the pieces render inside
-   it (the landing page through a ThemeScope). Values are from the mockup and
-   design/landing/HANDOFF.md; tints are mixed from theme tokens. */
+   theme token covers, defined once. Designed for Cyberpunk (the landing page
+   renders in it through a ThemeScope); its values are from the mockup and
+   design/landing/HANDOFF.md, with tints mixed from theme tokens. */
+
+/* Any other theme: stand-ins from its own tokens, so the pieces still read.
+   Declared on the theme's element (<html> or a ThemeScope) so they resolve
+   against that theme's tokens. */
+[data-theme] {
+  --hud-panel: hsl(var(--card));
+  --hud-header: hsl(var(--secondary));
+  --hud-banner: hsl(var(--card));
+  --hud-segment: hsl(var(--border));
+  --hud-button: hsl(var(--secondary));
+  --hud-button-primary: hsl(var(--accent));
+  --hud-button-primary-text: hsl(var(--accent-foreground));
+  --hud-text-body: hsl(var(--muted-foreground));
+  --hud-pink-soft: hsl(var(--accent));
+  --hud-violet-soft: hsl(var(--accent-3));
+}
 
 [data-theme="cyberpunk"] {
   /* Surfaces */
@@ -10,6 +26,11 @@
   --hud-header: #10284a;  /* panel header bars (HANDOFF "surface-alt") */
   --hud-banner: #0b1124;  /* the banner strip */
   --hud-segment: #3a4a6b; /* an empty progress segment's outline */
+
+  /* The landing page's mock event dialog buttons */
+  --hud-button: #202c4d;
+  --hud-button-primary: color-mix(in srgb, hsl(var(--accent)) 85%, black);
+  --hud-button-primary-text: #fff; /* white on the darker pink, as in the mockup */
 
   /* Text */
   --hud-text-body: #a9bcdb; /* body copy (HANDOFF "text-muted, body") */
