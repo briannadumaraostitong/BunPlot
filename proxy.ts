@@ -52,8 +52,9 @@ export async function proxy(request: NextRequest) {
     return redirectTo(url)
   }
 
-  const isAuthPage = ['/login', '/signup'].includes(request.nextUrl.pathname)
-  if (isAuthPage && user) {
+  // The landing page and the auth pages are for signed-out visitors.
+  const isSignedOutPage = ['/', '/login', '/signup'].includes(request.nextUrl.pathname)
+  if (isSignedOutPage && user) {
     return redirectTo(new URL('/dashboard', request.url))
   }
 

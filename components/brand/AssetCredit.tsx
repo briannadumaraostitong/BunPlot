@@ -15,8 +15,8 @@ export function AssetCredit({ className, linkClassName }: { className?: string; 
   const external = { target: '_blank', rel: 'noopener noreferrer', className: link }
   return (
     <p className={className}>
-      HUD frames: <a href={LINKS.hud} {...external}>&ldquo;Nightcity HUD Frame Set&rdquo;</a> and{' '}
-      <a href={LINKS.modals} {...external}>&ldquo;Nightcity Modals&rdquo;</a> by Oğuzhan Girgin, licensed under{' '}
+      HUD frames: <a href={LINKS.hud} {...external}>&quot;Nightcity HUD Frame Set&quot;</a> and{' '}
+      <a href={LINKS.modals} {...external}>&quot;Nightcity Modals&quot;</a> by Oğuzhan Girgin, licensed under{' '}
       <a href={LINKS.license} {...external}>CC BY 4.0</a>. The modal frame is modified (its built-in buttons are removed).
     </p>
   )

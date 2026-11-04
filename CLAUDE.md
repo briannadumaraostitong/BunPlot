@@ -59,7 +59,7 @@ Inspired by: Plottr, Notion, Linear, iA Writer.
 - Primary action: `<Button size="sm">` — uses accent color
 - Destructive: `variant="ghost"` with `className="text-destructive hover:bg-destructive/10"`
 - Icon buttons: `size="icon"` with `h-7 w-7` or `h-8 w-8`
-- Never use large buttons — always `size="sm"` or `size="icon"`
+- Never use large buttons — always `size="sm"` or `size="icon"`. The one exception is the landing page (`app/page.tsx`), whose call-to-action links follow the design handoff (`components/landing/cta.ts`); everywhere in the app keeps `size="sm"`
 
 #### Modals / Dialogs
 - Width: `sm:max-w-4xl` for complex modals, `sm:max-w-md` for simple ones
@@ -109,7 +109,7 @@ Inspired by: Plottr, Notion, Linear, iA Writer.
 
 ### Anti-patterns (never do these)
 - No `bg-white` or `bg-black` hardcoded
-- No large buttons — always `size="sm"`
+- No large buttons — always `size="sm"` (landing page excepted, see Buttons)
 - No bullet point lists in UI copy — use prose
 - No excessive bold/headers — use weight hierarchy instead
 - No `backdrop-blur` on overlays — use solid `bg-background`

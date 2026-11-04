@@ -33,8 +33,8 @@ export function HudPanel({ title, tag, progress, className, children }: HudPanel
             <svg aria-hidden="true" width="46" height="14" viewBox="0 0 46 14" className="shrink-0">
               <path d="M0 14L6 0h6L6 14zM12 14L18 0h6l-6 14zM24 14L30 0h6l-6 14z" className="fill-accent" />
             </svg>
-            <span className="flex-1 truncate font-mono text-[13px] tracking-[1px] text-foreground">{title}</span>
-            {tag && <span className="font-mono text-xs text-accent-2">{tag}</span>}
+            <span className="min-w-0 flex-1 font-mono text-[13px] tracking-[1px] text-foreground">{title}</span>
+            {tag && <span className="font-mono text-[12px] text-accent-2">{tag}</span>}
           </div>
 
           <div className="pt-[22px] pr-[30px] pb-[18px] pl-[22px]">

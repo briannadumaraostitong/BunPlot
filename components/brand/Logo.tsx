@@ -13,9 +13,11 @@ interface LogoProps {
   // Loads the mark eagerly, for where it shows above the fold on every page.
   preload?: boolean
   className?: string
+  // Size or color for the wordmark where the sidebar's doesn't fit (landing).
+  wordmarkClassName?: string
 }
 
-export function Logo({ size = 28, wordmark = false, preload = false, className }: LogoProps) {
+export function Logo({ size = 28, wordmark = false, preload = false, className, wordmarkClassName }: LogoProps) {
   return (
     <span className={cn('flex items-center gap-1.5', className)}>
       <Image
@@ -29,7 +31,7 @@ export function Logo({ size = 28, wordmark = false, preload = false, className }
         className="shrink-0"
       />
       {wordmark && (
-        <span data-slot="wordmark" className="text-xl font-semibold tracking-tight">
+        <span data-slot="wordmark" className={cn('text-xl font-semibold tracking-tight', wordmarkClassName)}>
           BunPlot
         </span>
       )}
