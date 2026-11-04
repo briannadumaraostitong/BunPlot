@@ -18,19 +18,61 @@ import { FRAMES, type FrameInset, type FrameName } from '@/lib/frames'
 
 const PLAIN_CARD = 'plain:flex plain:flex-col plain:gap-4 plain:rounded-xl plain:border plain:border-border plain:bg-card plain:p-6'
 
-export function ThemeFrame({ name, className, children }: { name: FrameName; className?: string; children?: React.ReactNode }) {
+// Widths below which a spot shows its fallback even under a frame set, so
+// text isn't squeezed into the frame's slots. Container queries need literal
+// values, hence a fixed list.
+const MIN_WIDTH = {
+  320: { frame: 'frames:@min-[320px]/frame-spot:block', fallback: 'frames:@min-[320px]/frame-spot:hidden' },
+} as const
+
+type ThemeFrameProps = {
+  name: FrameName
+  className?: string
+  children?: React.ReactNode
+} & (
+  // The plain look is a card built from the slots.
+  | { plain?: 'card'; fallback?: never; minWidth?: never }
+  // No plain card: in the plain look the frame is hidden and `fallback` (the
+  // spot's own markup, e.g. an EmptyState) shows instead, exactly as it would
+  // without a frame: its wrapper is display: contents. `minWidth` also shows
+  // the fallback when the spot is narrower than that.
+  | { plain: 'none'; fallback: React.ReactNode; minWidth?: keyof typeof MIN_WIDTH }
+)
+
+export function ThemeFrame({ name, className, children, plain = 'card', fallback, minWidth }: ThemeFrameProps) {
   const spec = FRAMES[name]
-  return (
+  const narrow = minWidth ? MIN_WIDTH[minWidth] : null
+  const frame = (
     <div
       data-slot="frame"
       // corner-cut: the plain card's corners under a cut theme; globals.css
       // drops the clip when the frame shows.
-      className={cn('relative corner-cut frames:@container frames:aspect-(--frame-ratio)', PLAIN_CARD, className)}
+      className={cn(
+        'relative corner-cut frames:@container frames:aspect-(--frame-ratio)',
+        plain === 'card' ? PLAIN_CARD : cn('hidden', narrow?.frame ?? 'frames:block'),
+        className
+      )}
       style={{ '--frame-ratio': `${spec.width} / ${spec.height}` } as React.CSSProperties}
     >
       <Image src={spec.src} alt="" aria-hidden="true" fill unoptimized className="hidden frames:block" />
       {children}
     </div>
+  )
+  if (plain === 'card') return frame
+
+  const shown = <div className={cn('contents', narrow?.fallback ?? 'frames:hidden')}>{fallback}</div>
+  // The width check needs a container around both; without one, nothing is
+  // added around the fallback.
+  return narrow ? (
+    <div className="@container/frame-spot">
+      {frame}
+      {shown}
+    </div>
+  ) : (
+    <>
+      {frame}
+      {shown}
+    </>
   )
 }
 

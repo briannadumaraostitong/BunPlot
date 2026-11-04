@@ -7,6 +7,7 @@ import { NewProjectDialog } from '@/components/projects/NewProjectDialog'
 import { NewFolderDialog } from '@/components/projects/NewFolderDialog'
 import { FolderSection } from '@/components/projects/FolderSection'
 import { EmptyState } from '@/components/ui/empty-state'
+import { ThemeFrame, ThemeFrameSlot } from '@/components/hud/ThemeFrame'
 import { COVER_GRID_CLASS } from '@/lib/coverGrid'
 import type { Metadata } from 'next'
 import type { Project, ProjectFolder } from '@/types/database'
@@ -152,12 +153,37 @@ export default async function DashboardPage() {
           ))}
         </>
       ) : (
-        <EmptyState
-          icon={BookOpen}
-          title="No projects yet"
-          action={<NewProjectDialog trigger="Create your first project" />}
-          className="h-64"
-        />
+        // In the modal frame under a frame set (Cyberpunk); the plain
+        // EmptyState otherwise, and on screens too narrow for the frame.
+        <ThemeFrame
+          name="modal"
+          plain="none"
+          minWidth={320}
+          className="mx-auto w-full max-w-[440px]"
+          fallback={
+            <EmptyState
+              icon={BookOpen}
+              title="No projects yet"
+              action={<NewProjectDialog trigger="Create your first project" />}
+              className="h-64"
+            />
+          }
+        >
+          <ThemeFrameSlot frame="modal" slot="title" className="flex items-center">
+            <h2 className="font-mono text-xs tracking-[1px] text-foreground uppercase">No projects yet</h2>
+          </ThemeFrameSlot>
+          <ThemeFrameSlot frame="modal" className="flex items-center gap-4">
+            <span className="flex size-10 shrink-0 items-center justify-center border border-accent-2 text-accent-2">
+              <BookOpen className="h-5 w-5" />
+            </span>
+            <p className="text-sm text-muted-foreground">
+              A project holds one story&apos;s timeline, outline, characters and places.
+            </p>
+          </ThemeFrameSlot>
+          <ThemeFrameSlot frame="modal" slot="actions" className="flex justify-end">
+            <NewProjectDialog trigger="Create your first project" />
+          </ThemeFrameSlot>
+        </ThemeFrame>
       )}
     </div>
   )
