@@ -1,11 +1,9 @@
 import Image from 'next/image'
 import { cn } from '@/lib/utils'
+import { LOGO_SRC } from '@/lib/brand'
 
-// The only place the logo file is named. Swapping in the final logo means
-// replacing public/brand/logo.svg (or changing this path for another format);
-// the app icons (app/icon.tsx, app/apple-icon.tsx) read the same file. The mark
-// keeps its own colors in every theme.
-export const LOGO_SRC = '/brand/logo.svg'
+// The app's logo mark (file named in lib/brand.ts), optionally with the
+// "BunPlot" wordmark. The mark keeps its own colors in every theme.
 
 interface LogoProps {
   size?: number
