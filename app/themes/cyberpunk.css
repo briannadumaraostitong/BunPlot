@@ -286,6 +286,16 @@
   color: hsl(var(--muted-foreground));
 }
 
+/* The Settings theme picker's Cyberpunk preview: its sample in the heading
+   style (uppercase, letter-spaced, bold), whatever theme is active. Keyed on
+   the swatch's own data-theme, not an ancestor's, so Classic swatches on a
+   Cyberpunk page keep their own style. */
+[data-theme="cyberpunk"][data-slot="theme-swatch"] [data-slot="theme-sample"] {
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
 /* Status: a small square mono tag rather than a pill, on event cards and in
    the event dialog's status picker. */
 [data-theme="cyberpunk"] [data-slot="event-card-status"],

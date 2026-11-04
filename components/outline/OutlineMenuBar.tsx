@@ -89,7 +89,7 @@ interface FileItem {
   destructive?: boolean
 }
 
-// Section labels in the phone menu, as in ThemeToggle's menu.
+// Section labels in the phone menu.
 const PHONE_LABEL = 'px-2.5 py-1 text-[10px] font-semibold uppercase tracking-wider text-muted-foreground'
 
 // Docs-style menu bar above the formatting toolbar: the document's name,

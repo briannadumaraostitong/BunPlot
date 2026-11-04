@@ -3,7 +3,7 @@ import { createClient } from '@/lib/supabase/server'
 import { requireUser } from '@/lib/supabase/requireUser'
 import { ProfileForm } from '@/components/settings/ProfileForm'
 import { SoundSettings } from '@/components/settings/SoundSettings'
-import { ThemeToggle } from '@/components/theme/ThemeToggle'
+import { ThemePicker } from '@/components/theme/ThemePicker'
 import type { Metadata } from 'next'
 import type { Profile } from '@/types/database'
 
@@ -42,10 +42,7 @@ export default async function SettingsPage() {
       <section className="rounded-xl corner-cut border border-border bg-card p-4 space-y-4">
         <h2 className="text-lg font-semibold">Appearance</h2>
 
-        <div className="flex items-center justify-between max-w-sm">
-          <span className="text-sm font-medium">Theme</span>
-          <ThemeToggle />
-        </div>
+        <ThemePicker />
       </section>
 
       <section className="rounded-xl corner-cut border border-border bg-card p-4 space-y-4">
