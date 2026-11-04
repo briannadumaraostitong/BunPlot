@@ -7,6 +7,7 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Loader2, CheckCircle2 } from 'lucide-react'
+import { AuthShell, AUTH_LABEL, AUTH_LINK } from '@/components/auth/AuthShell'
 
 export default function SignupPage() {
   const supabase = createClient()
@@ -48,90 +49,95 @@ export default function SignupPage() {
 
   if (done) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-background px-4">
-        <div className="w-full max-w-sm text-center space-y-4">
-          <CheckCircle2 className="h-12 w-12 mx-auto text-primary" />
-          <h2 className="text-2xl font-semibold">Check your email</h2>
-          <p className="text-sm text-muted-foreground">
-            We sent a confirmation link to <strong>{email}</strong>.
+      <AuthShell eyebrow="Almost there" title="Check your email" panelTitle="CONFIRM EMAIL">
+        <div className="space-y-4 text-center">
+          <CheckCircle2 className="mx-auto h-12 w-12 text-accent-2" />
+          <p className="text-sm text-(--hud-text-body)">
+            We sent a confirmation link to <strong className="text-foreground">{email}</strong>.
             Click the link to activate your account.
           </p>
           <Link href="/login">
-            <Button variant="outline" className="w-full mt-2">
-              Back to sign in
+            <Button variant="outline" className="mt-2 w-full uppercase tracking-[1px]">
+              Back to log in
             </Button>
           </Link>
         </div>
-      </div>
+      </AuthShell>
     )
   }
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-background px-4">
-      <div className="w-full max-w-sm space-y-8">
-        <div className="text-center space-y-2">
-          <h1 className="text-4xl font-light tracking-tight">
-            BunPlot
-          </h1>
-          <p className="text-sm text-muted-foreground">Create your free account</p>
+    <AuthShell
+      eyebrow="Ready when you are"
+      eyebrowTone="pink"
+      title="Create your free account"
+      panelTitle="NEW ACCOUNT"
+      footer={
+        <>
+          Already have an account?{' '}
+          <Link href="/login" className={AUTH_LINK}>
+            Log in
+          </Link>
+        </>
+      }
+    >
+      <form onSubmit={handleSignup} className="space-y-4">
+        <div className="space-y-2">
+          <Label htmlFor="name" data-slot="field-label" className={AUTH_LABEL}>
+            Display Name
+          </Label>
+          <Input
+            id="name"
+            placeholder="Your name"
+            value={displayName}
+            onChange={(e) => setDisplayName(e.target.value)}
+            required
+            className="bg-background dark:bg-background"
+          />
         </div>
 
-        <form onSubmit={handleSignup} className="space-y-4">
-          <div className="space-y-2">
-            <Label htmlFor="name">Display Name</Label>
-            <Input
-              id="name"
-              placeholder="Your name"
-              value={displayName}
-              onChange={(e) => setDisplayName(e.target.value)}
-              required
-            />
-          </div>
+        <div className="space-y-2">
+          <Label htmlFor="email" data-slot="field-label" className={AUTH_LABEL}>
+            Email
+          </Label>
+          <Input
+            id="email"
+            type="email"
+            placeholder="you@example.com"
+            value={email}
+            onChange={(e) => setEmail(e.target.value)}
+            required
+            className="bg-background dark:bg-background"
+          />
+        </div>
 
-          <div className="space-y-2">
-            <Label htmlFor="email">Email</Label>
-            <Input
-              id="email"
-              type="email"
-              placeholder="you@example.com"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              required
-            />
-          </div>
+        <div className="space-y-2">
+          <Label htmlFor="password" data-slot="field-label" className={AUTH_LABEL}>
+            Password
+          </Label>
+          <Input
+            id="password"
+            type="password"
+            placeholder="Min. 8 characters"
+            value={password}
+            onChange={(e) => setPassword(e.target.value)}
+            required
+            className="bg-background dark:bg-background"
+          />
+        </div>
 
-          <div className="space-y-2">
-            <Label htmlFor="password">Password</Label>
-            <Input
-              id="password"
-              type="password"
-              placeholder="Min. 8 characters"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              required
-            />
-          </div>
+        {error && (
+          <p className="text-sm text-destructive">{error}</p>
+        )}
 
-          {error && (
-            <p className="text-sm text-destructive">{error}</p>
-          )}
-
-          <Button
-            type="submit"
-            className="w-full"
-            disabled={loading}
-          >
-            {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : 'Create Account'}
-          </Button>
-        </form>
-
-        <p className="text-center text-sm text-muted-foreground">
-          Already have an account?{' '}
-          <Link href="/login" className="underline underline-offset-4 hover:text-foreground">
-            Sign in
-          </Link>
-        </p>
-      </div>
-    </div>
+        <Button
+          type="submit"
+          className="w-full font-bold uppercase tracking-[1px]"
+          disabled={loading}
+        >
+          {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : 'Create Account'}
+        </Button>
+      </form>
+    </AuthShell>
   )
 }

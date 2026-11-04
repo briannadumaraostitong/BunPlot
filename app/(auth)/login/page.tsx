@@ -8,6 +8,7 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Loader2 } from 'lucide-react'
+import { AuthShell, AUTH_LABEL, AUTH_LINK } from '@/components/auth/AuthShell'
 
 function LoginForm() {
   const router = useRouter()
@@ -49,7 +50,9 @@ function LoginForm() {
   return (
     <form onSubmit={handleLogin} className="space-y-4">
       <div className="space-y-2">
-        <Label htmlFor="email">Email</Label>
+        <Label htmlFor="email" data-slot="field-label" className={AUTH_LABEL}>
+          Email
+        </Label>
         <Input
           id="email"
           type="email"
@@ -58,11 +61,14 @@ function LoginForm() {
           onChange={(e) => setEmail(e.target.value)}
           required
           autoComplete="email"
+          className="bg-background dark:bg-background"
         />
       </div>
 
       <div className="space-y-2">
-        <Label htmlFor="password">Password</Label>
+        <Label htmlFor="password" data-slot="field-label" className={AUTH_LABEL}>
+          Password
+        </Label>
         <Input
           id="password"
           type="password"
@@ -71,13 +77,14 @@ function LoginForm() {
           onChange={(e) => setPassword(e.target.value)}
           required
           autoComplete="current-password"
+          className="bg-background dark:bg-background"
         />
       </div>
 
       {error && <p className="text-sm text-destructive">{error}</p>}
 
-      <Button type="submit" className="w-full" disabled={loading}>
-        {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : 'Sign In'}
+      <Button type="submit" className="w-full font-bold uppercase tracking-[1px]" disabled={loading}>
+        {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : 'Log in'}
       </Button>
     </form>
   )
@@ -85,26 +92,24 @@ function LoginForm() {
 
 export default function LoginPage() {
   return (
-    <div className="min-h-screen flex items-center justify-center bg-background px-4">
-      <div className="w-full max-w-sm space-y-8">
-        <div className="text-center space-y-2">
-          <h1 className="text-4xl font-light tracking-tight">BunPlot</h1>
-          <p className="text-sm text-muted-foreground">Sign in to your workspace</p>
-        </div>
-
-        {/* useSearchParams needs a Suspense boundary — without one the App
-            Router fails the build rather than degrading at runtime. */}
-        <Suspense fallback={<div className="h-44" />}>
-          <LoginForm />
-        </Suspense>
-
-        <p className="text-center text-sm text-muted-foreground">
+    <AuthShell
+      eyebrow="Welcome back"
+      title="Log in to your workspace"
+      panelTitle="LOG IN"
+      footer={
+        <>
           Don&apos;t have an account?{' '}
-          <Link href="/signup" className="underline underline-offset-4 hover:text-foreground">
+          <Link href="/signup" className={AUTH_LINK}>
             Sign up
           </Link>
-        </p>
-      </div>
-    </div>
+        </>
+      }
+    >
+      {/* useSearchParams needs a Suspense boundary — without one the App
+          Router fails the build rather than degrading at runtime. */}
+      <Suspense fallback={<div className="h-44" />}>
+        <LoginForm />
+      </Suspense>
+    </AuthShell>
   )
 }
