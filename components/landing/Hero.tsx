@@ -50,7 +50,7 @@ export function Hero() {
       </div>
 
       <HudPanel
-        title="DANDELIONS FINAL"
+        title="THE DROWNED BRIDGE"
         tag="TIMELINE"
         // The mockup's 540/640px content width plus the panel's 18px rail.
         className="min-w-0 max-w-[658px] flex-[1_1_558px]"

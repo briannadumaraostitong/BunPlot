@@ -16,8 +16,7 @@ export function LandingFooter() {
       <div className={`${CONTAINER} flex flex-wrap justify-between gap-x-12 gap-y-6 py-10`}>
         <div className="flex flex-col gap-2.5">
           <Logo size={28} wordmark className="gap-2.5" wordmarkClassName="text-xl text-primary" />
-          {/* Placeholder until the owner's name is filled in. */}
-          <span className="font-mono text-[12px] text-muted-foreground">© 2026 [YOUR NAME]</span>
+          <span className="font-mono text-[12px] text-muted-foreground">© 2026 Brianna Titong</span>
         </div>
         <nav aria-label="Footer" className="flex flex-wrap gap-x-7 gap-y-3 text-[15px] uppercase tracking-[1px]">
           {LINKS.map(({ href, label }) => (

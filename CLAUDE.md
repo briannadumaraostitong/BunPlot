@@ -90,7 +90,7 @@ A framed spot that follows the theme's `frames` setting: under `'nightcity'` it'
 - Sections, in order (`components/landing/`): nav, hero (with a `HudPanel`), banner strip, Why BunPlot (`#why`, modal frame), Features (`#features`: three rows with the primary frame, the portrait frame plus a relationships card, and three plates), Also in BunPlot (four cut cards), About (`#about`, terminal frame), sign-up band, footer with the asset credit (`#credits`)
 - Built to the mockup in `design/landing/` at 1280, 768 and 390px: `components/landing/layout.ts` holds the content width (1248px: the mockup's 1200px content box plus padding) and shared type styles; the page sets `leading-[normal]` because the design sets line heights only where it needs them
 - Mock UI in the sections is a picture (`role="img"` with an `aria-label`), not working controls
-- Keep the placeholders visible until the owner replaces them: `[YOUR NAME]`, the About paragraph and the example numbers
+- Keep the placeholders visible until the owner replaces them: the About paragraph and the example numbers. The example project title (`The Drowned Bridge`) and the owner name (`Brianna Titong`, in the About signature and the footer) are final
 - Login and signup (`app/(auth)/`) share its look through `components/auth/AuthShell.tsx` (logo, eyebrow, heading, the form in a `HudPanel`). The wording is "Log in" and "Sign up", as on the landing page
 
 ### Spacing & Radius

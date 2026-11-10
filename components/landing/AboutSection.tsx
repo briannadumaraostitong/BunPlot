@@ -9,10 +9,10 @@ export function AboutSection() {
         <div className={SPLIT_TEXT}>
           <Eyebrow number="03" className={SECTION_EYEBROW}>About</Eyebrow>
           <h2 className={`mb-5 ${H2}`}>Made for people who organize</h2>
-          {/* Placeholder text and name, kept visible until the owner replaces them. */}
+          {/* Placeholder text, kept visible until the owner replaces it. */}
           <p className={BODY}>
             I built BunPlot because I need to see how everything in a story fits together, and I couldn&apos;t find a tool
-            that kept it all in one place. If you organize the way I do, it&apos;s for you too. — [YOUR NAME]
+            that kept it all in one place. If you organize the way I do, it&apos;s for you too. — Brianna Titong
           </p>
         </div>
 
