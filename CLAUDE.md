@@ -14,7 +14,7 @@ Built with: Next.js 16 (16.2.6, App Router), TypeScript, Tailwind CSS v4, shadcn
 - `lib/supabase/` — client.ts and server.ts
 - `lib/themes.ts` — theme definitions (single source of truth for color tokens, shape, texture, fonts and frames)
 - `lib/frames.ts` — the Nightcity frame registry (files, sizes, content slots)
-- `lib/brand.ts` — the logo file's path (`LOGO_SRC`)
+- `lib/brand.ts` — the logo files per theme (`LOGO_SRCS`) and the app icons' file (`APP_ICON_SRC`)
 - `lib/theme.config.ts` — layer color palette (`LAYER_COLORS`)
 - `supabase/schema.sql` — full database schema
 - `ASSETS.md` — every third-party asset with its license
@@ -77,9 +77,9 @@ A framed spot that follows the theme's `frames` setting: under `'nightcity'` it'
 `HudPanel` (the CSS panel with a header bar and progress bar; it grows with its content), `BannerStrip` and `Eyebrow` (`// 01 — LABEL`). Colors no token covers are `--hud-*` variables in `components/hud/hud.css`, with token stand-ins for other themes.
 
 ### Brand
-- The logo file is named in one place, `lib/brand.ts` (`LOGO_SRC`, currently the placeholder `public/brand/logo.svg`). Swapping in the final logo means replacing that file
-- Show it with `components/brand/Logo.tsx` (`size`, `wordmark`, `wordmarkClassName`, `preload` above the fold), never an `<img>` of the file
-- The app icons (`app/icon.tsx`, `app/apple-icon.tsx`) are generated from the same file
+- The logo files are named in one place, `lib/brand.ts`. `LOGO_SRCS` maps each theme to its logo's file, and themes can share one (today all use the placeholder `public/brand/logo.svg`). A theme's own logo means adding its file under `public/brand/` and pointing that theme's entry at it
+- Show it with `components/brand/Logo.tsx` (`size`, `wordmark`, `wordmarkClassName`, `preload` above the fold), never an `<img>` of a file. It renders one image per distinct file and CSS shows the one for the nearest `data-theme` (`<html>` or a ThemeScope), so there's no theme state and no flash; hidden ones are lazy and never download. With more than one file, `preload` is ignored for that reason. While every theme shares one file, it's a single image as before
+- The app icons (`app/icon.tsx`, `app/apple-icon.tsx`) are one version for every theme, generated from `APP_ICON_SRC`: the browser asks for them without knowing the visitor's theme
 
 ### Third-party assets
 - `ASSETS.md` lists every third-party file BunPlot ships, with author, source, license and changes. Add a row whenever you add one
