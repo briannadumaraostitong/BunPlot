@@ -34,9 +34,7 @@ export default function HomePage() {
       <LandingNav />
       <main id="top">
         <Hero />
-        <div className={`${CONTAINER} mb-2`}>
-          <BannerStrip items={APP_PARTS} />
-        </div>
+        <BannerStrip items={APP_PARTS} className="mb-2" contentClassName={CONTAINER} />
         <WhySection />
         <FeaturesSection />
         <AlsoSection />
