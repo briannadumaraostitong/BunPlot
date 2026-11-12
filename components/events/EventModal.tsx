@@ -507,7 +507,7 @@ function EventForm({
       </div>
 
       {/* Right content area */}
-      <div className="flex-1 flex flex-col min-w-0 bg-background">
+      <div data-slot="event-main" className="flex-1 flex flex-col min-w-0 bg-background">
         {/* Title */}
         <div data-slot="event-modal-header" className="border-b border-border px-5 py-3 shrink-0">
           <Input

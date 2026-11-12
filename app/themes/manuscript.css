@@ -120,11 +120,12 @@
 [data-theme="manuscript"] [data-slot="project-cover"] {
   background-color: hsl(var(--secondary));
 }
-/* Without a cover, a title page on the cream surface: the name in
-   Cormorant Garamond italic, centered, with a small oxblood fleuron beneath
-   (the mockup's ornament: a diamond between two rules). Long names wrap
-   and clamp to four lines. */
-[data-theme="manuscript"] [data-slot="project-cover-title-page"] {
+/* A card without a cover (projects, places) shows a title page on the cream
+   surface instead of its plain placeholder: the name in Cormorant Garamond
+   italic, centered, with a small oxblood fleuron beneath (the mockup's
+   ornament: a diamond between two rules). Long names wrap and clamp to four
+   lines; two on the shorter place covers. */
+[data-theme="manuscript"] [data-slot="title-page"] {
   display: flex;
   height: 100%;
   flex-direction: column;
@@ -136,7 +137,7 @@
   border-bottom: 1px solid hsl(var(--border));
   text-align: center;
 }
-[data-theme="manuscript"] [data-slot="project-cover-title"] {
+[data-theme="manuscript"] [data-slot="title-page-title"] {
   display: -webkit-box;
   -webkit-box-orient: vertical;
   -webkit-line-clamp: 4;
@@ -150,26 +151,63 @@
   line-height: 1.15;
   color: hsl(var(--foreground));
 }
-[data-theme="manuscript"] [data-slot="project-cover-fleuron"] {
+[data-theme="manuscript"] [data-slot="title-page-fleuron"] {
   flex-shrink: 0;
 }
-[data-theme="manuscript"] [data-slot="project-cover-fleuron"] path:first-child {
+[data-theme="manuscript"] [data-slot="title-page-fleuron"] path:first-child {
   fill: none;
   stroke: hsl(var(--accent-border));
   stroke-width: 1;
 }
-[data-theme="manuscript"] [data-slot="project-cover-fleuron"] path:last-child {
+[data-theme="manuscript"] [data-slot="title-page-fleuron"] path:last-child {
   fill: hsl(var(--accent));
+}
+[data-theme="manuscript"] [data-slot="place-cover-placeholder"] {
+  display: none;
+}
+[data-theme="manuscript"] [data-slot="place-card"] [data-slot="title-page"] {
+  gap: 0.5rem;
+}
+[data-theme="manuscript"] [data-slot="place-card"] [data-slot="title-page-title"] {
+  -webkit-line-clamp: 2;
+  line-clamp: 2;
+  font-size: 1.25rem;
 }
 
 /* Timeline event cards (grid, flow view and drag preview) are index cards:
-   the cream index-card fill, a light 1px edge and a 3px rule along the top
-   in the layer color, in place of the left bar and tint. Flat on the page;
-   the drag preview keeps its shadow and a selected card its ring. */
+   the cream index-card fill and a light 1px edge, in place of the left bar
+   and tint, with a small bookmark ribbon in the event's color tucked at the
+   top-right corner (the hero ledger's ribbon, scaled down). Flat on the
+   page; the drag preview keeps its shadow and a selected card its ring. */
 [data-theme="manuscript"] [data-slot="event-card"] {
+  position: relative;
   background-color: hsl(var(--index-card));
-  border-width: 3px 1px 1px;
-  border-color: var(--event-color) hsl(var(--border)) hsl(var(--border));
+  border-width: 1px;
+  border-color: hsl(var(--border));
+}
+/* The ribbon: 8×16px, notched at the bottom, hanging from the top edge
+   (over the border). On grid cards and the drag preview it sits just left
+   of the drag handle; flow cards have none, so it sits nearer the corner.
+   Titles stop short of it. */
+[data-theme="manuscript"] [data-slot="event-card"]::after {
+  content: "";
+  position: absolute;
+  top: -1px;
+  right: 22px;
+  width: 8px;
+  height: 16px;
+  background-color: var(--event-color);
+  clip-path: polygon(0 0, 100% 0, 100% 100%, 50% 84%, 0 100%);
+  pointer-events: none;
+}
+[data-theme="manuscript"] [data-slot="event-card"][data-variant="flow"]::after {
+  right: 12px;
+}
+[data-theme="manuscript"] [data-slot="event-card-title"] {
+  margin-right: 18px;
+}
+[data-theme="manuscript"] [data-slot="event-card"][data-variant="flow"] [data-slot="event-card-title"] {
+  margin-right: 12px;
 }
 [data-theme="manuscript"] [data-slot="event-card"]:not([data-drag-preview], [data-selected]) {
   box-shadow: none;
@@ -179,7 +217,7 @@
     box-shadow: 0 6px 12px -8px hsl(30 50% 15.7% / 0.45);
   }
 }
-/* Titles in ink: the top rule carries the layer. */
+/* Titles in ink: the ribbon carries the layer. */
 [data-theme="manuscript"] [data-slot="event-card-title"] {
   color: hsl(var(--foreground));
 }
@@ -218,6 +256,140 @@
   font-style: italic;
   font-weight: 500;
   color: hsl(var(--muted-foreground));
+}
+
+/* Dialogs are sheets laid on the paper: the handoff's sheet shadow. */
+[data-theme="manuscript"] [data-slot="dialog-content"] {
+  box-shadow: var(--paper-shadow);
+}
+
+/* Event dialog: the mockup's index card, without its ruled lines. A
+   bookmark ribbon in the event's color hangs from the top edge, left of the
+   close button and its tap area (on the form, which is the dialog's scroll
+   container on phones, so it scrolls away with the top of the card); the
+   content area is on the cream surface, with an "EVENT" Courier label
+   above the title, which is in Cormorant italic and keeps its own case. */
+[data-theme="manuscript"] [data-slot="event-form"] {
+  position: relative;
+}
+[data-theme="manuscript"] [data-slot="event-form"]::after {
+  content: "";
+  position: absolute;
+  top: 0;
+  right: 52px;
+  width: 14px;
+  height: 30px;
+  background-color: var(--event-color);
+  clip-path: polygon(0 0, 100% 0, 100% 100%, 50% 84%, 0 100%);
+  pointer-events: none;
+}
+[data-theme="manuscript"] [data-slot="event-main"] {
+  background-color: hsl(var(--card));
+}
+[data-theme="manuscript"] [data-slot="event-modal-header"]::before {
+  content: "EVENT";
+  display: block;
+  font-family: var(--theme-font-mono);
+  font-size: 11px;
+  font-weight: 700;
+  line-height: 1.3;
+  letter-spacing: 0.1em;
+  color: hsl(var(--muted-foreground));
+}
+[data-theme="manuscript"] [data-slot="event-modal-header"] input {
+  font-size: 1.625rem;
+  font-style: italic;
+  font-weight: 600;
+  line-height: 1.15;
+}
+
+/* Outline chrome only; the writing surface, the text and its fonts are
+   untouched. Menu labels (File, Edit, Insert, Format) in Courier uppercase;
+   the active toolbar button in oxblood on a faint oxblood wash instead of
+   the gray fill; the word count and status in Courier, with "Saved ✓" in
+   olive bold as in the mockup ("Not saved" keeps its warning color). */
+[data-theme="manuscript"] [data-slot="outline-menubar"] [data-slot="menubar-trigger"] {
+  font-family: var(--theme-font-mono);
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+}
+[data-theme="manuscript"] [data-slot="outline-tool"][data-active] {
+  background-color: hsl(var(--accent-muted));
+  color: hsl(var(--accent));
+}
+[data-theme="manuscript"] [data-slot="outline-status"] {
+  font-family: var(--theme-font-mono);
+  font-size: 12px;
+}
+[data-theme="manuscript"] [data-slot="save-status-saved"] {
+  color: hsl(var(--accent-3));
+  font-weight: 700;
+}
+
+/* Family tree tabs: like the project tabs, a 2px oxblood bar under the
+   active one instead of the gray fill, but in the UI font, since tree
+   names are user content. */
+[data-theme="manuscript"] [data-slot="tree-tab"][data-active] {
+  background-color: transparent;
+  box-shadow: inset 0 -2px hsl(var(--accent));
+}
+/* Character nodes are small plain index cards: the cream fill and a light
+   edge, flat on the canvas; the avatar carries the character's color. A
+   pending node (picked to link) keeps its accent border; selected and
+   dragged ones keep their ring and shadow. Avatars stay round. */
+[data-theme="manuscript"] [data-slot="character-node"] {
+  background-color: hsl(var(--index-card));
+}
+[data-theme="manuscript"] [data-slot="character-node"]:not([data-pending]) {
+  border-color: hsl(var(--border));
+}
+[data-theme="manuscript"] [data-slot="character-node"]:not([data-selected], [data-dragging]) {
+  box-shadow: none;
+}
+/* Relationship labels on the tree's lines: square Courier tags, like the
+   status tags, on the cream fill. */
+[data-theme="manuscript"] [data-slot="relationship-tag"] {
+  border-radius: 0;
+  background-color: hsl(var(--index-card));
+  font-family: var(--theme-font-mono);
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  box-shadow: none;
+}
+/* On the label span itself: its own `capitalize` class would beat an
+   uppercase inherited from the tag. */
+[data-theme="manuscript"] [data-slot="relationship-tag"] > span {
+  text-transform: uppercase;
+}
+
+/* Place cards are sheets like the project cards (paper shadow, the 3px
+   radius); a small dot in the place's color before the type label carries
+   the color. Selected ones keep their ring. */
+[data-theme="manuscript"] [data-slot="place-card"] {
+  border-radius: var(--radius);
+}
+[data-theme="manuscript"] [data-slot="place-card"] [data-slot="place-type"]::before {
+  content: "";
+  display: inline-block;
+  width: 6px;
+  height: 6px;
+  margin-right: 6px;
+  vertical-align: 1px;
+  border-radius: 9999px;
+  background-color: var(--place-color);
+}
+[data-theme="manuscript"] [data-slot="place-card"]:not([data-selected]) {
+  box-shadow: var(--paper-shadow);
+}
+
+/* Storyboard panels are sheets too: the cream fill, the 3px radius and the
+   paper shadow. The skeleton shares the slot. Captions are untouched. */
+[data-theme="manuscript"] [data-slot="panel-card"] {
+  border-radius: var(--radius);
+  background-color: hsl(var(--index-card));
+  box-shadow: var(--paper-shadow);
 }
 
 /* The Settings theme picker's Manuscript preview: its sample in the heading

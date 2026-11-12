@@ -2,6 +2,7 @@
 
 import { useState } from 'react'
 import { cn } from '@/lib/utils'
+import { CoverTitlePage } from '@/components/theme/CoverTitlePage'
 import { ProjectDetailModal } from './ProjectDetailModal'
 import type { ProjectFolder } from '@/types/database'
 import type { ProjectWithCover } from '@/actions/projects'
@@ -49,16 +50,7 @@ export function ProjectCard({ project: initialProject, folders = [], stats }: Pr
           {project.cover_url ? (
             <img src={project.cover_url} alt="" className="h-full w-full object-cover" />
           ) : (
-            // Without a cover: a title page, for a theme that shows it
-            // (Manuscript, in its stylesheet); hidden otherwise. Decorative,
-            // since the title below already names the card.
-            <div data-slot="project-cover-title-page" aria-hidden="true" className="hidden">
-              <span data-slot="project-cover-title">{project.title}</span>
-              <svg data-slot="project-cover-fleuron" width="56" height="10" viewBox="0 0 56 10">
-                <path d="M0 5H20M36 5H56" />
-                <path d="M28 0.5l4.5 4.5-4.5 4.5-4.5-4.5z" />
-              </svg>
-            </div>
+            <CoverTitlePage title={project.title} />
           )}
         </div>
         <div className="p-3">

@@ -4,6 +4,7 @@ import { MapPin } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { playClickSound } from '@/lib/sound'
 import { PLACE_TYPE_LABELS } from '@/lib/places.config'
+import { CoverTitlePage } from '@/components/theme/CoverTitlePage'
 import type { Chapter } from '@/types/database'
 import type { PlaceWithCover } from '@/actions/places'
 
@@ -59,12 +60,16 @@ export function PlaceCard({ place, chapters, selected, onSelect }: PlaceCardProp
             className="h-full w-full object-cover transition-transform duration-200 group-hover:scale-105"
           />
         ) : (
-          <div
-            className="flex h-full w-full items-center justify-center"
-            style={{ background: `linear-gradient(135deg, ${color}33, ${color}66)` }}
-          >
-            <MapPin className="h-7 w-7" style={{ color }} />
-          </div>
+          <>
+            <div
+              data-slot="place-cover-placeholder"
+              className="flex h-full w-full items-center justify-center"
+              style={{ background: `linear-gradient(135deg, ${color}33, ${color}66)` }}
+            >
+              <MapPin className="h-7 w-7" style={{ color }} />
+            </div>
+            <CoverTitlePage title={place.name} />
+          </>
         )}
       </div>
 
