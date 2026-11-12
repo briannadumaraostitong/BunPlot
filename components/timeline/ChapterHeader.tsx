@@ -354,6 +354,9 @@ function ChapterCell({
           <span
             data-slot="chapter-title"
             data-chapter-number={chapterNumber}
+            // The same number as a variable, for a theme that sets a CSS
+            // counter from it (attr() can't feed counter-reset).
+            style={{ '--chapter-number': chapterNumber } as React.CSSProperties}
             className="text-xs font-semibold truncate cursor-default flex-1"
             onDoubleClick={() => setEditing(true)}
           >

@@ -5,7 +5,7 @@ export type ThemeSetting = ThemeId | 'sync'
 // [data-shape="cut"]); 'rounded' uses --radius as before.
 export type ThemeShape = 'rounded' | 'cut'
 // Page background (globals.css, [data-texture]): 'grid' a faint square grid,
-// 'ruled' faint horizontal lines like ruled paper.
+// 'ruled' faint horizontal lines like ruled paper (no theme uses it today).
 export type ThemeTexture = 'none' | 'grid' | 'ruled'
 export type ThemeFrames = 'nightcity'
 
@@ -191,7 +191,7 @@ export const THEMES: ThemeDefinition[] = [
     label: 'Manuscript',
     isDark: false,
     shape: 'rounded',
-    texture: 'ruled',
+    texture: 'none',
     fonts: { sans: '--font-literata', mono: '--font-courier-prime', heading: '--font-cormorant' },
     frames: null,
     radius: '0.1875rem',

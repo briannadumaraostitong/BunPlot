@@ -296,7 +296,8 @@
     linear-gradient(90deg, hsl(var(--accent-2) / 0.045) 1px, transparent 1px);
   background-size: 48px 48px;
 }
-/* Ruled paper (Manuscript): a 1px ink-blue line at 6% every 32px. */
+/* Ruled paper: a 1px ink-blue line at 6% every 32px. No theme uses it
+   today. */
 [data-texture="ruled"] body,
 [data-texture="ruled"] .bg-texture,
 [data-texture="ruled"].bg-texture {
