@@ -29,7 +29,7 @@ export function Hero() {
     <section className={`${CONTAINER} flex flex-wrap items-center gap-14 pt-24 pb-[88px]`}>
       <div className="min-w-0 flex-[1_1_420px]">
         <Eyebrow className="mb-[18px]">For writers who need to organize</Eyebrow>
-        <h1 className="mb-6 text-[76px] font-bold leading-[0.95] tracking-[2px] text-primary uppercase">
+        <h1 className="mb-6 font-heading text-[76px] font-bold leading-[0.95] tracking-[2px] text-primary uppercase">
           Plot every
           <br />
           <span className="text-accent">thread</span>

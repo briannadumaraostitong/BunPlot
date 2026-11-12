@@ -18,7 +18,7 @@ export function AlsoSection() {
         {ITEMS.map(({ title, body, edge }) => (
           // --cut-bw: the chamfer's border line matches the 2px top edge.
           <div key={title} className={`rounded-xl corner-cut border-t-2 bg-card px-[26px] pt-[26px] pb-7 [--cut-bw:2px] ${edge}`}>
-            <h3 className="mb-2.5 text-[21px] font-semibold text-primary">{title}</h3>
+            <h3 className="mb-2.5 font-heading text-[21px] font-semibold text-primary">{title}</h3>
             <p className="text-[16px] leading-[1.6] text-(--hud-text-body)">{body}</p>
           </div>
         ))}

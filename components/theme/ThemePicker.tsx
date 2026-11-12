@@ -59,15 +59,17 @@ export function ThemePicker() {
   )
 }
 
-// A small preview in the theme's own colors, font and corner shape: its
+// A small preview in the theme's own colors, fonts and corner shape: its
 // tokens are set as CSS variables on the swatch, so the usual bg-background,
-// bg-card, bg-accent, font-sans and rounded classes inside it read them. The
-// swatch also carries the theme's data-theme, so the theme's stylesheet can
-// give the sample its heading style (Cyberpunk: uppercase, letter-spaced).
+// bg-card, bg-accent, font-sans, font-heading and rounded classes inside it
+// read them. The swatch also carries the theme's data-theme, so the theme's
+// stylesheet can give the sample its heading style (Cyberpunk: uppercase,
+// letter-spaced).
 function ThemeSwatch({ theme, className }: { theme: ThemeDefinition; className?: string }) {
   const vars = {
     ...theme.tokens,
     '--theme-font-sans': `var(${theme.fonts.sans})`,
+    '--theme-font-heading': `var(${theme.fonts.heading})`,
     '--radius': theme.shape === 'cut' ? '0rem' : '0.5rem',
   } as React.CSSProperties
 
@@ -80,7 +82,7 @@ function ThemeSwatch({ theme, className }: { theme: ThemeDefinition; className?:
       className={cn('flex h-16 flex-col justify-between rounded-md border border-border bg-background p-1.5 font-sans', className)}
     >
       <div className="flex items-center justify-between rounded-sm border border-border bg-card px-1.5 py-1">
-        <span data-slot="theme-sample" className="text-base font-semibold leading-none text-foreground">Aa</span>
+        <span data-slot="theme-sample" className="font-heading text-base font-semibold leading-none text-foreground">Aa</span>
         <span className="h-1.5 w-1.5 rounded-full bg-accent" />
       </div>
       <span className="h-1.5 w-2/3 rounded-full bg-accent" />

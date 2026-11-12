@@ -8,9 +8,12 @@ export type ThemeTexture = 'none' | 'grid'
 export type ThemeFrames = 'nightcity'
 
 // CSS variable names that next/font defines on <html> (app/layout.tsx).
+// `heading` is for headings and titles (font-heading); a theme without a
+// heading face of its own points it at its sans.
 export interface ThemeFonts {
   sans: string
   mono: string
+  heading: string
 }
 
 export interface ThemeDefinition {
@@ -29,7 +32,7 @@ export interface ThemeDefinition {
 const CLASSIC_LOOK = {
   shape: 'rounded',
   texture: 'none',
-  fonts: { sans: '--font-geist-sans', mono: '--font-geist-mono' },
+  fonts: { sans: '--font-geist-sans', mono: '--font-geist-mono', heading: '--font-geist-sans' },
   frames: null,
 } satisfies Pick<ThemeDefinition, 'shape' | 'texture' | 'fonts' | 'frames'>
 
@@ -132,7 +135,7 @@ export const THEMES: ThemeDefinition[] = [
     isDark: true,
     shape: 'cut',
     texture: 'grid',
-    fonts: { sans: '--font-chakra-petch', mono: '--font-jetbrains-mono' },
+    fonts: { sans: '--font-chakra-petch', mono: '--font-jetbrains-mono', heading: '--font-chakra-petch' },
     frames: 'nightcity',
     // Colors from design/landing/HANDOFF.md, converted from hex. Every text
     // color passes 4.5:1 on background, card, secondary and sidebar.
@@ -239,6 +242,7 @@ export function applyTheme(setting: ThemeSetting): ThemeId {
   })
   root.style.setProperty('--theme-font-sans', `var(${theme.fonts.sans})`)
   root.style.setProperty('--theme-font-mono', `var(${theme.fonts.mono})`)
+  root.style.setProperty('--theme-font-heading', `var(${theme.fonts.heading})`)
   root.setAttribute('data-theme', theme.id)
   root.setAttribute('data-shape', theme.shape)
   root.setAttribute('data-texture', theme.texture)

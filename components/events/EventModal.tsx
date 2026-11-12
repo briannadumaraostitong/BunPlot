@@ -514,7 +514,7 @@ function EventForm({
             value={title}
             onChange={(e) => setTitle(e.target.value)}
             placeholder="Event title"
-            className={cn(EDITABLE_TEXT_CLASS, "text-lg font-semibold border-none shadow-none -mx-1.5 px-1.5 h-auto focus-visible:ring-0 dark:bg-transparent")}
+            className={cn(EDITABLE_TEXT_CLASS, "font-heading text-lg font-semibold border-none shadow-none -mx-1.5 px-1.5 h-auto focus-visible:ring-0 dark:bg-transparent")}
           />
         </div>
 

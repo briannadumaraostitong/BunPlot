@@ -42,6 +42,7 @@ export function ThemeScript({ setting }: { setting?: ThemeSetting } = {}) {
     });
     root.style.setProperty('--theme-font-sans', 'var(' + theme.fonts.sans + ')');
     root.style.setProperty('--theme-font-mono', 'var(' + theme.fonts.mono + ')');
+    root.style.setProperty('--theme-font-heading', 'var(' + theme.fonts.heading + ')');
     root.setAttribute('data-theme', theme.id);
     root.setAttribute('data-shape', theme.shape);
     root.setAttribute('data-texture', theme.texture);
