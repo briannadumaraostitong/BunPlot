@@ -7,6 +7,7 @@ import {
   THEME_UNSYNCED_KEY,
   type ThemeSetting,
 } from '@/lib/themes'
+import { InitialHtmlScript } from '@/components/theme/InitialHtmlScript'
 
 // Applies the theme to <html> before paint. Without `setting` (the root
 // layout) it applies this device's stored setting. With `setting` (the
@@ -50,6 +51,12 @@ export function ThemeScript({ setting }: { setting?: ThemeSetting } = {}) {
   } catch(e) {}
 })();
   `.trim()
+
+  // The profile's script sits in the (app) layout, which client navigation
+  // (after login) mounts on the client, so it renders only in the server HTML;
+  // login and AppShell apply the theme on that path. The root layout's never
+  // mounts on the client.
+  if (setting) return <InitialHtmlScript html={script} />
 
   return (
     <script
