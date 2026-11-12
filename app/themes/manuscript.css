@@ -1,0 +1,16 @@
+/* app/themes/manuscript.css
+   Manuscript's restyling of the app's own screens. Every selector starts with
+   [data-theme="manuscript"], so the other themes are untouched. Components
+   only carry neutral hooks (data-slot, CSS variables); the look lives here.
+   Unlayered, so it wins over Tailwind's utility classes. Built to
+   design/landing-manuscript/; the per-screen rules come in later commits. */
+
+/* The Settings theme picker's Manuscript preview: its sample in the heading
+   style, Cormorant Garamond italic, a size up so the serif reads at swatch
+   size. Keyed on the swatch's own data-theme, so it holds whatever theme is
+   active. */
+[data-theme="manuscript"][data-slot="theme-swatch"] [data-slot="theme-sample"] {
+  font-size: 1.125rem;
+  font-style: italic;
+  font-weight: 600;
+}

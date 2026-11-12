@@ -1,5 +1,5 @@
 import type { Metadata } from 'next'
-import { Geist, Geist_Mono, Chakra_Petch, JetBrains_Mono } from 'next/font/google'
+import { Geist, Geist_Mono, Chakra_Petch, JetBrains_Mono, Literata, Courier_Prime, Cormorant_Garamond } from 'next/font/google'
 import './globals.css'
 import { ThemeProvider } from '@/components/theme/ThemeProvider'
 import { ThemeScript } from '@/components/theme/ThemeScript'
@@ -32,6 +32,31 @@ const jetbrainsMono = JetBrains_Mono({
   preload: false,
 })
 
+// Manuscript theme fonts, not preloaded either: Literata for text and UI
+// (a variable font: every weight from one file), Courier Prime in the mono
+// role (labels, counts), Cormorant Garamond for headings, italics for emphasis.
+const literata = Literata({
+  variable: '--font-literata',
+  subsets: ['latin'],
+  style: ['normal', 'italic'],
+  preload: false,
+})
+
+const courierPrime = Courier_Prime({
+  variable: '--font-courier-prime',
+  subsets: ['latin'],
+  weight: ['400', '700'],
+  preload: false,
+})
+
+const cormorant = Cormorant_Garamond({
+  variable: '--font-cormorant',
+  subsets: ['latin'],
+  weight: ['500', '600', '700'],
+  style: ['normal', 'italic'],
+  preload: false,
+})
+
 export const metadata: Metadata = {
   title: 'BunPlot',
   description: 'The visual story timeline planner for writers.',
@@ -45,7 +70,7 @@ export default function RootLayout({
   return (
     // The font variables sit on <html>, where the theme's --theme-font-* tokens
     // are set: a variable defined only on <body> can't resolve up there.
-    <html lang="en" className={`${geistSans.variable} ${geistMono.variable} ${chakraPetch.variable} ${jetbrainsMono.variable}`} suppressHydrationWarning>
+    <html lang="en" className={`${geistSans.variable} ${geistMono.variable} ${chakraPetch.variable} ${jetbrainsMono.variable} ${literata.variable} ${courierPrime.variable} ${cormorant.variable}`} suppressHydrationWarning>
       <head>
         <ThemeScript />
       </head>

@@ -42,6 +42,9 @@ Downloaded from Google Fonts at build time by `next/font/google` (`app/layout.ts
 | Geist, Geist Mono | Vercel | https://github.com/vercel/geist-font | Classic themes |
 | Chakra Petch | Cadson Demak | https://github.com/cadsondemak/Chakra-Petch | Cyberpunk theme |
 | JetBrains Mono | JetBrains | https://github.com/JetBrains/JetBrainsMono | Cyberpunk theme |
+| Literata | The Literata Project Authors | https://github.com/googlefonts/literata | Manuscript theme (text and UI) |
+| Courier Prime | The Courier Prime Project Authors | https://github.com/quoteunquoteapps/CourierPrime | Manuscript theme (labels) |
+| Cormorant Garamond | Christian Thalmann | https://github.com/CatharsisFonts/Cormorant | Manuscript theme (headings) |
 
 ### Outline editor fonts (Fontsource)
 

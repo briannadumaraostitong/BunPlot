@@ -15,7 +15,7 @@ export function ThemeScope({ theme: id, className, children }: { theme: ThemeId;
     '--theme-font-mono': `var(${theme.fonts.mono})`,
     '--theme-font-heading': `var(${theme.fonts.heading})`,
     // Explicit, so a rounded scope inside a cut page still gets its corners.
-    '--radius': theme.shape === 'cut' ? '0rem' : '0.5rem',
+    '--radius': theme.radius,
     colorScheme: theme.isDark ? 'dark' : 'light',
   } as React.CSSProperties
 

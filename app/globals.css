@@ -3,6 +3,7 @@
 @import "tw-animate-css";
 /* Per-theme screen styles, every selector under that theme's data-theme. */
 @import "./themes/cyberpunk.css";
+@import "./themes/manuscript.css";
 /* Colors for the HUD pieces and landing page (Cyberpunk only). */
 @import "../components/hud/hud.css";
 
@@ -294,6 +295,18 @@
     linear-gradient(hsl(var(--accent-2) / 0.045) 1px, transparent 1px),
     linear-gradient(90deg, hsl(var(--accent-2) / 0.045) 1px, transparent 1px);
   background-size: 48px 48px;
+}
+/* Ruled paper (Manuscript): a 1px ink-blue line at 6% every 32px. */
+[data-texture="ruled"] body,
+[data-texture="ruled"] .bg-texture,
+[data-texture="ruled"].bg-texture {
+  background-image: repeating-linear-gradient(
+    to bottom,
+    transparent 0,
+    transparent 31px,
+    hsl(var(--accent-2) / 0.06) 31px,
+    hsl(var(--accent-2) / 0.06) 32px
+  );
 }
 
 /* In the base layer, below utilities, so border-color classes

@@ -10,6 +10,7 @@ const OPTIONS: { value: ThemeSetting; label: string }[] = [
   { value: 'classic-light', label: getTheme('classic-light').label },
   { value: 'classic-dark', label: getTheme('classic-dark').label },
   { value: 'cyberpunk', label: getTheme('cyberpunk').label },
+  { value: 'manuscript', label: getTheme('manuscript').label },
 ]
 
 // A radio group of cards, so arrow keys move between themes like any radio
@@ -20,7 +21,7 @@ export function ThemePicker() {
   return (
     <fieldset className="space-y-2">
       <legend className="text-sm font-medium">Theme</legend>
-      <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
+      <div className="grid grid-cols-2 gap-3 sm:grid-cols-5">
         {OPTIONS.map(({ value, label }) => {
           const selected = theme === value
           return (
@@ -70,7 +71,7 @@ function ThemeSwatch({ theme, className }: { theme: ThemeDefinition; className?:
     ...theme.tokens,
     '--theme-font-sans': `var(${theme.fonts.sans})`,
     '--theme-font-heading': `var(${theme.fonts.heading})`,
-    '--radius': theme.shape === 'cut' ? '0rem' : '0.5rem',
+    '--radius': theme.radius,
   } as React.CSSProperties
 
   return (

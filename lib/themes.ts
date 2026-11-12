@@ -1,10 +1,12 @@
-export type ThemeId = 'classic-light' | 'classic-dark' | 'cyberpunk'
+export type ThemeId = 'classic-light' | 'classic-dark' | 'cyberpunk' | 'manuscript'
 export type ThemeSetting = ThemeId | 'sync'
 
 // Corners: 'cut' chamfers buttons, dialogs and card surfaces (globals.css,
 // [data-shape="cut"]); 'rounded' uses --radius as before.
 export type ThemeShape = 'rounded' | 'cut'
-export type ThemeTexture = 'none' | 'grid'
+// Page background (globals.css, [data-texture]): 'grid' a faint square grid,
+// 'ruled' faint horizontal lines like ruled paper.
+export type ThemeTexture = 'none' | 'grid' | 'ruled'
 export type ThemeFrames = 'nightcity'
 
 // CSS variable names that next/font defines on <html> (app/layout.tsx).
@@ -25,6 +27,8 @@ export interface ThemeDefinition {
   fonts: ThemeFonts
   // Decorative frame set for a few feature spots; null falls back to a plain card.
   frames: ThemeFrames | null
+  // --radius, the base of the rounded-* scale. The cut shape squares it.
+  radius: string
   tokens: Record<string, string>
 }
 
@@ -34,7 +38,8 @@ const CLASSIC_LOOK = {
   texture: 'none',
   fonts: { sans: '--font-geist-sans', mono: '--font-geist-mono', heading: '--font-geist-sans' },
   frames: null,
-} satisfies Pick<ThemeDefinition, 'shape' | 'texture' | 'fonts' | 'frames'>
+  radius: '0.5rem',
+} satisfies Pick<ThemeDefinition, 'shape' | 'texture' | 'fonts' | 'frames' | 'radius'>
 
 export const THEMES: ThemeDefinition[] = [
   {
@@ -137,6 +142,7 @@ export const THEMES: ThemeDefinition[] = [
     texture: 'grid',
     fonts: { sans: '--font-chakra-petch', mono: '--font-jetbrains-mono', heading: '--font-chakra-petch' },
     frames: 'nightcity',
+    radius: '0rem',
     // Colors from design/landing/HANDOFF.md, converted from hex. Every text
     // color passes 4.5:1 on background, card, secondary and sidebar.
     tokens: {
@@ -180,6 +186,61 @@ export const THEMES: ThemeDefinition[] = [
       '--timeline-grid-line': '221 48% 16.7%',
     },
   },
+  {
+    id: 'manuscript',
+    label: 'Manuscript',
+    isDark: false,
+    shape: 'rounded',
+    texture: 'ruled',
+    fonts: { sans: '--font-literata', mono: '--font-courier-prime', heading: '--font-cormorant' },
+    frames: null,
+    radius: '0.1875rem',
+    // Colors from design/landing-manuscript/HANDOFF.md, converted from hex
+    // (in the comments). Every text color passes 4.5:1 on background, card,
+    // secondary and sidebar (accent-3, olive, only just on the sidebar: keep
+    // it off body-size text there); input passes 3:1 as a field edge.
+    // Primary is the oxblood accent: the main button, as in the mockup.
+    tokens: {
+      '--background':         '41 51% 90.4%',    // #F3EBDA paper
+      '--foreground':         '28 32.1% 10.4%',  // #231A12
+      '--card':               '42 61.9% 95.9%',  // #FBF7EE
+      '--card-foreground':    '28 32.1% 10.4%',
+      '--popover':            '42 61.9% 95.9%',
+      '--popover-foreground': '28 32.1% 10.4%',
+      '--primary':            '5 61.4% 34.5%',   // #8E2B22 oxblood
+      '--primary-foreground': '42 61.9% 95.9%',
+      '--secondary':          '41 47.7% 87.3%',  // #EEE4CF
+      '--secondary-foreground': '32 25.4% 23.1%', // #4A3C2C body
+      '--muted':              '41 47.7% 87.3%',
+      '--muted-foreground':   '34 21.5% 35.5%',  // #6E5D47
+      '--destructive':        '18 83.1% 34.7%',  // #A23B0F rust
+      '--border':              '40 37.1% 75.7%', // #D8C9AA
+      '--input':              '38 26.1% 43.5%',  // #8C7752
+      '--ring':                '212 43.8% 30%',  // #2B4A6E ink blue
+      '--accent':              '5 61.4% 34.5%',
+      '--accent-foreground':  '42 61.9% 95.9%',
+      '--accent-hover':       '5 63.8% 29.2%',   // #7A231B
+      '--accent-muted':       '25 42.3% 89.8%',  // oxblood 10% on card
+      '--accent-border':      '9 44.2% 69.8%',   // #D49A90
+      '--accent-2':           '212 43.8% 30%',
+      '--accent-3':           '94 29.7% 32.4%',  // #4F6B3A olive
+      '--sidebar':            '41 44.7% 85.1%',  // #EADFC8
+      '--sidebar-foreground': '28 32.1% 10.4%',
+      '--sidebar-primary':    '5 61.4% 34.5%',
+      '--sidebar-primary-foreground': '42 61.9% 95.9%',
+      '--sidebar-accent':     '41 51% 90.4%',    // paper: muted text keeps 4.5:1
+      '--sidebar-accent-foreground': '28 32.1% 10.4%',
+      '--sidebar-border':     '40 37.1% 75.7%',
+      '--sidebar-ring':       '212 43.8% 30%',
+      '--chart-1': '5 61.4% 34.5%',
+      '--chart-2': '212 43.8% 30%',
+      '--chart-3': '94 29.7% 32.4%',
+      '--chart-4': '40 70.4% 31.8%',             // #8A6418 ochre
+      '--chart-5': '316 29.7% 32.4%',            // #6B3A5E plum
+      '--timeline-track-bg':  '41 47.7% 87.3%',
+      '--timeline-grid-line': '40 37.1% 75.7%',
+    },
+  },
 ]
 
 export const DEFAULT_THEME_SETTING: ThemeSetting = 'sync'
@@ -193,11 +254,12 @@ export const THEME_UNSYNCED_KEY = 'plottr-theme-unsynced'
 
 export const THEME_SETTINGS: ThemeSetting[] = ['sync', ...THEMES.map((t) => t.id)]
 
-// Themes that have been removed, mapped to the Classic theme of the same
-// lightness, so a saved setting (localStorage or profiles.theme) still lands
+// Themes that have been removed, mapped to the current theme closest to them
+// (Parchment to Manuscript, the rest to the Classic theme of the same
+// lightness), so a saved setting (localStorage or profiles.theme) still lands
 // on a sensible theme.
 export const LEGACY_THEME_MAP: Record<string, ThemeId> = {
-  parchment: 'classic-light',
+  parchment: 'manuscript',
   rose: 'classic-light',
   seafoam: 'classic-light',
   honey: 'classic-light',
@@ -210,7 +272,7 @@ export const LEGACY_THEME_MAP: Record<string, ThemeId> = {
   redblack: 'classic-dark',
 }
 
-// Use on every setting read from storage: a removed theme maps to its Classic
+// Use on every setting read from storage: a removed theme maps to its current
 // counterpart; anything else unknown (null, empty, garbage) falls back to the
 // default. ThemeScript mirrors this inline, since it can't import it.
 export function normalizeThemeSetting(value: unknown): ThemeSetting {
@@ -243,6 +305,7 @@ export function applyTheme(setting: ThemeSetting): ThemeId {
   root.style.setProperty('--theme-font-sans', `var(${theme.fonts.sans})`)
   root.style.setProperty('--theme-font-mono', `var(${theme.fonts.mono})`)
   root.style.setProperty('--theme-font-heading', `var(${theme.fonts.heading})`)
+  root.style.setProperty('--radius', theme.radius)
   root.setAttribute('data-theme', theme.id)
   root.setAttribute('data-shape', theme.shape)
   root.setAttribute('data-texture', theme.texture)
