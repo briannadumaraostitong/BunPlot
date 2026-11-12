@@ -1,13 +1,8 @@
 import Link from 'next/link'
 import { Logo } from '@/components/brand/Logo'
+import { NAV, SECTIONS } from '../content'
+import { CONTAINER } from '../layout'
 import { CTA } from './cta'
-import { CONTAINER } from './layout'
-
-const SECTIONS = [
-  { href: '#why', label: 'Why BunPlot' },
-  { href: '#features', label: 'Features' },
-  { href: '#about', label: 'About' },
-]
 
 export function LandingNav() {
   return (
@@ -25,10 +20,10 @@ export function LandingNav() {
         </div>
         <div className="flex items-center gap-3">
           <Link href="/login" className="px-3.5 py-3 text-[15px] uppercase tracking-[1px] text-foreground transition-colors hover:text-accent">
-            Log in
+            {NAV.logIn}
           </Link>
           <Link href="/signup" className={CTA.navPrimary}>
-            Get started
+            {NAV.getStarted}
           </Link>
         </div>
       </nav>

@@ -1,19 +1,17 @@
 import { Eyebrow } from '@/components/hud/Eyebrow'
 import { ThemeFrame, ThemeFrameSlot } from '@/components/hud/ThemeFrame'
-import { BAND, BODY, CONTAINER, H2, SECTION_EYEBROW, SPLIT, SPLIT_TEXT } from './layout'
+import { ABOUT, PROJECT } from '../content'
+import { CONTAINER } from '../layout'
+import { BAND, BODY, H2, SECTION_EYEBROW, SPLIT, SPLIT_TEXT, sectionNumber } from './styles'
 
 export function AboutSection() {
   return (
     <section id="about" className={BAND}>
       <div className={`${CONTAINER} ${SPLIT} gap-y-12 py-[104px]`}>
         <div className={SPLIT_TEXT}>
-          <Eyebrow number="03" className={SECTION_EYEBROW}>About</Eyebrow>
-          <h2 className={`mb-5 ${H2}`}>Made for people who organize</h2>
-          {/* Placeholder text, kept visible until the owner replaces it. */}
-          <p className={BODY}>
-            I built BunPlot because I need to see how everything in a story fits together, and I couldn&apos;t find a tool
-            that kept it all in one place. If you organize the way I do, it&apos;s for you too. — Brianna Titong
-          </p>
+          <Eyebrow number={sectionNumber(ABOUT.number)} className={SECTION_EYEBROW}>{ABOUT.label}</Eyebrow>
+          <h2 className={`mb-5 ${H2}`}>{ABOUT.title}</h2>
+          <p className={BODY}>{`${ABOUT.body} — ${ABOUT.signature}`}</p>
         </div>
 
         <div
@@ -27,9 +25,9 @@ export function AboutSection() {
               className="flex flex-col justify-center gap-2.5 font-mono text-[14px] leading-[1.5] text-secondary-foreground"
             >
               <span><span className="text-accent-2">&gt;</span> open project</span>
-              <span className="text-primary">12 chapters · 48 events · 9 characters</span>
+              <span className="text-primary">{`${PROJECT.chapters} chapters · ${PROJECT.events} events · ${PROJECT.characters} characters`}</span>
               <span><span className="text-accent-2">&gt;</span> status</span>
-              <span className="text-primary">everything in its place</span>
+              <span className="text-primary">{ABOUT.status}</span>
               <span className="text-accent">█</span>
             </ThemeFrameSlot>
           </ThemeFrame>

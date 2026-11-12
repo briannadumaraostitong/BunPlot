@@ -87,8 +87,10 @@ A framed spot that follows the theme's `frames` setting: under `'nightcity'` it'
 
 ### Landing Page
 - `app/page.tsx`: signed-out visitors only (`proxy.ts` sends signed-in ones on `/`, `/login` and `/signup` to `/dashboard`). Its theme is the `THEME` constant, applied through a ThemeScope (always Cyberpunk for now; see Pending Features)
-- Sections, in order (`components/landing/`): nav, hero (with a `HudPanel`), banner strip, Why BunPlot (`#why`, modal frame), Features (`#features`: three rows with the primary frame, the portrait frame plus a relationships card, and three plates), Also in BunPlot (four cut cards), About (`#about`, terminal frame), sign-up band, footer with the asset credit (`#credits`)
-- Built to the mockup in `design/landing/` at 1280, 768 and 390px: `components/landing/layout.ts` holds the content width (1248px: the mockup's 1200px content box plus padding) and shared type styles; the page sets `leading-[normal]` because the design sets line heights only where it needs them
+- Each theme has its own landing, picked from `LANDINGS` in `app/page.tsx`: its sections in `components/landing/<theme>/` (layouts, decoration, numbering style, case), on the copy and example data in `components/landing/content.ts`, which every theme shares. Copy only one theme has stays in its components. The landing's theme is chosen on the server, so `page.tsx` can branch on it; the app can't (see Anti-patterns)
+- Cyberpunk sections, in order (`components/landing/cyberpunk/`): nav, hero (with a `HudPanel`), banner strip, Why BunPlot (`#why`, modal frame), Features (`#features`: three rows with the primary frame, the portrait frame plus a relationships card, and three plates), Also in BunPlot (four cut cards), About (`#about`, terminal frame), sign-up band, footer with the asset credit (`#credits`). Every theme's landing keeps the same sections and anchors
+- Built to the mockup in `design/landing/` at 1280, 768 and 390px (Manuscript: `design/landing-manuscript/`): `components/landing/layout.ts` holds the content width shared by every theme (1248px: the mockup's 1200px content box plus padding), and `cyberpunk/styles.ts` Cyberpunk's shared type styles; the page sets `leading-[normal]` because the design sets line heights only where it needs them
+- In a theme's sections, build a string that mixes copy and values as one template literal (`` {`${n} chapters · ${m} events`} ``), not as JSX text around expressions: separate text nodes can shape slightly differently
 - The banner strip (`BannerStrip`) is full-bleed in every theme: its background and top and bottom lines span the page edge to edge, while its items stay in the 1248px content column (`contentClassName={CONTAINER}`), the first starting at the column's left edge and the last ending at its right, with no inset of their own. Lines: 3px `--accent` on top, 2px `--accent-2` at the bottom, no side edges (Cyberpunk: pink over a dark bar, cyan under it). A theme with its own banner look keeps that layout
 - Mock UI in the sections is a picture (`role="img"` with an `aria-label`), not working controls
 - Keep the placeholders visible until the owner replaces them: the About paragraph and the example numbers. The example project title (`The Drowned Bridge`) and the owner name (`Brianna Titong`, in the About signature and the footer) are final
@@ -106,7 +108,7 @@ A framed spot that follows the theme's `frames` setting: under `'nightcity'` it'
 - Primary action: `<Button size="sm">` — uses accent color
 - Destructive: `variant="ghost"` with `className="text-destructive hover:bg-destructive/10"`
 - Icon buttons: `size="icon"` with `h-7 w-7` or `h-8 w-8`
-- Never use large buttons — always `size="sm"` or `size="icon"`. The one exception is the landing page (`app/page.tsx`), whose call-to-action links follow the design handoff (`components/landing/cta.ts`); everywhere in the app keeps `size="sm"`
+- Never use large buttons — always `size="sm"` or `size="icon"`. The one exception is the landing page (`app/page.tsx`), whose call-to-action links follow the design handoff (`components/landing/cyberpunk/cta.ts`); everywhere in the app keeps `size="sm"`
 
 #### Modals / Dialogs
 - Width: `sm:max-w-4xl` for complex modals, `sm:max-w-md` for simple ones
@@ -166,7 +168,7 @@ A framed spot that follows the theme's `frames` setting: under `'nightcity'` it'
 - No `flex-shrink-0` — use `shrink-0`
 - No `[&:empty]` — use `empty:` shorthand
 - No hardcoded accent colors — always use `hsl(var(--accent))`
-- No theme checks in components (`theme === 'cyberpunk'`) — use the theme stylesheet, `data-slot` hooks and the `cut:` / `frames:` / `plain:` variants
+- No theme checks in components (`theme === 'cyberpunk'`) — use the theme stylesheet, `data-slot` hooks and the `cut:` / `frames:` / `plain:` variants. The one exception is the landing page's choice of landing (`LANDINGS` in `app/page.tsx`), whose theme the server sets
 - No `//` prefixes on labels in any theme (eyebrows, header labels, CSS `content` labels): the label alone in its mono style, or `01 — Label` for a numbered one. The HUD panel's pink slashes are a graphic, not text, and stay
 
 ## Key Files to Read First
@@ -200,4 +202,4 @@ When working on a new feature, always read these first:
 
 ## Pending Features
 - Event connections/linking
-- Landing, login and signup themes: they always render in Cyberpunk today (`THEME` in `app/page.tsx`, the ThemeScope in `app/(auth)/layout.tsx`). Once a second theme with its own landing look exists, they should follow the visitor’s stored theme instead, with Cyberpunk as the default for first-time visitors (no stored setting). The sections already take their frames from the theme (`ThemeFrame`), so only the theme choice changes
+- Landing, login and signup themes: they always render in Cyberpunk today (`THEME` in `app/page.tsx`, the ThemeScope in `app/(auth)/layout.tsx`). Once a second theme with its own landing look exists, they should follow the visitor’s stored theme instead, with Cyberpunk as the default for first-time visitors (no stored setting). The landing picks its components on the server (`LANDINGS`), so the server has to know that theme: store the setting in a cookie as well as localStorage, and read it in `app/page.tsx` and the auth layout

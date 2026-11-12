@@ -1,12 +1,14 @@
 import { Eyebrow } from '@/components/hud/Eyebrow'
 import { ThemeFrame, ThemeFrameSlot } from '@/components/hud/ThemeFrame'
-import { BODY, CONTAINER, H2, SECTION_EYEBROW, SPLIT, SPLIT_TEXT } from './layout'
+import { CHAPTER, WHY } from '../content'
+import { CONTAINER } from '../layout'
+import { BODY, H2, SECTION_EYEBROW, SPLIT, SPLIT_TEXT, sectionNumber } from './styles'
 
 const FIELDS = [
-  { label: 'Chapter', value: '03 · The Flood', tone: 'text-foreground' },
-  { label: 'Characters', value: 'Ilsa Varn, Tobin Hale', tone: 'text-accent-2' },
-  { label: 'Place', value: 'Merrow Docks', tone: 'text-accent-2' },
-  { label: 'Status', value: 'Drafted', tone: 'text-(--hud-pink-soft)' },
+  { label: 'Chapter', value: `${sectionNumber(CHAPTER.number)} · ${CHAPTER.title}`, tone: 'text-foreground' },
+  { label: 'Characters', value: WHY.event.characters, tone: 'text-accent-2' },
+  { label: 'Place', value: WHY.event.place, tone: 'text-accent-2' },
+  { label: 'Status', value: WHY.event.status, tone: 'text-(--hud-pink-soft)' },
 ]
 
 const BUTTON = 'corner-cut-sm inline-block px-[22px] py-3 font-mono text-[12px] tracking-[1px] uppercase'
@@ -15,15 +17,10 @@ export function WhySection() {
   return (
     <section id="why" className={`${CONTAINER} ${SPLIT} gap-y-12 py-[104px]`}>
       <div className={SPLIT_TEXT}>
-        <Eyebrow number="01" className={SECTION_EYEBROW}>Why BunPlot</Eyebrow>
-        <h2 className={`mb-5 ${H2}`}>Your story is everywhere</h2>
-        <p className={`mb-4 ${BODY}`}>
-          Character notes in one doc. The timeline in a spreadsheet. Places in your head. Chapter plans on sticky notes.
-        </p>
-        <p className={`${BODY} text-foreground`}>
-          BunPlot puts it all in one place and links it together: every event knows its chapter, who is in it and where it
-          happens.
-        </p>
+        <Eyebrow number={sectionNumber(WHY.number)} className={SECTION_EYEBROW}>{WHY.label}</Eyebrow>
+        <h2 className={`mb-5 ${H2}`}>{WHY.title}</h2>
+        <p className={`mb-4 ${BODY}`}>{WHY.body[0]}</p>
+        <p className={`${BODY} text-foreground`}>{WHY.body[1]}</p>
       </div>
 
       {/* A picture of the event dialog, not a working one. */}
@@ -38,7 +35,7 @@ export function WhySection() {
             slot="title"
             className="flex items-center font-mono text-[12px] tracking-[1px] text-foreground uppercase plain:border-b plain:border-border plain:pb-3"
           >
-            Event · Bridge falls
+            {`Event · ${WHY.event.title}`}
           </ThemeFrameSlot>
           <ThemeFrameSlot frame="modal" className="grid grid-cols-[104px_minmax(0,1fr)] content-center gap-x-3.5 gap-y-2 text-[15px]">
             {FIELDS.map(({ label, value, tone }) => (
@@ -49,8 +46,8 @@ export function WhySection() {
             ))}
           </ThemeFrameSlot>
           <ThemeFrameSlot frame="modal" slot="actions" className="flex justify-between gap-3">
-            <span className={`${BUTTON} border border-accent-2 bg-(--hud-button) text-secondary-foreground`}>Close</span>
-            <span className={`${BUTTON} bg-(--hud-button-primary) font-medium text-(--hud-button-primary-text)`}>Open in timeline</span>
+            <span className={`${BUTTON} border border-accent-2 bg-(--hud-button) text-secondary-foreground`}>{WHY.event.close}</span>
+            <span className={`${BUTTON} bg-(--hud-button-primary) font-medium text-(--hud-button-primary-text)`}>{WHY.event.open}</span>
           </ThemeFrameSlot>
         </ThemeFrame>
       </div>

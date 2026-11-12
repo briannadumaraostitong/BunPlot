@@ -1,47 +1,32 @@
 import type { Metadata } from 'next'
-import type { ThemeId } from '@/lib/themes'
 import { ThemeScope } from '@/components/theme/ThemeScope'
-import { BannerStrip } from '@/components/hud/BannerStrip'
-import { LandingNav } from '@/components/landing/LandingNav'
-import { Hero } from '@/components/landing/Hero'
-import { WhySection } from '@/components/landing/WhySection'
-import { FeaturesSection } from '@/components/landing/FeaturesSection'
-import { AlsoSection } from '@/components/landing/AlsoSection'
-import { AboutSection } from '@/components/landing/AboutSection'
-import { SignUpBand } from '@/components/landing/SignUpBand'
-import { LandingFooter } from '@/components/landing/LandingFooter'
-import { CONTAINER } from '@/components/landing/layout'
+import { HERO } from '@/components/landing/content'
+import { CyberpunkLanding } from '@/components/landing/cyberpunk/CyberpunkLanding'
 
 export const metadata: Metadata = {
-  description:
-    'Your timeline, outline, characters and places, organized in one workspace and connected to each other, from the first idea to the finished book.',
+  description: HERO.body,
 }
 
-// The landing page's theme, whatever the visitor's own. The sections take
-// their look from it through the ThemeScope: tokens, shape, and the framed
-// spots from its `frames` setting (a plain card when it has none).
-const THEME: ThemeId = 'cyberpunk'
+// Each theme's landing page: its own sections (components/landing/<theme>/)
+// on the shared copy and example data (components/landing/content.ts). The
+// theme is chosen here on the server, so the page can branch on it, unlike
+// the app, whose theme only the browser knows.
+const LANDINGS = {
+  cyberpunk: CyberpunkLanding,
+}
 
-const APP_PARTS = ['Timeline', 'Outline', 'Characters', 'Places', 'Storyboard', 'Exports']
+// The landing page's theme, whatever the visitor's own.
+const THEME: keyof typeof LANDINGS = 'cyberpunk'
 
 // The landing page for signed-out visitors (proxy.ts sends signed-in ones to
-// the dashboard). The ThemeScope applies THEME to this page only and leaves
-// the visitor's setting alone.
+// the dashboard). The ThemeScope applies THEME to this page only, its tokens,
+// shape and frames, and leaves the visitor's setting alone.
 export default function HomePage() {
+  const Landing = LANDINGS[THEME]
   return (
     // leading-[normal]: the design sets line heights only where it needs them.
     <ThemeScope theme={THEME} className="min-h-dvh overflow-x-clip leading-[normal]">
-      <LandingNav />
-      <main id="top">
-        <Hero />
-        <BannerStrip items={APP_PARTS} className="mb-2" contentClassName={CONTAINER} />
-        <WhySection />
-        <FeaturesSection />
-        <AlsoSection />
-        <AboutSection />
-        <SignUpBand />
-      </main>
-      <LandingFooter />
+      <Landing />
     </ThemeScope>
   )
 }

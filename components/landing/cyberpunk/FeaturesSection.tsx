@@ -1,6 +1,8 @@
 import { Eyebrow } from '@/components/hud/Eyebrow'
 import { ThemeFrame, ThemeFrameSlot } from '@/components/hud/ThemeFrame'
-import { BAND, BODY, CONTAINER, H2, H3, SECTION_EYEBROW, SPLIT, SPLIT_TEXT } from './layout'
+import { CHAPTER, CHARACTER, EXPORTS, FEATURES, OUTLINE } from '../content'
+import { CONTAINER } from '../layout'
+import { BAND, BODY, H2, H3, SECTION_EYEBROW, SPLIT, SPLIT_TEXT, sectionNumber } from './styles'
 
 // Each feature: a label, a heading, a paragraph and three short points, with
 // a picture of that part of the app beside it.
@@ -18,7 +20,7 @@ function FeatureRow({
   labelTone: string
   title: string
   body: string
-  points: string[]
+  points: readonly string[]
   pointTone: string
   className?: string
   children: React.ReactNode
@@ -48,15 +50,12 @@ export function FeaturesSection() {
   return (
     <section id="features" className={BAND}>
       <div className={`${CONTAINER} py-[104px]`}>
-        <Eyebrow number="02" className={SECTION_EYEBROW}>Features</Eyebrow>
-        <h2 className={`mb-[72px] ${H2}`}>Everything in its place</h2>
+        <Eyebrow number={sectionNumber(FEATURES.number)} className={SECTION_EYEBROW}>{FEATURES.label}</Eyebrow>
+        <h2 className={`mb-[72px] ${H2}`}>{FEATURES.title}</h2>
 
         <FeatureRow
-          label="Timeline + Outline"
+          {...FEATURES.rows.outline}
           labelTone="text-(--hud-pink-soft)"
-          title="See the plot, then write it"
-          body="Lay out events by chapter and storyline on the timeline grid, then draft in an outline editor with real book fonts and images that wrap around your text."
-          points={['Grid and flow views', 'Filter by character, place or storyline', 'Edits backed up as you type']}
           pointTone="text-accent"
           className="mb-[104px]"
         >
@@ -64,11 +63,8 @@ export function FeaturesSection() {
         </FeatureRow>
 
         <FeatureRow
-          label="Characters + Places"
+          {...FEATURES.rows.characters}
           labelTone="text-accent-2"
-          title="Know who everyone is to everyone"
-          body="Give each character a color, a role and notes, and map how they're related on family tree canvases. Keep every place with its cover image and description."
-          points={['Relationship maps and family trees', 'Places with cover images', 'Linked to every event they appear in']}
           pointTone="text-accent-2"
           className="mb-[104px]"
         >
@@ -76,11 +72,8 @@ export function FeaturesSection() {
         </FeatureRow>
 
         <FeatureRow
-          label="Exports"
+          {...FEATURES.rows.exports}
           labelTone="text-(--hud-pink-soft)"
-          title="Take it with you"
-          body="Export your manuscript as a book-style PDF or Word file, or a story bible with every character, place and event in one reference document. Preview it before you download."
-          points={['Book style at A4 or 6×9', 'Story bible with a contents page', 'Storyboard as PDF or images']}
           pointTone="text-accent"
         >
           <ExportsPicture />
@@ -95,23 +88,20 @@ function OutlinePicture() {
     <div role="img" aria-label="A chapter in the outline editor, 2,481 words, saved" className={VISUAL}>
       <ThemeFrame name="primary" className="w-full">
         <ThemeFrameSlot frame="primary" className="flex flex-col justify-between gap-2 overflow-hidden">
-          <p className="font-mono text-[11px] text-accent-2 uppercase">Chapter 03 · The Flood</p>
-          <p className="font-serif text-[15px] leading-[1.6] text-foreground">
-            The river took the old bridge at dawn. Tobin was on it, halfway across, when the first plank gave.
-          </p>
+          <p className="font-mono text-[11px] text-accent-2 uppercase">{`Chapter ${sectionNumber(CHAPTER.number)} · ${CHAPTER.title}`}</p>
+          <p className="font-serif text-[15px] leading-[1.6] text-foreground">{OUTLINE.text}</p>
           {/* Right-aligned: the frame has a notch at the bottom left. */}
-          <p className="text-right font-mono text-[11px] text-muted-foreground uppercase">2,481 words · Saved ✓</p>
+          <p className="text-right font-mono text-[11px] text-muted-foreground uppercase">{`${OUTLINE.words} words · Saved ✓`}</p>
         </ThemeFrameSlot>
       </ThemeFrame>
     </div>
   )
 }
 
+// People in cyan, the hometown in pink.
 const RELATIONS = [
-  { name: 'Mira Varn', kind: 'Parent', tone: 'text-accent-2' },
-  { name: 'Kit Varn', kind: 'Sibling', tone: 'text-accent-2' },
-  { name: 'Tobin Hale', kind: 'Mentor', tone: 'text-accent-2' },
-  { name: 'Merrow Docks', kind: 'Hometown', tone: 'text-(--hud-pink-soft)' },
+  ...CHARACTER.relations.map((r) => ({ ...r, tone: 'text-accent-2' })),
+  { name: CHARACTER.hometown, kind: 'Hometown', tone: 'text-(--hud-pink-soft)' },
 ]
 
 function CharacterPicture() {
@@ -124,9 +114,9 @@ function CharacterPicture() {
       <ThemeFrame name="portrait" className="w-[200px] flex-[0_0_200px] plain:justify-center">
         <ThemeFrameSlot frame="portrait" className="flex flex-col items-center justify-center gap-1.5 text-center">
           {/* 54px inside its 2px border, as in the mockup. */}
-          <span className="flex size-[58px] items-center justify-center border-2 border-accent-2 text-[22px] font-bold text-accent-2">IV</span>
-          <span className="mt-2 text-[17px] font-bold tracking-[1px] text-primary uppercase">Ilsa Varn</span>
-          <span className="font-mono text-[11px] text-(--hud-pink-soft) uppercase">Protagonist</span>
+          <span className="flex size-[58px] items-center justify-center border-2 border-accent-2 text-[22px] font-bold text-accent-2">{CHARACTER.initials}</span>
+          <span className="mt-2 text-[17px] font-bold tracking-[1px] text-primary uppercase">{CHARACTER.name}</span>
+          <span className="font-mono text-[11px] text-(--hud-pink-soft) uppercase">{CHARACTER.role}</span>
         </ThemeFrameSlot>
       </ThemeFrame>
       <div className="flex min-w-0 flex-[1_1_260px] flex-col justify-center rounded-xl corner-cut border border-input bg-card px-[26px] py-[22px]">
@@ -144,11 +134,12 @@ function CharacterPicture() {
   )
 }
 
-// Icons drawn on a 24px grid, stroked in the plate's tone.
-const EXPORTS = [
-  { name: 'Manuscript', meta: 'Book · 6×9 · PDF', tone: 'text-accent-2', icon: 'M6 3h9l4 4v14H6z M14 3v5h5' },
-  { name: 'Story bible', meta: 'Cast · Places · Events', tone: 'text-(--hud-pink-soft)', icon: 'M5 4h6v16H5z M13 4h6v16h-6z' },
-  { name: 'Storyboard', meta: 'PDF · Images', tone: 'text-(--hud-violet-soft)', icon: 'M3 5h8v6H3z M13 5h8v6h-8z M3 13h8v6H3z M13 13h8v6h-8z' },
+// Each export's plate: its tone, and an icon drawn on a 24px grid, stroked
+// in that tone. In EXPORTS order.
+const PLATES = [
+  { tone: 'text-accent-2', icon: 'M6 3h9l4 4v14H6z M14 3v5h5' },
+  { tone: 'text-(--hud-pink-soft)', icon: 'M5 4h6v16H5z M13 4h6v16h-6z' },
+  { tone: 'text-(--hud-violet-soft)', icon: 'M3 5h8v6H3z M13 5h8v6h-8z M3 13h8v6H3z M13 13h8v6h-8z' },
 ]
 
 function ExportsPicture() {
@@ -158,19 +149,22 @@ function ExportsPicture() {
       aria-label="Three exports: the manuscript as a 6×9 book PDF, a story bible of the cast, places and events, and the storyboard as PDF or images"
       className={`${VISUAL} flex flex-col gap-3.5`}
     >
-      {EXPORTS.map(({ name, meta, tone, icon }) => (
-        <ThemeFrame key={name} name="plate" className="plain:flex-row plain:items-center plain:gap-4 plain:px-5 plain:py-4">
-          <ThemeFrameSlot frame="plate" slot="icon" className="plain:size-6 plain:shrink-0">
-            <svg viewBox="0 0 24 24" className={`size-full ${tone}`}>
-              <path d={icon} fill="none" stroke="currentColor" strokeWidth="1.6" />
-            </svg>
-          </ThemeFrameSlot>
-          <ThemeFrameSlot frame="plate" className="flex items-center justify-between gap-3 plain:min-w-0 plain:flex-1">
-            <span className="text-[17px] font-semibold text-primary">{name}</span>
-            <span className={`font-mono text-[12px] uppercase ${tone}`}>{meta}</span>
-          </ThemeFrameSlot>
-        </ThemeFrame>
-      ))}
+      {EXPORTS.map(({ name, meta }, i) => {
+        const { tone, icon } = PLATES[i]
+        return (
+          <ThemeFrame key={name} name="plate" className="plain:flex-row plain:items-center plain:gap-4 plain:px-5 plain:py-4">
+            <ThemeFrameSlot frame="plate" slot="icon" className="plain:size-6 plain:shrink-0">
+              <svg viewBox="0 0 24 24" className={`size-full ${tone}`}>
+                <path d={icon} fill="none" stroke="currentColor" strokeWidth="1.6" />
+              </svg>
+            </ThemeFrameSlot>
+            <ThemeFrameSlot frame="plate" className="flex items-center justify-between gap-3 plain:min-w-0 plain:flex-1">
+              <span className="text-[17px] font-semibold text-primary">{name}</span>
+              <span className={`font-mono text-[12px] uppercase ${tone}`}>{meta}</span>
+            </ThemeFrameSlot>
+          </ThemeFrame>
+        )
+      })}
     </div>
   )
 }
