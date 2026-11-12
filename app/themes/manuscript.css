@@ -34,6 +34,16 @@
   font-weight: 700;
 }
 
+/* The wordmark next to the logo, as in the handoff: bold Cormorant in its
+   own case, with the mockup's slight letter spacing. 24px, the mockup's
+   text-to-mark ratio (28px beside 32px), since Cormorant reads small at 20. */
+[data-theme="manuscript"] [data-slot="wordmark"] {
+  font-family: var(--theme-font-heading);
+  font-size: 1.5rem;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+}
+
 /* Status: square Courier tags, the status color at 18% over the surface
    behind ink text, instead of Classic's bright pills. On event cards and
    in the event dialog's status picker (whose dot goes square to match). */

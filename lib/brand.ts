@@ -8,7 +8,7 @@ export const LOGO_SRCS: Record<ThemeId, string> = {
   'classic-light': '/brand/logo.svg',
   'classic-dark': '/brand/logo.svg',
   cyberpunk: '/brand/logo.svg',
-  manuscript: '/brand/logo.svg',
+  manuscript: '/brand/logo-manuscript.svg',
 }
 
 // The app icons (app/icon.tsx, app/apple-icon.tsx) are one version for every
