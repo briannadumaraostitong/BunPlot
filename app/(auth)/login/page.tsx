@@ -8,7 +8,7 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Loader2 } from 'lucide-react'
-import { AuthShell, AUTH_LABEL, AUTH_LINK } from '@/components/auth/AuthShell'
+import { AuthShell, AUTH_LABEL, useAuthLook } from '@/components/auth/AuthShell'
 import { useTheme } from '@/components/theme/ThemeProvider'
 import { normalizeThemeSetting } from '@/lib/themes'
 
@@ -17,6 +17,7 @@ function LoginForm() {
   const searchParams = useSearchParams()
   const supabase = createClient()
   const { adoptTheme } = useTheme()
+  const look = useAuthLook()
 
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
@@ -92,7 +93,7 @@ function LoginForm() {
 
       {error && <p className="text-sm text-destructive">{error}</p>}
 
-      <Button type="submit" className="w-full font-bold uppercase tracking-[1px]" disabled={loading}>
+      <Button type="submit" className={`w-full ${look.submit} ${look.button}`} disabled={loading}>
         {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : 'Log in'}
       </Button>
     </form>
@@ -100,6 +101,7 @@ function LoginForm() {
 }
 
 export default function LoginPage() {
+  const look = useAuthLook()
   return (
     <AuthShell
       eyebrow="Welcome back"
@@ -108,7 +110,7 @@ export default function LoginPage() {
       footer={
         <>
           Don&apos;t have an account?{' '}
-          <Link href="/signup" className={AUTH_LINK}>
+          <Link href="/signup" className={look.link}>
             Sign up
           </Link>
         </>

@@ -2,6 +2,7 @@ import type { Metadata } from 'next'
 import { ThemeScope } from '@/components/theme/ThemeScope'
 import { HERO } from '@/components/landing/content'
 import { CyberpunkLanding } from '@/components/landing/cyberpunk/CyberpunkLanding'
+import { ManuscriptLanding } from '@/components/landing/manuscript/ManuscriptLanding'
 
 export const metadata: Metadata = {
   description: HERO.body,
@@ -13,6 +14,7 @@ export const metadata: Metadata = {
 // the app, whose theme only the browser knows.
 const LANDINGS = {
   cyberpunk: CyberpunkLanding,
+  manuscript: ManuscriptLanding,
 }
 
 // The landing page's theme, whatever the visitor's own.

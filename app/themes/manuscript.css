@@ -14,6 +14,25 @@
   --rule: 39 32.2% 62.9%;
 }
 
+/* The landing page's and login's values no token covers, from the handoff:
+   heading ink, the light inner rule, the buttons' pressed edge, the
+   paperclip, the wax seal's ring and letter, and the book covers' cloth,
+   gilt and shadow. */
+[data-theme="manuscript"] {
+  --heading-ink: 28 36.6% 8%;        /* #1C140D */
+  --rule-light: 41 41.7% 81.2%;      /* #E3D6BB */
+  --button-edge: 5 62.1% 22.7%;      /* #5E1C16 */
+  --paperclip: 40 8.4% 50.8%;        /* #8C8577 */
+  --seal-ring: 5 64.2% 26.3%;        /* #6E1F18 */
+  --seal-letter: 15 56.4% 78.4%;     /* #E7B9A9 */
+  --cloth-1: 5 56.4% 30.6%;          /* #7A2A22 oxblood cloth */
+  --cloth-2: 213 42.9% 26.1%;        /* #26405F ink cloth */
+  --cloth-3: 92 26.6% 27.3%;         /* #445833 olive cloth */
+  --gilt: 41 59.4% 63.3%;            /* #D9B66A */
+  --gilt-text: 42 66.9% 76.3%;       /* #EBD39A */
+  --book-shadow: inset 10px 0 0 hsl(0 0% 0% / 0.18), 0 14px 22px -12px hsl(30 50% 15.7% / 0.6);
+}
+
 /* Labels: Courier Prime bold (the regular weight is too faint at 11px),
    uppercase and letter-spaced, in muted ink. The "Layer" corner cell, panel
    headings, field labels, place types and section labels. Folder names
@@ -38,10 +57,12 @@
 
 /* The wordmark next to the logo, as in the handoff: bold Cormorant in its
    own case, with the mockup's slight letter spacing. 24px, the mockup's
-   text-to-mark ratio (28px beside 32px), since Cormorant reads small at 20. */
+   text-to-mark ratio (28px beside 32px), since Cormorant reads small at 20.
+   Spots with their own size (the landing's nav and footer) set
+   --wordmark-size on the logo. */
 [data-theme="manuscript"] [data-slot="wordmark"] {
   font-family: var(--theme-font-heading);
-  font-size: 1.5rem;
+  font-size: var(--wordmark-size, 1.5rem);
   font-weight: 700;
   letter-spacing: 0.02em;
 }

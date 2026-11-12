@@ -7,10 +7,11 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Loader2, CheckCircle2 } from 'lucide-react'
-import { AuthShell, AUTH_LABEL, AUTH_LINK } from '@/components/auth/AuthShell'
+import { AuthShell, AUTH_LABEL, useAuthLook } from '@/components/auth/AuthShell'
 
 export default function SignupPage() {
   const supabase = createClient()
+  const look = useAuthLook()
 
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
@@ -57,7 +58,7 @@ export default function SignupPage() {
             Click the link to activate your account.
           </p>
           <Link href="/login">
-            <Button variant="outline" className="mt-2 w-full uppercase tracking-[1px]">
+            <Button variant="outline" className={`mt-2 w-full ${look.button}`}>
               Back to log in
             </Button>
           </Link>
@@ -75,7 +76,7 @@ export default function SignupPage() {
       footer={
         <>
           Already have an account?{' '}
-          <Link href="/login" className={AUTH_LINK}>
+          <Link href="/login" className={look.link}>
             Log in
           </Link>
         </>
@@ -132,10 +133,10 @@ export default function SignupPage() {
 
         <Button
           type="submit"
-          className="w-full font-bold uppercase tracking-[1px]"
+          className={`w-full ${look.submit} ${look.button}`}
           disabled={loading}
         >
-          {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : 'Create Account'}
+          {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : 'Create account'}
         </Button>
       </form>
     </AuthShell>
