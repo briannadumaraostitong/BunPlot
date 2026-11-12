@@ -302,7 +302,7 @@ export function ProjectDetailModal({ project, folders, stats, open, onClose, onU
                   plain="none"
                   minWidth={280}
                   fallback={
-                    <div className="space-y-2 rounded-lg border border-border bg-background/50 p-3">
+                    <div data-slot="project-stats" className="space-y-2 rounded-lg border border-border bg-background/50 p-3">
                       <StatRow label="Words" value={stats.wordCount} />
                       <StatRow label="Events" value={stats.eventCount} />
                       <StatRow label="Chapters" value={stats.chapterCount} />
@@ -349,7 +349,7 @@ export function ProjectDetailModal({ project, folders, stats, open, onClose, onU
 
 function StatRow({ label, value }: { label: string; value: number }) {
   return (
-    <div className="flex items-center justify-between text-xs">
+    <div data-slot="stat-row" className="flex items-center justify-between text-xs">
       <span className="text-muted-foreground">{label}</span>
       <span className="font-semibold">{value.toLocaleString()}</span>
     </div>

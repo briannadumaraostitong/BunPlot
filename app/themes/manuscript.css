@@ -5,11 +5,13 @@
    Unlayered, so it wins over Tailwind's utility classes. Built to
    design/landing-manuscript/; the per-screen rules come in later commits. */
 
-/* Values no token covers, from the handoff: the index-card fill (#FFFDF7)
-   and the sheets' shadow (rgba(60,40,20,.45)). */
+/* Values no token covers, from the handoff: the index-card fill (#FFFDF7),
+   the sheets' shadow (rgba(60,40,20,.45)) and the rule color of dotted
+   leaders and outer rings (#BFAA82). */
 [data-theme="manuscript"] {
   --index-card: 45 100% 98.4%;
   --paper-shadow: 0 12px 26px -16px hsl(30 50% 15.7% / 0.45);
+  --rule: 39 32.2% 62.9%;
 }
 
 /* Labels: Courier Prime bold (the regular weight is too faint at 11px),
@@ -410,4 +412,80 @@
   font-size: 1.125rem;
   font-style: italic;
   font-weight: 600;
+}
+
+/* Frame spots. Manuscript has no frame set, so these restyle the spots'
+   plain looks (ThemeFrame's fallbacks). */
+
+/* The character portrait as a wax seal, as on the handoff's About letter:
+   its scalloped outline (a mask, so the fill follows the shape) in the
+   character's color with 45% ink, a darker inner ring, and the initials in
+   cream Cormorant italic. 45% is the least ink that keeps the cream at 4.5:1
+   for pale colors (amber 4.8:1); a cream tinted with the color needs more. */
+[data-theme="manuscript"] [data-slot="character-portrait"] {
+  --seal: color-mix(in srgb, var(--character-color) 55%, hsl(var(--foreground)));
+  position: relative;
+  isolation: isolate;
+  width: 4rem;
+  height: 4rem;
+  border-radius: 0;
+  background-color: var(--seal);
+  -webkit-mask: var(--seal-shape) center / 100% 100% no-repeat;
+  mask: var(--seal-shape) center / 100% 100% no-repeat;
+  --seal-shape: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 78 78'%3E%3Cpath d='M39 3c6 0 8 4 13 5s10 0 13 5 0 9 3 13 7 7 6 13-6 7-6 13 3 10-1 14-9 2-13 5-6 7-13 7-8-4-13-5-10 0-13-5 0-9-3-13-7-7-6-13 6-7 6-13-3-10 1-14 9-2 13-5 6-7 13-7z'/%3E%3C/svg%3E");
+  color: hsl(var(--card));
+  font-family: var(--theme-font-heading);
+  font-size: 1.125rem;
+  font-style: italic;
+  font-weight: 700;
+  line-height: 1;
+}
+/* The inner ring, in the fill with more ink: a little wider than the
+   seal's r=22 circle (inset 20.5%), since it holds two initials, not one. */
+[data-theme="manuscript"] [data-slot="character-portrait"]::before {
+  content: "";
+  position: absolute;
+  inset: 17%;
+  z-index: -1;
+  border: 1.65px solid color-mix(in srgb, var(--seal) 70%, hsl(var(--foreground)));
+  border-radius: 50%;
+}
+
+/* The dashboard's empty state: still no box, but the icon in a double
+   ring, oxblood inside the rule color, and the title in Cormorant italic. */
+[data-theme="manuscript"] [data-slot="dashboard-empty"] [data-slot="empty-state-icon"] {
+  border: 1px solid hsl(var(--accent));
+  background-color: hsl(var(--index-card));
+  box-shadow: 0 0 0 3px hsl(var(--background)), 0 0 0 4px hsl(var(--rule));
+}
+[data-theme="manuscript"] [data-slot="dashboard-empty"] [data-slot="empty-state-icon"] > svg {
+  color: hsl(var(--accent));
+}
+[data-theme="manuscript"] [data-slot="dashboard-empty"] [data-slot="empty-state-title"] {
+  font-family: var(--theme-font-heading);
+  font-size: 1.375rem;
+  font-style: italic;
+  font-weight: 600;
+}
+
+/* The project's stats as a catalog card: index card, each label joined to
+   its count by a dotted leader, the counts in bold Courier. */
+[data-theme="manuscript"] [data-slot="project-stats"] {
+  border-radius: var(--radius);
+  background-color: hsl(var(--index-card));
+}
+[data-theme="manuscript"] [data-slot="stat-row"] {
+  align-items: baseline;
+}
+[data-theme="manuscript"] [data-slot="stat-row"]::after {
+  content: "";
+  order: 1;
+  flex: 1;
+  margin: 0 0.5rem;
+  border-bottom: 1px dotted hsl(var(--rule));
+}
+[data-theme="manuscript"] [data-slot="stat-row"] > :last-child {
+  order: 2;
+  font-family: var(--theme-font-mono);
+  font-weight: 700;
 }

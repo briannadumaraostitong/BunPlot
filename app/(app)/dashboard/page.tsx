@@ -164,6 +164,7 @@ export default async function DashboardPage() {
             <EmptyState
               icon={BookOpen}
               title="No projects yet"
+              slot="dashboard-empty"
               action={<NewProjectDialog trigger="Create your first project" />}
               className="h-64"
             />

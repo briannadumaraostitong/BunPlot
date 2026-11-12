@@ -165,8 +165,9 @@ function CharacterDetailContent({
               className="size-28"
               fallback={
                 <div
-                  className="h-12 w-12 rounded-full flex items-center justify-center text-sm font-semibold text-white"
-                  style={{ backgroundColor: character.color ?? '#6366F1' }}
+                  data-slot="character-portrait"
+                  className="h-12 w-12 rounded-full flex items-center justify-center text-sm font-semibold text-white bg-(--character-color)"
+                  style={{ '--character-color': character.color ?? '#6366F1' } as React.CSSProperties}
                 >
                   {getInitials(character.name)}
                 </div>
