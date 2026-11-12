@@ -5,9 +5,10 @@ const TONES = {
   pink: 'text-(--hud-pink-soft)',
 } as const
 
-// The small mono label above a heading, like "// 01 — FEATURES". With a
-// `number` it reads "// 01 — <children>"; without one, "// <children>".
-// Uppercase is CSS only, so the text stays as written for screen readers.
+// The small mono label above a heading, like "01 — FEATURES". With a
+// `number` it reads "01 — <children>"; without one, just <children>. No "//"
+// prefix (CLAUDE.md). Uppercase is CSS only, so the text stays as written for
+// screen readers.
 export function Eyebrow({
   number,
   tone = 'cyan',
@@ -21,7 +22,6 @@ export function Eyebrow({
 }) {
   return (
     <p className={cn('font-mono text-[13px] uppercase tracking-[1px]', TONES[tone], className)}>
-      {'// '}
       {number && `${number} — `}
       {children}
     </p>

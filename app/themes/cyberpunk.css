@@ -99,15 +99,15 @@ html:has([data-slot="theme-scope"][data-theme="cyberpunk"]) {
   background-color: currentColor;
 }
 
-/* Project header bar: a "// PROJECT" label before the name (which keeps its
+/* Project header bar: a "PROJECT" label before the name (which keeps its
    own case, and stays while renaming), over a faint cyan line. */
 [data-theme="cyberpunk"] [data-slot="project-header"] {
   border-bottom-color: hsl(var(--accent-2) / 0.35);
 }
 [data-theme="cyberpunk"] [data-slot="project-header"]::before {
-  content: "// PROJECT";
+  content: "PROJECT";
 }
-/* The "// PROJECT" and "// EVENT" header labels. */
+/* The "PROJECT" and "EVENT" header labels. */
 [data-theme="cyberpunk"] [data-slot="project-header"]::before,
 [data-theme="cyberpunk"] [data-slot="event-modal-header"]::before {
   flex-shrink: 0;
@@ -169,7 +169,7 @@ html:has([data-slot="theme-scope"][data-theme="cyberpunk"]) {
   text-transform: uppercase;
 }
 
-/* Event dialog: a "// EVENT" label before the title (which keeps its own
+/* Event dialog: an "EVENT" label before the title (which keeps its own
    case), and the 3px layer-color bar down the dialog's left edge. A border
    on the form, which is the dialog's scroll container on phones, so the bar
    stays full height instead of scrolling away. */
@@ -178,7 +178,7 @@ html:has([data-slot="theme-scope"][data-theme="cyberpunk"]) {
   align-items: center;
 }
 [data-theme="cyberpunk"] [data-slot="event-modal-header"]::before {
-  content: "// EVENT";
+  content: "EVENT";
 }
 [data-theme="cyberpunk"] [data-slot="event-form"] {
   border-left: 3px solid var(--event-color);
@@ -281,10 +281,10 @@ html:has([data-slot="theme-scope"][data-theme="cyberpunk"]) {
   pointer-events: none;
 }
 
-/* Dashboard: a "// DASHBOARD" label above "Your Projects", which keeps its
+/* Dashboard: a "DASHBOARD" label above "Your Projects", which keeps its
    own case. */
 [data-theme="cyberpunk"] [data-slot="page-heading"]::before {
-  content: "// DASHBOARD";
+  content: "DASHBOARD";
   display: block;
   margin-bottom: 0.25rem;
   font-family: var(--theme-font-mono);

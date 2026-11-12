@@ -38,7 +38,7 @@ export function WhySection() {
             slot="title"
             className="flex items-center font-mono text-[12px] tracking-[1px] text-foreground uppercase plain:border-b plain:border-border plain:pb-3"
           >
-            Event // Bridge falls
+            Event · Bridge falls
           </ThemeFrameSlot>
           <ThemeFrameSlot frame="modal" className="grid grid-cols-[104px_minmax(0,1fr)] content-center gap-x-3.5 gap-y-2 text-[15px]">
             {FIELDS.map(({ label, value, tone }) => (

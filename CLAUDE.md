@@ -74,7 +74,7 @@ A framed spot that follows the theme's `frames` setting: under `'nightcity'` it'
 - Use frames for a few feature spots only, never for everyday cards (those use `corner-cut`). Today: the landing page, the dashboard's empty state, the project dialog's stats and the character panel's portrait. Never stretch a frame; size it by width and let the aspect ratio set the height
 
 #### HUD pieces (`components/hud/`)
-`HudPanel` (the CSS panel with a header bar and progress bar; it grows with its content), `BannerStrip` and `Eyebrow` (`// 01 — LABEL`). Colors no token covers are `--hud-*` variables in `components/hud/hud.css`, with token stand-ins for other themes.
+`HudPanel` (the CSS panel with a header bar and progress bar; it grows with its content), `BannerStrip` and `Eyebrow` (`01 — LABEL`). Colors no token covers are `--hud-*` variables in `components/hud/hud.css`, with token stand-ins for other themes.
 
 ### Brand
 - The logo files are named in one place, `lib/brand.ts`. `LOGO_SRCS` maps each theme to its logo's file, and themes can share one (today all use the placeholder `public/brand/logo.svg`). A theme's own logo means adding its file under `public/brand/` and pointing that theme's entry at it
@@ -167,6 +167,7 @@ A framed spot that follows the theme's `frames` setting: under `'nightcity'` it'
 - No `[&:empty]` — use `empty:` shorthand
 - No hardcoded accent colors — always use `hsl(var(--accent))`
 - No theme checks in components (`theme === 'cyberpunk'`) — use the theme stylesheet, `data-slot` hooks and the `cut:` / `frames:` / `plain:` variants
+- No `//` prefixes on labels in any theme (eyebrows, header labels, CSS `content` labels): the label alone in its mono style, or `01 — Label` for a numbered one. The HUD panel's pink slashes are a graphic, not text, and stay
 
 ## Key Files to Read First
 When working on a new feature, always read these first:
