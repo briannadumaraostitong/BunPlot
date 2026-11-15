@@ -115,8 +115,8 @@ export const CHARACTER = {
 // The three exports in the third feature row.
 export const EXPORTS = [
   { name: 'Manuscript', meta: 'Book · 6×9 · PDF' },
-  { name: 'Story bible', meta: 'Cast · Places · Events' },
-  { name: 'Storyboard', meta: 'PDF · Images' },
+  { name: 'Story bible', meta: 'Cast · places · events' },
+  { name: 'Storyboard', meta: 'PDF · images' },
 ] as const
 
 export const ALSO = {

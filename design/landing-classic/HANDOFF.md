@@ -22,7 +22,7 @@ Source colors: powder blue `#C7D3DB`, taupe `#A79A8A`, cream `#FCF7DF`, dark cho
 | Primary button | `#3E3630`, text `#FCF7DF` | `#C7D3DB`, text `#26201C` |
 | Blue tag / avatar fill | `#C7D3DB`, text `#2E3A44` | `#3F4A52`, text `#E3EAEF` |
 | Neutral tag | `#E9E2D6`, text `#3E3630` | `#4A413A`, text `#FCF7DF` |
-| Taupe (progress fill, outlined tags, list stars) | `#A79A8A` | `#A79A8A` |
+| Taupe (progress fill, outlined tags, list markers) | `#A79A8A` | `#A79A8A` |
 
 Contrast notes: plain `#A79A8A` and `#C7D3DB` are too light for text on cream, which is why light mode's muted text is `#6E6255` and its links `#4A6478`. All text pairs above pass 4.5:1. Re-check any new pairing.
 
@@ -34,7 +34,7 @@ Contrast notes: plain `#A79A8A` and `#C7D3DB` are too light for text on cream, w
 - Cards: 1px border plus a soft shadow (`0 10px 24px -14px rgba(62,54,48,.35)` light, `0 12px 26px -14px rgba(0,0,0,.6)` dark).
 - Buttons: solid primary; secondary is a 1.5px outline in the heading color.
 - The hero heading is "Plot every thread." with "thread" in the link color and a plain period; no highlighter.
-- Stars (★) from the palette reference: only as list markers in taupe. No floating decorative stars.
+- No stars (★) anywhere on the page. List markers are small taupe squares: about 6px, 1.5px radius, centered on the line. The mockups still show stars as list markers and on the About card; this file wins.
 
 ## Logo
 
@@ -46,9 +46,9 @@ The Classic bunny: rounded ears and body in the heading color outline (`#3E3630`
 2. Hero: eyebrow label, heading, subhead, primary button and "See how it works" link. Right: a rounded app window titled "The Drowned Bridge" with three window dots, a "Timeline" tag, chapters "Ch. 1–4", lanes Main / Ilsa / Letters with event tags (blue for Main, neutral for Ilsa, taupe-outlined for Letters), a 6px progress bar at 10 of 16, "Draft 10 of 16" and "Saved ✓".
 3. Strip (full-bleed): six items, each an icon tile, name and hint: Timeline (events by chapter), Outline (draft in book fonts), Characters (roles and family trees), Places (covers and notes), Storyboard (sketch each scene), Exports (PDF, Word, images).
 4. Why BunPlot: the Bridge falls event card with a "Drafted" tag, fields with tags, Close and Open in timeline.
-5. Features: three rows with an eyebrow, heading, paragraph and ★ list: an outline page card; Ilsa's card (round blue avatar "IV", Protagonist tag) beside a relationships card; three export cards with simple file icons.
+5. Features: three rows with an eyebrow, heading, paragraph and a list with taupe square markers: an outline page card; Ilsa's card (round blue avatar "IV", Protagonist tag) beside a relationships card; three export cards with simple file icons.
 6. Also in BunPlot ("And a few more things"): four cards with an icon tile, title and line.
-7. About: the note signed "Brianna Titong" (one small taupe star on the card's top edge), beside a project summary card with three tags.
+7. About: the note signed "Brianna Titong", beside a project summary card with three tags.
 8. Sign-up band (full-bleed): left, eyebrow, "Start your first project", a line on what happens next, Create account and Log in; right, a mock "New project" dialog ("My first book" typed in, an Add cover tile, Cancel and Create project) with a second card offset behind it.
 9. Footer: logo, © 2026 Brianna Titong, links, and the font credit.
 

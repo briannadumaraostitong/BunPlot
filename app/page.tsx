@@ -1,6 +1,7 @@
 import type { Metadata } from 'next'
 import { ThemeScope } from '@/components/theme/ThemeScope'
 import { HERO } from '@/components/landing/content'
+import { ClassicLanding } from '@/components/landing/classic/ClassicLanding'
 import { CyberpunkLanding } from '@/components/landing/cyberpunk/CyberpunkLanding'
 import { ManuscriptLanding } from '@/components/landing/manuscript/ManuscriptLanding'
 
@@ -13,6 +14,9 @@ export const metadata: Metadata = {
 // theme is chosen here on the server, so the page can branch on it, unlike
 // the app, whose theme only the browser knows.
 const LANDINGS = {
+  // One landing for both Classic modes: they differ only in colors.
+  'classic-light': ClassicLanding,
+  'classic-dark': ClassicLanding,
   cyberpunk: CyberpunkLanding,
   manuscript: ManuscriptLanding,
 }

@@ -8,7 +8,7 @@
 
 /* Values no token covers, from the handoff: the strip under the landing's
    hero, the sign-up band, the tag fills and their text, taupe (progress,
-   outlined tags, list stars) and the cards' soft shadow. Colors are HSL
+   outlined tags, list markers) and the cards' soft shadow. Colors are HSL
    triples, like the tokens. */
 [data-theme="classic-light"] {
   --strip: 26 12.7% 21.6%;        /* #3E3630 */
