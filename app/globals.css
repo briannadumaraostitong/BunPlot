@@ -8,13 +8,14 @@
 /* Colors for the HUD pieces and landing page (Cyberpunk only). */
 @import "../components/hud/hud.css";
 
-/* Dark mode: inside a .dark element (<html> or a ThemeScope in a dark
-   theme), and inside a "classic" ThemeScope, which follows the device's
-   setting in CSS, when the device is dark. Inside a "classic" scope a dark
-   <html> (the visitor's own theme) doesn't count. The exclusion is in
-   :where(), so these rules keep the specificity they always had. */
+/* Dark mode, from the nearest theme: inside a .dark element (<html> or a
+   ThemeScope in a dark theme) unless a ThemeScope that isn't dark sits in
+   between (a light landing inside a visitor's dark theme), and inside a
+   "classic" ThemeScope, which follows the device's setting in CSS, when the
+   device is dark. The exclusion is in :where(), so these rules keep the
+   specificity they always had. */
 @custom-variant dark {
-  &:is(.dark *):where(:not([data-theme="classic"] *)) {
+  &:is(.dark *):where(:not([data-slot="theme-scope"]:not(.dark) *)) {
     @slot;
   }
   @media (prefers-color-scheme: dark) {
@@ -40,8 +41,10 @@
 @custom-variant no-hover (@media (hover: none));
 
 /* Themes with the cut shape (data-shape, set per theme by lib/themes.ts).
-   For what clip-path takes away there, like a card's hover shadow. */
-@custom-variant cut (&:is([data-shape="cut"] *));
+   For what clip-path takes away there, like a card's hover shadow. The
+   nearest shape wins: not inside a rounded ThemeScope nested in a cut page
+   (in :where(), so no added specificity). */
+@custom-variant cut (&:is([data-shape="cut"] *):where(:not([data-slot="theme-scope"]:not([data-shape="cut"]) *)));
 
 /* Themes with a frame set (data-frames, set per theme by lib/themes.ts and on
    a ThemeScope): frames: styles a framed spot as its frame, plain: as the
@@ -180,11 +183,13 @@
 /* Cut shape (data-shape, set per theme by lib/themes.ts): square corners.
    The radius scale follows --radius, but bare `rounded` is a fixed .25rem.
    These rules match any ancestor with data-shape, not just <html>, so a
-   ThemeScope (components/theme/ThemeScope.tsx) carries the shape too. */
+   ThemeScope (components/theme/ThemeScope.tsx) carries the shape too, and
+   the nearest one wins: each stops at a ThemeScope of another shape nested
+   inside (in :where(), so no added specificity). */
 [data-shape="cut"] {
   --radius: 0rem;
 }
-[data-shape="cut"] .rounded {
+[data-shape="cut"] .rounded:where(:not([data-slot="theme-scope"]:not([data-shape="cut"]) *)) {
   border-radius: 0;
 }
 
@@ -217,7 +222,7 @@
   [data-slot="button"]:not(.rounded-full),
   [data-slot="dialog-content"],
   [data-slot="sheet-content"]
-) {
+):where(:not([data-slot="theme-scope"]:not([data-shape="cut"]) *)) {
   --tw-ring-inset: inset;
   clip-path: polygon(
     0 0,
@@ -228,15 +233,15 @@
     0 calc(100% - var(--cut))
   );
 }
-[data-shape="cut"] :is(.corner-cut, [data-slot="dialog-content"], [data-slot="sheet-content"]) {
+[data-shape="cut"] :is(.corner-cut, [data-slot="dialog-content"], [data-slot="sheet-content"]):where(:not([data-slot="theme-scope"]:not([data-shape="cut"]) *)) {
   --cut: 16px;
 }
-[data-shape="cut"] .corner-cut-sm {
+[data-shape="cut"] .corner-cut-sm:where(:not([data-slot="theme-scope"]:not([data-shape="cut"]) *)) {
   --cut: 8px;
 }
 /* App buttons are 24–36px tall, smaller than the handoff's 44px ones, so a
    proportionally smaller chamfer than .corner-cut-sm. */
-[data-shape="cut"] [data-slot="button"] {
+[data-shape="cut"] [data-slot="button"]:where(:not([data-slot="theme-scope"]:not([data-shape="cut"]) *)) {
   --cut: 6px;
 }
 /* A framed spot (ThemeFrame) is cut only as its plain card: shown as a frame,
@@ -259,7 +264,7 @@
     [data-slot="button"]:not(.rounded-full),
     [data-slot="dialog-content"],
     [data-slot="sheet-content"]
-  ):not([class*="after:"]) {
+  ):not([class*="after:"]):where(:not([data-slot="theme-scope"]:not([data-shape="cut"]) *)) {
     /* In the base layer so absolute/fixed classes (dialogs, sheet) win,
        and a theme stylesheet can set --cut-bw for a thicker border. */
     position: relative;
@@ -272,7 +277,7 @@
   [data-slot="button"]:not(.rounded-full),
   [data-slot="dialog-content"],
   [data-slot="sheet-content"]
-):not([class*="after:"]) {
+):not([class*="after:"]):where(:not([data-slot="theme-scope"]:not([data-shape="cut"]) *)) {
   &::before,
   &::after {
     content: "";
@@ -305,9 +310,11 @@
 
 /* Background texture (data-texture). Goes on page backgrounds marked
    .bg-texture; cards and panels have solid backgrounds that cover it. The
-   last selector is a ThemeScope that carries the texture itself. */
+   last selector is a ThemeScope that carries the texture itself. The
+   nearest texture wins: a ThemeScope with another texture, and the page
+   inside it, don't take the page's. */
 [data-texture="grid"] body,
-[data-texture="grid"] .bg-texture,
+[data-texture="grid"] .bg-texture:where(:not([data-slot="theme-scope"]:not([data-texture="grid"]), [data-slot="theme-scope"]:not([data-texture="grid"]) *)),
 [data-texture="grid"].bg-texture {
   background-image:
     linear-gradient(hsl(var(--accent-2) / 0.045) 1px, transparent 1px),
@@ -317,7 +324,7 @@
 /* Ruled paper: a 1px ink-blue line at 6% every 32px. No theme uses it
    today. */
 [data-texture="ruled"] body,
-[data-texture="ruled"] .bg-texture,
+[data-texture="ruled"] .bg-texture:where(:not([data-slot="theme-scope"]:not([data-texture="ruled"]), [data-slot="theme-scope"]:not([data-texture="ruled"]) *)),
 [data-texture="ruled"].bg-texture {
   background-image: repeating-linear-gradient(
     to bottom,

@@ -3,7 +3,11 @@
    [data-theme="manuscript"], so the other themes are untouched. Components
    only carry neutral hooks (data-slot, CSS variables); the look lives here.
    Unlayered, so it wins over Tailwind's utility classes. Built to
-   design/landing-manuscript/; the per-screen rules come in later commits. */
+   design/landing-manuscript/; the per-screen rules come in later commits.
+   Each rule ends in :where(:not([data-slot="theme-scope"]:not(…) *)): it
+   stops at a ThemeScope in another theme nested inside (the landing, login
+   and signup inside a visitor's own Manuscript), so only the nearest theme
+   applies. In :where(), so it adds no specificity. Keep it on new rules. */
 
 /* Values no token covers, from the handoff: the index-card fill (#FFFDF7),
    the sheets' shadow (rgba(60,40,20,.45)) and the rule color of dotted
@@ -37,7 +41,7 @@
    uppercase and letter-spaced, in muted ink. The "Layer" corner cell, panel
    headings, field labels, place types and section labels. Folder names
    aren't labels but user content, so they keep the UI font. */
-[data-theme="manuscript"] :is([data-slot="timeline-corner-label"], [data-slot="panel-heading"], [data-slot="field-label"], [data-slot="place-type"], [data-slot="section-label"]) {
+[data-theme="manuscript"] :is([data-slot="timeline-corner-label"], [data-slot="panel-heading"], [data-slot="field-label"], [data-slot="place-type"], [data-slot="section-label"]):where(:not([data-slot="theme-scope"]:not([data-theme="manuscript"]) *)) {
   font-family: var(--theme-font-mono);
   font-size: 11px;
   font-weight: 700;
@@ -51,7 +55,7 @@
    Cormorant, since 600 reads thin at 24px. The dashboard's has its own hook
    (page-heading, which Cyberpunk labels); the others share page-title. The
    landing page's larger headings keep 600. */
-[data-theme="manuscript"] :is([data-slot="page-heading"], [data-slot="page-title"]) {
+[data-theme="manuscript"] :is([data-slot="page-heading"], [data-slot="page-title"]):where(:not([data-slot="theme-scope"]:not([data-theme="manuscript"]) *)) {
   font-weight: 700;
 }
 
@@ -60,7 +64,7 @@
    text-to-mark ratio (28px beside 32px), since Cormorant reads small at 20.
    Spots with their own size (the landing's nav and footer) set
    --wordmark-size on the logo. */
-[data-theme="manuscript"] [data-slot="wordmark"] {
+[data-theme="manuscript"] [data-slot="wordmark"]:where(:not([data-slot="theme-scope"]:not([data-theme="manuscript"]) *)) {
   font-family: var(--theme-font-heading);
   font-size: var(--wordmark-size, 1.5rem);
   font-weight: 700;
@@ -70,7 +74,7 @@
 /* Status: square Courier tags, the status color at 18% over the surface
    behind ink text, instead of Classic's bright pills. On event cards and
    in the event dialog's status picker (whose dot goes square to match). */
-[data-theme="manuscript"] :is([data-slot="event-card-status"], [data-slot="status-tag"]) {
+[data-theme="manuscript"] :is([data-slot="event-card-status"], [data-slot="status-tag"]):where(:not([data-slot="theme-scope"]:not([data-theme="manuscript"]) *)) {
   border-radius: 0;
   background-color: color-mix(in oklab, var(--status-color) 18%, transparent);
   color: hsl(var(--foreground));
@@ -79,13 +83,13 @@
   letter-spacing: 0.06em;
   text-transform: uppercase;
 }
-[data-theme="manuscript"] [data-slot="status-tag-dot"] {
+[data-theme="manuscript"] [data-slot="status-tag-dot"]:where(:not([data-slot="theme-scope"]:not([data-theme="manuscript"]) *)) {
   border-radius: 0;
 }
 
 /* Project header bar: a "PROJECT" Courier label before the name, which
    keeps its own case (and stays while renaming). */
-[data-theme="manuscript"] [data-slot="project-header"]::before {
+[data-theme="manuscript"] [data-slot="project-header"]:where(:not([data-slot="theme-scope"]:not([data-theme="manuscript"]) *))::before {
   content: "PROJECT";
   flex-shrink: 0;
   margin-right: 0.625rem;
@@ -101,7 +105,7 @@
    hooks): Courier uppercase labels, and a 2px oxblood bar under the active
    one. The tabs recolor the bar their primitive already draws (::after);
    the toggle's ::after is its tap target, so its bar is an inset shadow. */
-[data-theme="manuscript"] :is([data-slot="project-tabs"] [data-slot="tabs-trigger"], [data-slot="view-toggle-item"]) {
+[data-theme="manuscript"] :is([data-slot="project-tabs"] [data-slot="tabs-trigger"], [data-slot="view-toggle-item"]):where(:not([data-slot="theme-scope"]:not([data-theme="manuscript"]) *)) {
   font-family: var(--theme-font-mono);
   font-size: 11px;
   font-weight: 700;
@@ -111,17 +115,17 @@
 /* The primitive sizes this bar with group-data-horizontal/tabs: classes,
    which never match (see Known Issues in CLAUDE.md), so it is 0×0 in every
    theme. Give it the size the primitive intended. */
-[data-theme="manuscript"] [data-slot="project-tabs"] [data-slot="tabs-trigger"]::after {
+[data-theme="manuscript"] [data-slot="project-tabs"] [data-slot="tabs-trigger"]:where(:not([data-slot="theme-scope"]:not([data-theme="manuscript"]) *))::after {
   left: 0;
   right: 0;
   bottom: -5px;
   height: 2px;
   background-color: hsl(var(--accent));
 }
-[data-theme="manuscript"] [data-slot="view-toggle"] {
+[data-theme="manuscript"] [data-slot="view-toggle"]:where(:not([data-slot="theme-scope"]:not([data-theme="manuscript"]) *)) {
   background-color: transparent;
 }
-[data-theme="manuscript"] [data-slot="view-toggle-item"][data-active] {
+[data-theme="manuscript"] [data-slot="view-toggle-item"][data-active]:where(:not([data-slot="theme-scope"]:not([data-theme="manuscript"]) *)) {
   background-color: transparent;
   box-shadow: inset 0 -2px hsl(var(--accent));
 }
@@ -131,7 +135,7 @@
    the stack, the paper color with a thin oxblood marker on its left edge (an
    inset shadow, so nothing shifts), instead of the solid block or gray
    fill. */
-[data-theme="manuscript"] [data-slot="nav-item"][data-active] {
+[data-theme="manuscript"] [data-slot="nav-item"][data-active]:where(:not([data-slot="theme-scope"]:not([data-theme="manuscript"]) *)) {
   color: hsl(var(--foreground));
   background-color: hsl(var(--sidebar-accent));
   box-shadow: inset 2px 0 hsl(var(--accent));
@@ -140,17 +144,17 @@
 /* Project cards are sheets: the 3px radius and the paper shadow. Hover
    darkens the edge rather than growing the shadow. The skeleton shares the
    slot, so nothing shifts when cards load. */
-[data-theme="manuscript"] [data-slot="project-card"] {
+[data-theme="manuscript"] [data-slot="project-card"]:where(:not([data-slot="theme-scope"]:not([data-theme="manuscript"]) *)) {
   border-radius: var(--radius);
   box-shadow: var(--paper-shadow);
 }
 @media (hover: hover) {
-  [data-theme="manuscript"] [data-slot="project-card"]:hover {
+  [data-theme="manuscript"] [data-slot="project-card"]:hover:where(:not([data-slot="theme-scope"]:not([data-theme="manuscript"]) *)) {
     border-color: hsl(var(--input));
   }
 }
 /* Behind a cover while it loads, a quiet paper tone, not oxblood. */
-[data-theme="manuscript"] [data-slot="project-cover"] {
+[data-theme="manuscript"] [data-slot="project-cover"]:where(:not([data-slot="theme-scope"]:not([data-theme="manuscript"]) *)) {
   background-color: hsl(var(--secondary));
 }
 /* A card without a cover (projects, places) shows a title page on the cream
@@ -158,7 +162,7 @@
    italic, centered, with a small oxblood fleuron beneath (the mockup's
    ornament: a diamond between two rules). Long names wrap and clamp to four
    lines; two on the shorter place covers. */
-[data-theme="manuscript"] [data-slot="title-page"] {
+[data-theme="manuscript"] [data-slot="title-page"]:where(:not([data-slot="theme-scope"]:not([data-theme="manuscript"]) *)) {
   display: flex;
   height: 100%;
   flex-direction: column;
@@ -170,7 +174,7 @@
   border-bottom: 1px solid hsl(var(--border));
   text-align: center;
 }
-[data-theme="manuscript"] [data-slot="title-page-title"] {
+[data-theme="manuscript"] [data-slot="title-page-title"]:where(:not([data-slot="theme-scope"]:not([data-theme="manuscript"]) *)) {
   display: -webkit-box;
   -webkit-box-orient: vertical;
   -webkit-line-clamp: 4;
@@ -184,24 +188,24 @@
   line-height: 1.15;
   color: hsl(var(--foreground));
 }
-[data-theme="manuscript"] [data-slot="title-page-fleuron"] {
+[data-theme="manuscript"] [data-slot="title-page-fleuron"]:where(:not([data-slot="theme-scope"]:not([data-theme="manuscript"]) *)) {
   flex-shrink: 0;
 }
-[data-theme="manuscript"] [data-slot="title-page-fleuron"] path:first-child {
+[data-theme="manuscript"] [data-slot="title-page-fleuron"] path:first-child:where(:not([data-slot="theme-scope"]:not([data-theme="manuscript"]) *)) {
   fill: none;
   stroke: hsl(var(--accent-border));
   stroke-width: 1;
 }
-[data-theme="manuscript"] [data-slot="title-page-fleuron"] path:last-child {
+[data-theme="manuscript"] [data-slot="title-page-fleuron"] path:last-child:where(:not([data-slot="theme-scope"]:not([data-theme="manuscript"]) *)) {
   fill: hsl(var(--accent));
 }
-[data-theme="manuscript"] [data-slot="place-cover-placeholder"] {
+[data-theme="manuscript"] [data-slot="place-cover-placeholder"]:where(:not([data-slot="theme-scope"]:not([data-theme="manuscript"]) *)) {
   display: none;
 }
-[data-theme="manuscript"] [data-slot="place-card"] [data-slot="title-page"] {
+[data-theme="manuscript"] [data-slot="place-card"] [data-slot="title-page"]:where(:not([data-slot="theme-scope"]:not([data-theme="manuscript"]) *)) {
   gap: 0.5rem;
 }
-[data-theme="manuscript"] [data-slot="place-card"] [data-slot="title-page-title"] {
+[data-theme="manuscript"] [data-slot="place-card"] [data-slot="title-page-title"]:where(:not([data-slot="theme-scope"]:not([data-theme="manuscript"]) *)) {
   -webkit-line-clamp: 2;
   line-clamp: 2;
   font-size: 1.25rem;
@@ -212,7 +216,7 @@
    and tint, with a small bookmark ribbon in the event's color tucked at the
    top-right corner (the hero ledger's ribbon, scaled down). Flat on the
    page; the drag preview keeps its shadow and a selected card its ring. */
-[data-theme="manuscript"] [data-slot="event-card"] {
+[data-theme="manuscript"] [data-slot="event-card"]:where(:not([data-slot="theme-scope"]:not([data-theme="manuscript"]) *)) {
   position: relative;
   background-color: hsl(var(--index-card));
   border-width: 1px;
@@ -222,7 +226,7 @@
    (over the border). On grid cards and the drag preview it sits just left
    of the drag handle; flow cards have none, so it sits nearer the corner.
    Titles stop short of it. */
-[data-theme="manuscript"] [data-slot="event-card"]::after {
+[data-theme="manuscript"] [data-slot="event-card"]:where(:not([data-slot="theme-scope"]:not([data-theme="manuscript"]) *))::after {
   content: "";
   position: absolute;
   top: -1px;
@@ -233,55 +237,55 @@
   clip-path: polygon(0 0, 100% 0, 100% 100%, 50% 84%, 0 100%);
   pointer-events: none;
 }
-[data-theme="manuscript"] [data-slot="event-card"][data-variant="flow"]::after {
+[data-theme="manuscript"] [data-slot="event-card"][data-variant="flow"]:where(:not([data-slot="theme-scope"]:not([data-theme="manuscript"]) *))::after {
   right: 12px;
 }
-[data-theme="manuscript"] [data-slot="event-card-title"] {
+[data-theme="manuscript"] [data-slot="event-card-title"]:where(:not([data-slot="theme-scope"]:not([data-theme="manuscript"]) *)) {
   margin-right: 18px;
 }
-[data-theme="manuscript"] [data-slot="event-card"][data-variant="flow"] [data-slot="event-card-title"] {
+[data-theme="manuscript"] [data-slot="event-card"][data-variant="flow"] [data-slot="event-card-title"]:where(:not([data-slot="theme-scope"]:not([data-theme="manuscript"]) *)) {
   margin-right: 12px;
 }
-[data-theme="manuscript"] [data-slot="event-card"]:not([data-drag-preview], [data-selected]) {
+[data-theme="manuscript"] [data-slot="event-card"]:not([data-drag-preview], [data-selected]):where(:not([data-slot="theme-scope"]:not([data-theme="manuscript"]) *)) {
   box-shadow: none;
 }
 @media (hover: hover) {
-  [data-theme="manuscript"] [data-slot="event-card"]:not([data-drag-preview], [data-selected]):hover {
+  [data-theme="manuscript"] [data-slot="event-card"]:not([data-drag-preview], [data-selected]):hover:where(:not([data-slot="theme-scope"]:not([data-theme="manuscript"]) *)) {
     box-shadow: 0 6px 12px -8px hsl(30 50% 15.7% / 0.45);
   }
 }
 /* Titles in ink: the ribbon carries the layer. */
-[data-theme="manuscript"] [data-slot="event-card-title"] {
+[data-theme="manuscript"] [data-slot="event-card-title"]:where(:not([data-slot="theme-scope"]:not([data-theme="manuscript"]) *)) {
   color: hsl(var(--foreground));
 }
 
 /* Timeline grid: the lanes are a plain ledger sheet on the cream surface,
    with the double red margin line down the label column's edge (the
    header's corner cell too, so it runs the full height). */
-[data-theme="manuscript"] [data-slot="timeline-cell"] {
+[data-theme="manuscript"] [data-slot="timeline-cell"]:where(:not([data-slot="theme-scope"]:not([data-theme="manuscript"]) *)) {
   background-color: hsl(var(--card));
 }
-[data-theme="manuscript"] :is([data-slot="lane-label"], :has(> [data-slot="timeline-corner-label"])) {
+[data-theme="manuscript"] :is([data-slot="lane-label"], :has(> [data-slot="timeline-corner-label"])):where(:not([data-slot="theme-scope"]:not([data-theme="manuscript"]) *)) {
   border-right: 3px double hsl(var(--accent-border));
 }
 /* Lane names in the heading serif (bold, like the card titles), at the top
    of the lane in line with the first card. They keep the layer color. */
-[data-theme="manuscript"] [data-slot="lane-label"] {
+[data-theme="manuscript"] [data-slot="lane-label"]:where(:not([data-slot="theme-scope"]:not([data-theme="manuscript"]) *)) {
   align-items: flex-start;
   padding-top: 0.625rem;
 }
-[data-theme="manuscript"] [data-slot="lane-label-name"] {
+[data-theme="manuscript"] [data-slot="lane-label-name"]:where(:not([data-slot="theme-scope"]:not([data-theme="manuscript"]) *)) {
   font-family: var(--theme-font-heading);
   font-size: 1rem;
   font-weight: 700;
 }
 /* Chapter header: "Ch. I" in italic serif above the name, which keeps its
    own case. Roman numerals from a counter set to the chapter's number. */
-[data-theme="manuscript"] [data-slot="chapter-title"] {
+[data-theme="manuscript"] [data-slot="chapter-title"]:where(:not([data-slot="theme-scope"]:not([data-theme="manuscript"]) *)) {
   counter-reset: chapter var(--chapter-number);
   line-height: 1.25;
 }
-[data-theme="manuscript"] [data-slot="chapter-title"]::before {
+[data-theme="manuscript"] [data-slot="chapter-title"]:where(:not([data-slot="theme-scope"]:not([data-theme="manuscript"]) *))::before {
   content: "Ch. " counter(chapter, upper-roman);
   display: block;
   font-family: var(--theme-font-heading);
@@ -292,7 +296,7 @@
 }
 
 /* Dialogs are sheets laid on the paper: the handoff's sheet shadow. */
-[data-theme="manuscript"] [data-slot="dialog-content"] {
+[data-theme="manuscript"] [data-slot="dialog-content"]:where(:not([data-slot="theme-scope"]:not([data-theme="manuscript"]) *)) {
   box-shadow: var(--paper-shadow);
 }
 
@@ -302,10 +306,10 @@
    container on phones, so it scrolls away with the top of the card); the
    content area is on the cream surface, with an "EVENT" Courier label
    above the title, which is in Cormorant italic and keeps its own case. */
-[data-theme="manuscript"] [data-slot="event-form"] {
+[data-theme="manuscript"] [data-slot="event-form"]:where(:not([data-slot="theme-scope"]:not([data-theme="manuscript"]) *)) {
   position: relative;
 }
-[data-theme="manuscript"] [data-slot="event-form"]::after {
+[data-theme="manuscript"] [data-slot="event-form"]:where(:not([data-slot="theme-scope"]:not([data-theme="manuscript"]) *))::after {
   content: "";
   position: absolute;
   top: 0;
@@ -316,10 +320,10 @@
   clip-path: polygon(0 0, 100% 0, 100% 100%, 50% 84%, 0 100%);
   pointer-events: none;
 }
-[data-theme="manuscript"] [data-slot="event-main"] {
+[data-theme="manuscript"] [data-slot="event-main"]:where(:not([data-slot="theme-scope"]:not([data-theme="manuscript"]) *)) {
   background-color: hsl(var(--card));
 }
-[data-theme="manuscript"] [data-slot="event-modal-header"]::before {
+[data-theme="manuscript"] [data-slot="event-modal-header"]:where(:not([data-slot="theme-scope"]:not([data-theme="manuscript"]) *))::before {
   content: "EVENT";
   display: block;
   font-family: var(--theme-font-mono);
@@ -329,7 +333,7 @@
   letter-spacing: 0.1em;
   color: hsl(var(--muted-foreground));
 }
-[data-theme="manuscript"] [data-slot="event-modal-header"] input {
+[data-theme="manuscript"] [data-slot="event-modal-header"] input:where(:not([data-slot="theme-scope"]:not([data-theme="manuscript"]) *)) {
   font-size: 1.625rem;
   font-style: italic;
   font-weight: 600;
@@ -341,22 +345,22 @@
    the active toolbar button in oxblood on a faint oxblood wash instead of
    the gray fill; the word count and status in Courier, with "Saved ✓" in
    olive bold as in the mockup ("Not saved" keeps its warning color). */
-[data-theme="manuscript"] [data-slot="outline-menubar"] [data-slot="menubar-trigger"] {
+[data-theme="manuscript"] [data-slot="outline-menubar"] [data-slot="menubar-trigger"]:where(:not([data-slot="theme-scope"]:not([data-theme="manuscript"]) *)) {
   font-family: var(--theme-font-mono);
   font-size: 11px;
   font-weight: 700;
   letter-spacing: 0.1em;
   text-transform: uppercase;
 }
-[data-theme="manuscript"] [data-slot="outline-tool"][data-active] {
+[data-theme="manuscript"] [data-slot="outline-tool"][data-active]:where(:not([data-slot="theme-scope"]:not([data-theme="manuscript"]) *)) {
   background-color: hsl(var(--accent-muted));
   color: hsl(var(--accent));
 }
-[data-theme="manuscript"] [data-slot="outline-status"] {
+[data-theme="manuscript"] [data-slot="outline-status"]:where(:not([data-slot="theme-scope"]:not([data-theme="manuscript"]) *)) {
   font-family: var(--theme-font-mono);
   font-size: 12px;
 }
-[data-theme="manuscript"] [data-slot="save-status-saved"] {
+[data-theme="manuscript"] [data-slot="save-status-saved"]:where(:not([data-slot="theme-scope"]:not([data-theme="manuscript"]) *)) {
   color: hsl(var(--accent-3));
   font-weight: 700;
 }
@@ -364,7 +368,7 @@
 /* Family tree tabs: like the project tabs, a 2px oxblood bar under the
    active one instead of the gray fill, but in the UI font, since tree
    names are user content. */
-[data-theme="manuscript"] [data-slot="tree-tab"][data-active] {
+[data-theme="manuscript"] [data-slot="tree-tab"][data-active]:where(:not([data-slot="theme-scope"]:not([data-theme="manuscript"]) *)) {
   background-color: transparent;
   box-shadow: inset 0 -2px hsl(var(--accent));
 }
@@ -372,18 +376,18 @@
    edge, flat on the canvas; the avatar carries the character's color. A
    pending node (picked to link) keeps its accent border; selected and
    dragged ones keep their ring and shadow. Avatars stay round. */
-[data-theme="manuscript"] [data-slot="character-node"] {
+[data-theme="manuscript"] [data-slot="character-node"]:where(:not([data-slot="theme-scope"]:not([data-theme="manuscript"]) *)) {
   background-color: hsl(var(--index-card));
 }
-[data-theme="manuscript"] [data-slot="character-node"]:not([data-pending]) {
+[data-theme="manuscript"] [data-slot="character-node"]:not([data-pending]):where(:not([data-slot="theme-scope"]:not([data-theme="manuscript"]) *)) {
   border-color: hsl(var(--border));
 }
-[data-theme="manuscript"] [data-slot="character-node"]:not([data-selected], [data-dragging]) {
+[data-theme="manuscript"] [data-slot="character-node"]:not([data-selected], [data-dragging]):where(:not([data-slot="theme-scope"]:not([data-theme="manuscript"]) *)) {
   box-shadow: none;
 }
 /* Relationship labels on the tree's lines: square Courier tags, like the
    status tags, on the cream fill. */
-[data-theme="manuscript"] [data-slot="relationship-tag"] {
+[data-theme="manuscript"] [data-slot="relationship-tag"]:where(:not([data-slot="theme-scope"]:not([data-theme="manuscript"]) *)) {
   border-radius: 0;
   background-color: hsl(var(--index-card));
   font-family: var(--theme-font-mono);
@@ -393,17 +397,17 @@
 }
 /* On the label span itself: its own `capitalize` class would beat an
    uppercase inherited from the tag. */
-[data-theme="manuscript"] [data-slot="relationship-tag"] > span {
+[data-theme="manuscript"] [data-slot="relationship-tag"] > span:where(:not([data-slot="theme-scope"]:not([data-theme="manuscript"]) *)) {
   text-transform: uppercase;
 }
 
 /* Place cards are sheets like the project cards (paper shadow, the 3px
    radius); a small dot in the place's color before the type label carries
    the color. Selected ones keep their ring. */
-[data-theme="manuscript"] [data-slot="place-card"] {
+[data-theme="manuscript"] [data-slot="place-card"]:where(:not([data-slot="theme-scope"]:not([data-theme="manuscript"]) *)) {
   border-radius: var(--radius);
 }
-[data-theme="manuscript"] [data-slot="place-card"] [data-slot="place-type"]::before {
+[data-theme="manuscript"] [data-slot="place-card"] [data-slot="place-type"]:where(:not([data-slot="theme-scope"]:not([data-theme="manuscript"]) *))::before {
   content: "";
   display: inline-block;
   width: 6px;
@@ -413,13 +417,13 @@
   border-radius: 9999px;
   background-color: var(--place-color);
 }
-[data-theme="manuscript"] [data-slot="place-card"]:not([data-selected]) {
+[data-theme="manuscript"] [data-slot="place-card"]:not([data-selected]):where(:not([data-slot="theme-scope"]:not([data-theme="manuscript"]) *)) {
   box-shadow: var(--paper-shadow);
 }
 
 /* Storyboard panels are sheets too: the cream fill, the 3px radius and the
    paper shadow. The skeleton shares the slot. Captions are untouched. */
-[data-theme="manuscript"] [data-slot="panel-card"] {
+[data-theme="manuscript"] [data-slot="panel-card"]:where(:not([data-slot="theme-scope"]:not([data-theme="manuscript"]) *)) {
   border-radius: var(--radius);
   background-color: hsl(var(--index-card));
   box-shadow: var(--paper-shadow);
@@ -429,7 +433,7 @@
    style, Cormorant Garamond italic, a size up so the serif reads at swatch
    size. Keyed on the swatch's own data-theme, so it holds whatever theme is
    active. */
-[data-theme="manuscript"][data-slot="theme-swatch"] [data-slot="theme-sample"] {
+[data-theme="manuscript"][data-slot="theme-swatch"] [data-slot="theme-sample"]:where(:not([data-slot="theme-scope"]:not([data-theme="manuscript"]) *)) {
   font-size: 1.125rem;
   font-style: italic;
   font-weight: 600;
@@ -443,7 +447,7 @@
    character's color with 45% ink, a darker inner ring, and the initials in
    cream Cormorant italic. 45% is the least ink that keeps the cream at 4.5:1
    for pale colors (amber 4.8:1); a cream tinted with the color needs more. */
-[data-theme="manuscript"] [data-slot="character-portrait"] {
+[data-theme="manuscript"] [data-slot="character-portrait"]:where(:not([data-slot="theme-scope"]:not([data-theme="manuscript"]) *)) {
   --seal: color-mix(in srgb, var(--character-color) 55%, hsl(var(--foreground)));
   position: relative;
   isolation: isolate;
@@ -463,7 +467,7 @@
 }
 /* The inner ring, in the fill with more ink: a little wider than the
    seal's r=22 circle (inset 20.5%), since it holds two initials, not one. */
-[data-theme="manuscript"] [data-slot="character-portrait"]::before {
+[data-theme="manuscript"] [data-slot="character-portrait"]:where(:not([data-slot="theme-scope"]:not([data-theme="manuscript"]) *))::before {
   content: "";
   position: absolute;
   inset: 17%;
@@ -474,15 +478,15 @@
 
 /* The dashboard's empty state: still no box, but the icon in a double
    ring, oxblood inside the rule color, and the title in Cormorant italic. */
-[data-theme="manuscript"] [data-slot="dashboard-empty"] [data-slot="empty-state-icon"] {
+[data-theme="manuscript"] [data-slot="dashboard-empty"] [data-slot="empty-state-icon"]:where(:not([data-slot="theme-scope"]:not([data-theme="manuscript"]) *)) {
   border: 1px solid hsl(var(--accent));
   background-color: hsl(var(--index-card));
   box-shadow: 0 0 0 3px hsl(var(--background)), 0 0 0 4px hsl(var(--rule));
 }
-[data-theme="manuscript"] [data-slot="dashboard-empty"] [data-slot="empty-state-icon"] > svg {
+[data-theme="manuscript"] [data-slot="dashboard-empty"] [data-slot="empty-state-icon"] > svg:where(:not([data-slot="theme-scope"]:not([data-theme="manuscript"]) *)) {
   color: hsl(var(--accent));
 }
-[data-theme="manuscript"] [data-slot="dashboard-empty"] [data-slot="empty-state-title"] {
+[data-theme="manuscript"] [data-slot="dashboard-empty"] [data-slot="empty-state-title"]:where(:not([data-slot="theme-scope"]:not([data-theme="manuscript"]) *)) {
   font-family: var(--theme-font-heading);
   font-size: 1.375rem;
   font-style: italic;
@@ -491,21 +495,21 @@
 
 /* The project's stats as a catalog card: index card, each label joined to
    its count by a dotted leader, the counts in bold Courier. */
-[data-theme="manuscript"] [data-slot="project-stats"] {
+[data-theme="manuscript"] [data-slot="project-stats"]:where(:not([data-slot="theme-scope"]:not([data-theme="manuscript"]) *)) {
   border-radius: var(--radius);
   background-color: hsl(var(--index-card));
 }
-[data-theme="manuscript"] [data-slot="stat-row"] {
+[data-theme="manuscript"] [data-slot="stat-row"]:where(:not([data-slot="theme-scope"]:not([data-theme="manuscript"]) *)) {
   align-items: baseline;
 }
-[data-theme="manuscript"] [data-slot="stat-row"]::after {
+[data-theme="manuscript"] [data-slot="stat-row"]:where(:not([data-slot="theme-scope"]:not([data-theme="manuscript"]) *))::after {
   content: "";
   order: 1;
   flex: 1;
   margin: 0 0.5rem;
   border-bottom: 1px dotted hsl(var(--rule));
 }
-[data-theme="manuscript"] [data-slot="stat-row"] > :last-child {
+[data-theme="manuscript"] [data-slot="stat-row"] > :last-child:where(:not([data-slot="theme-scope"]:not([data-theme="manuscript"]) *)) {
   order: 2;
   font-family: var(--theme-font-mono);
   font-weight: 700;

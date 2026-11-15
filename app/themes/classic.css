@@ -7,8 +7,12 @@
    under prefers-color-scheme: dark, a copy of Dark's; keep those copies in
    step with the Dark blocks. Every selector starts with a Classic
    data-theme, so the other themes are untouched. Unlayered, so it wins over
-   Tailwind's utilities.
-   Built to design/landing-classic/. */
+   Tailwind's utilities. Each rule ends in
+   :where(:not([data-slot="theme-scope"]:not(…) *)): it stops at a
+   ThemeScope in another theme (or another Classic mode) nested inside, so
+   only the nearest theme applies; [data-theme^="classic"] is any of the
+   three Classic ids. In :where(), so it adds no specificity. Keep it on new
+   rules. Built to design/landing-classic/. */
 
 /* Values no token covers, from the handoff: the strip under the landing's
    hero, the sign-up band, the tag fills and their text, taupe (progress,
@@ -71,28 +75,28 @@
    small 5px corners (half the 10px radius) instead of rounded-full. Round
    things stay round: dots, swatches, avatars, icon buttons and thin bars.
    data-chip marks the pill-shaped chips that have no hook of their own. */
-:is([data-theme="classic-light"], [data-theme="classic-dark"], [data-theme="classic"]) :is([data-chip], [data-slot="status-tag"], [data-slot="event-card-status"], [data-slot="relationship-tag"], [data-slot="badge"]) {
+:is([data-theme="classic-light"], [data-theme="classic-dark"], [data-theme="classic"]) :is([data-chip], [data-slot="status-tag"], [data-slot="event-card-status"], [data-slot="relationship-tag"], [data-slot="badge"]):where(:not([data-slot="theme-scope"]:not([data-theme^="classic"]) *)) {
   border-radius: calc(var(--radius) * 0.5);
 }
 /* The switch: a 5px track and a 3px thumb. */
-:is([data-theme="classic-light"], [data-theme="classic-dark"], [data-theme="classic"]) [data-slot="switch"] {
+:is([data-theme="classic-light"], [data-theme="classic-dark"], [data-theme="classic"]) [data-slot="switch"]:where(:not([data-slot="theme-scope"]:not([data-theme^="classic"]) *)) {
   border-radius: calc(var(--radius) * 0.5);
 }
-:is([data-theme="classic-light"], [data-theme="classic-dark"], [data-theme="classic"]) [data-slot="switch-thumb"] {
+:is([data-theme="classic-light"], [data-theme="classic-dark"], [data-theme="classic"]) [data-slot="switch-thumb"]:where(:not([data-slot="theme-scope"]:not([data-theme^="classic"]) *)) {
   border-radius: calc(var(--radius) * 0.3);
 }
 
 /* Cards: the 10px radius (project and place cards are rounded-xl, 15px
    here) and the handoff's soft shadow, a little stronger on hover. A
    selected place card keeps its ring, which is a box-shadow too. */
-:is([data-theme="classic-light"], [data-theme="classic-dark"], [data-theme="classic"]) :is([data-slot="project-card"], [data-slot="place-card"]) {
+:is([data-theme="classic-light"], [data-theme="classic-dark"], [data-theme="classic"]) :is([data-slot="project-card"], [data-slot="place-card"]):where(:not([data-slot="theme-scope"]:not([data-theme^="classic"]) *)) {
   border-radius: var(--radius);
 }
-:is([data-theme="classic-light"], [data-theme="classic-dark"], [data-theme="classic"]) :is([data-slot="project-card"], [data-slot="place-card"]:not([data-selected]), [data-slot="panel-card"]) {
+:is([data-theme="classic-light"], [data-theme="classic-dark"], [data-theme="classic"]) :is([data-slot="project-card"], [data-slot="place-card"]:not([data-selected]), [data-slot="panel-card"]):where(:not([data-slot="theme-scope"]:not([data-theme^="classic"]) *)) {
   box-shadow: var(--card-shadow);
 }
 @media (hover: hover) {
-  :is([data-theme="classic-light"], [data-theme="classic-dark"], [data-theme="classic"]) :is([data-slot="project-card"], [data-slot="place-card"]:not([data-selected])):hover {
+  :is([data-theme="classic-light"], [data-theme="classic-dark"], [data-theme="classic"]) :is([data-slot="project-card"], [data-slot="place-card"]:not([data-selected])):hover:where(:not([data-slot="theme-scope"]:not([data-theme^="classic"]) *)) {
     box-shadow: var(--card-shadow-hover);
   }
 }
@@ -125,33 +129,33 @@
     --event-edge: 55%;
   }
 }
-:is([data-theme="classic-light"], [data-theme="classic-dark"], [data-theme="classic"]) [data-slot="event-card"] {
+:is([data-theme="classic-light"], [data-theme="classic-dark"], [data-theme="classic"]) [data-slot="event-card"]:where(:not([data-slot="theme-scope"]:not([data-theme^="classic"]) *)) {
   border-width: 1px;
   background-color: color-mix(in srgb, var(--event-color) var(--event-tint), hsl(var(--card)));
 }
 @media (hover: hover) {
-  :is([data-theme="classic-light"], [data-theme="classic-dark"], [data-theme="classic"]) [data-slot="event-card"]:hover {
+  :is([data-theme="classic-light"], [data-theme="classic-dark"], [data-theme="classic"]) [data-slot="event-card"]:hover:where(:not([data-slot="theme-scope"]:not([data-theme^="classic"]) *)) {
     filter: none;
     background-color: color-mix(in srgb, var(--event-color) var(--event-tint-hover), hsl(var(--card)));
   }
 }
-:is([data-theme="classic-light"], [data-theme="classic-dark"], [data-theme="classic"]) [data-slot="event-card"]:not([data-selected]) {
+:is([data-theme="classic-light"], [data-theme="classic-dark"], [data-theme="classic"]) [data-slot="event-card"]:not([data-selected]):where(:not([data-slot="theme-scope"]:not([data-theme^="classic"]) *)) {
   border-color: color-mix(in srgb, var(--event-color) var(--event-edge), hsl(var(--card)));
 }
-:is([data-theme="classic-light"], [data-theme="classic-dark"], [data-theme="classic"]) [data-slot="event-card"][data-selected] {
+:is([data-theme="classic-light"], [data-theme="classic-dark"], [data-theme="classic"]) [data-slot="event-card"][data-selected]:where(:not([data-slot="theme-scope"]:not([data-theme^="classic"]) *)) {
   border-color: var(--event-color);
 }
-:is([data-theme="classic-light"], [data-theme="classic-dark"], [data-theme="classic"]) [data-slot="event-card-title"] {
+:is([data-theme="classic-light"], [data-theme="classic-dark"], [data-theme="classic"]) [data-slot="event-card-title"]:where(:not([data-slot="theme-scope"]:not([data-theme^="classic"]) *)) {
   color: hsl(var(--foreground));
 }
-:is([data-theme="classic-light"], [data-theme="classic-dark"], [data-theme="classic"]) :is([data-slot="event-card-description"], [data-slot="event-card-meta"]) {
+:is([data-theme="classic-light"], [data-theme="classic-dark"], [data-theme="classic"]) :is([data-slot="event-card-description"], [data-slot="event-card-meta"]):where(:not([data-slot="theme-scope"]:not([data-theme^="classic"]) *)) {
   color: color-mix(in srgb, hsl(var(--foreground)) 90%, hsl(var(--card)));
 }
-[data-theme="classic-dark"] [data-slot="event-card-status"] {
+[data-theme="classic-dark"] [data-slot="event-card-status"]:where(:not([data-slot="theme-scope"]:not([data-theme="classic-dark"]) *)) {
   background-color: color-mix(in oklab, var(--status-color) 25%, transparent);
 }
 @media (prefers-color-scheme: dark) {
-  [data-theme="classic"] [data-slot="event-card-status"] {
+  [data-theme="classic"] [data-slot="event-card-status"]:where(:not([data-slot="theme-scope"]:not([data-theme="classic"]) *)) {
     background-color: color-mix(in oklab, var(--status-color) 25%, transparent);
   }
 }
@@ -159,10 +163,10 @@
 /* Timeline lane names in ink, with a small rounded-square swatch in the
    layer's color before them, in place of colored text (light layer colors
    fail on the lane, yellow and orange most). */
-:is([data-theme="classic-light"], [data-theme="classic-dark"], [data-theme="classic"]) [data-slot="lane-label-name"] {
+:is([data-theme="classic-light"], [data-theme="classic-dark"], [data-theme="classic"]) [data-slot="lane-label-name"]:where(:not([data-slot="theme-scope"]:not([data-theme^="classic"]) *)) {
   color: hsl(var(--foreground));
 }
-:is([data-theme="classic-light"], [data-theme="classic-dark"], [data-theme="classic"]) [data-slot="lane-label-name"]::before {
+:is([data-theme="classic-light"], [data-theme="classic-dark"], [data-theme="classic"]) [data-slot="lane-label-name"]:where(:not([data-slot="theme-scope"]:not([data-theme^="classic"]) *))::before {
   content: "";
   display: inline-block;
   width: 8px;
@@ -181,15 +185,15 @@
    picker's list dots and the status filter's dots all carry the hook; the
    picker's color input keeps the stored value. Important, because each
    sets --status-color in its inline style. */
-[data-theme="classic-light"] [data-status-color="#6366f1" i],
-[data-theme="classic"] [data-status-color="#6366f1" i] {
+[data-theme="classic-light"] [data-status-color="#6366f1" i]:where(:not([data-slot="theme-scope"]:not([data-theme="classic-light"]) *)),
+[data-theme="classic"] [data-status-color="#6366f1" i]:where(:not([data-slot="theme-scope"]:not([data-theme="classic"]) *)) {
   --status-color: #7A4E6B !important;
 }
-[data-theme="classic-dark"] [data-status-color="#6366f1" i] {
+[data-theme="classic-dark"] [data-status-color="#6366f1" i]:where(:not([data-slot="theme-scope"]:not([data-theme="classic-dark"]) *)) {
   --status-color: #C9A3BC !important;
 }
 @media (prefers-color-scheme: dark) {
-  [data-theme="classic"] [data-status-color="#6366f1" i] {
+  [data-theme="classic"] [data-status-color="#6366f1" i]:where(:not([data-slot="theme-scope"]:not([data-theme="classic"]) *)) {
     --status-color: #C9A3BC !important;
   }
 }
@@ -197,12 +201,12 @@
    fails 4.5:1 on its own faint fill for most colors (Draft's grey in Dark
    most). The text is mixed 40% status color into 60% ink instead, so it
    keeps its hue and passes; the dot keeps the pure color. */
-:is([data-theme="classic-light"], [data-theme="classic-dark"], [data-theme="classic"]) [data-slot="status-tag"] {
+:is([data-theme="classic-light"], [data-theme="classic-dark"], [data-theme="classic"]) [data-slot="status-tag"]:where(:not([data-slot="theme-scope"]:not([data-theme^="classic"]) *)) {
   color: color-mix(in srgb, var(--status-color) 40%, hsl(var(--foreground)));
 }
 
 /* Page titles: Bricolage at 800 with the handoff's tight tracking. */
-:is([data-theme="classic-light"], [data-theme="classic-dark"], [data-theme="classic"]) :is([data-slot="page-heading"], [data-slot="page-title"]) {
+:is([data-theme="classic-light"], [data-theme="classic-dark"], [data-theme="classic"]) :is([data-slot="page-heading"], [data-slot="page-title"]):where(:not([data-slot="theme-scope"]:not([data-theme^="classic"]) *)) {
   font-weight: 800;
   letter-spacing: -0.025em;
 }
@@ -210,25 +214,25 @@
 /* Section labels as the handoff's eyebrows: Figtree 700, 13px, uppercase,
    0.09em, muted, no background. Panel headings and the timeline's "Layer"
    corner take the same weight and spacing at their own smaller sizes. */
-:is([data-theme="classic-light"], [data-theme="classic-dark"], [data-theme="classic"]) [data-slot="section-label"] {
+:is([data-theme="classic-light"], [data-theme="classic-dark"], [data-theme="classic"]) [data-slot="section-label"]:where(:not([data-slot="theme-scope"]:not([data-theme^="classic"]) *)) {
   font-size: 13px;
   font-weight: 700;
   letter-spacing: 0.09em;
   text-transform: uppercase;
   color: hsl(var(--muted-foreground));
 }
-:is([data-theme="classic-light"], [data-theme="classic-dark"], [data-theme="classic"]) :is([data-slot="panel-heading"], [data-slot="timeline-corner-label"]) {
+:is([data-theme="classic-light"], [data-theme="classic-dark"], [data-theme="classic"]) :is([data-slot="panel-heading"], [data-slot="timeline-corner-label"]):where(:not([data-slot="theme-scope"]:not([data-theme^="classic"]) *)) {
   font-weight: 700;
   letter-spacing: 0.09em;
 }
 
 /* Menu highlights (dropdown, menubar, select): the neutral tag color with
    ink, not the solid primary with cream. Destructive items keep theirs. */
-:is([data-theme="classic-light"], [data-theme="classic-dark"], [data-theme="classic"]) :is([data-slot="dropdown-menu-item"], [data-slot="dropdown-menu-checkbox-item"], [data-slot="dropdown-menu-radio-item"], [data-slot="dropdown-menu-sub-trigger"], [data-slot="menubar-item"], [data-slot="menubar-checkbox-item"], [data-slot="menubar-radio-item"], [data-slot="menubar-sub-trigger"], [data-slot="select-item"]):not([data-variant="destructive"]):is(:focus, [data-state="open"], [data-open]) {
+:is([data-theme="classic-light"], [data-theme="classic-dark"], [data-theme="classic"]) :is([data-slot="dropdown-menu-item"], [data-slot="dropdown-menu-checkbox-item"], [data-slot="dropdown-menu-radio-item"], [data-slot="dropdown-menu-sub-trigger"], [data-slot="menubar-item"], [data-slot="menubar-checkbox-item"], [data-slot="menubar-radio-item"], [data-slot="menubar-sub-trigger"], [data-slot="select-item"]):not([data-variant="destructive"]):is(:focus, [data-state="open"], [data-open]):where(:not([data-slot="theme-scope"]:not([data-theme^="classic"]) *)) {
   background-color: hsl(var(--tag-neutral));
   color: hsl(var(--tag-neutral-ink));
 }
-:is([data-theme="classic-light"], [data-theme="classic-dark"], [data-theme="classic"]) :is([data-slot="dropdown-menu-item"], [data-slot="dropdown-menu-checkbox-item"], [data-slot="dropdown-menu-radio-item"], [data-slot="dropdown-menu-sub-trigger"], [data-slot="menubar-item"], [data-slot="menubar-checkbox-item"], [data-slot="menubar-radio-item"], [data-slot="menubar-sub-trigger"], [data-slot="select-item"]):not([data-variant="destructive"]):is(:focus, [data-state="open"], [data-open]) * {
+:is([data-theme="classic-light"], [data-theme="classic-dark"], [data-theme="classic"]) :is([data-slot="dropdown-menu-item"], [data-slot="dropdown-menu-checkbox-item"], [data-slot="dropdown-menu-radio-item"], [data-slot="dropdown-menu-sub-trigger"], [data-slot="menubar-item"], [data-slot="menubar-checkbox-item"], [data-slot="menubar-radio-item"], [data-slot="menubar-sub-trigger"], [data-slot="select-item"]):not([data-variant="destructive"]):is(:focus, [data-state="open"], [data-open]) *:where(:not([data-slot="theme-scope"]:not([data-theme^="classic"]) *)) {
   color: hsl(var(--tag-neutral-ink));
 }
 
@@ -236,10 +240,10 @@
    blue tag color (powder blue in Light, dark slate in Dark), in place of
    the solid primary block. The project dialog's empty cover picker takes
    the same color. Places keep their own placeholder. */
-:is([data-theme="classic-light"], [data-theme="classic-dark"], [data-theme="classic"]) :is([data-slot="project-cover"], [data-slot="cover-picker"]) {
+:is([data-theme="classic-light"], [data-theme="classic-dark"], [data-theme="classic"]) :is([data-slot="project-cover"], [data-slot="cover-picker"]):where(:not([data-slot="theme-scope"]:not([data-theme^="classic"]) *)) {
   background-color: hsl(var(--tag-blue));
 }
-:is([data-theme="classic-light"], [data-theme="classic-dark"], [data-theme="classic"]) [data-slot="project-card"] [data-slot="title-page"] {
+:is([data-theme="classic-light"], [data-theme="classic-dark"], [data-theme="classic"]) [data-slot="project-card"] [data-slot="title-page"]:where(:not([data-slot="theme-scope"]:not([data-theme^="classic"]) *)) {
   display: flex;
   height: 100%;
   align-items: center;
@@ -247,7 +251,7 @@
   padding: 1rem;
   text-align: center;
 }
-:is([data-theme="classic-light"], [data-theme="classic-dark"], [data-theme="classic"]) [data-slot="project-card"] [data-slot="title-page-title"] {
+:is([data-theme="classic-light"], [data-theme="classic-dark"], [data-theme="classic"]) [data-slot="project-card"] [data-slot="title-page-title"]:where(:not([data-slot="theme-scope"]:not([data-theme^="classic"]) *)) {
   display: -webkit-box;
   -webkit-box-orient: vertical;
   -webkit-line-clamp: 4;
@@ -261,7 +265,7 @@
   line-height: 1.1;
   color: hsl(var(--tag-blue-ink));
 }
-:is([data-theme="classic-light"], [data-theme="classic-dark"], [data-theme="classic"]) [data-slot="project-card"] [data-slot="title-page-fleuron"] {
+:is([data-theme="classic-light"], [data-theme="classic-dark"], [data-theme="classic"]) [data-slot="project-card"] [data-slot="title-page-fleuron"]:where(:not([data-slot="theme-scope"]:not([data-theme^="classic"]) *)) {
   display: none;
 }
 
@@ -270,12 +274,12 @@
    color with ink, like the menus, instead of the solid primary block or the
    gray fill, and a short rounded marker in the primary color at its left
    (not a stripe down the rounded edge). */
-:is([data-theme="classic-light"], [data-theme="classic-dark"], [data-theme="classic"]) [data-slot="nav-item"][data-active] {
+:is([data-theme="classic-light"], [data-theme="classic-dark"], [data-theme="classic"]) [data-slot="nav-item"][data-active]:where(:not([data-slot="theme-scope"]:not([data-theme^="classic"]) *)) {
   position: relative;
   color: hsl(var(--foreground));
   background-color: hsl(var(--tag-neutral));
 }
-:is([data-theme="classic-light"], [data-theme="classic-dark"], [data-theme="classic"]) [data-slot="nav-item"][data-active]::before {
+:is([data-theme="classic-light"], [data-theme="classic-dark"], [data-theme="classic"]) [data-slot="nav-item"][data-active]:where(:not([data-slot="theme-scope"]:not([data-theme^="classic"]) *))::before {
   content: "";
   position: absolute;
   top: 50%;
@@ -289,7 +293,7 @@
 
 /* The wordmark next to the logo, as in the handoff's nav: Bricolage 800
    with the headings' tight tracking. */
-:is([data-theme="classic-light"], [data-theme="classic-dark"], [data-theme="classic"]) [data-slot="wordmark"] {
+:is([data-theme="classic-light"], [data-theme="classic-dark"], [data-theme="classic"]) [data-slot="wordmark"]:where(:not([data-slot="theme-scope"]:not([data-theme^="classic"]) *)) {
   font-family: var(--theme-font-heading);
   font-weight: 800;
   letter-spacing: -0.025em;
