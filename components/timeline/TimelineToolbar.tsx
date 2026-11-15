@@ -76,7 +76,7 @@ export function TimelineToolbar({
         <MultiSelectFilter
           label="Status"
           icon={ListFilter}
-          options={statuses.map((s) => ({ value: s.id, label: s.name, color: s.color }))}
+          options={statuses.map((s) => ({ value: s.id, label: s.name, color: s.color, isStatus: true }))}
           selected={statusFilter}
           onChange={onStatusFilterChange}
         />
@@ -110,6 +110,8 @@ interface MultiSelectOption {
   value: string
   label: string
   color?: string | null
+  // A status's color, which a theme may show differently (data-status-color).
+  isStatus?: boolean
 }
 
 // Shared option-list rendering, reused by both the desktop per-filter
@@ -144,8 +146,9 @@ function FilterOptionsList({
           >
             {opt.color && (
               <span
-                className="h-2.5 w-2.5 shrink-0 rounded-full"
-                style={{ backgroundColor: opt.color }}
+                data-status-color={opt.isStatus ? opt.color : undefined}
+                className="h-2.5 w-2.5 shrink-0 rounded-full bg-(--status-color)"
+                style={{ '--status-color': opt.color } as React.CSSProperties}
               />
             )}
             <span className="flex-1 truncate">{opt.label}</span>
@@ -313,7 +316,7 @@ function FiltersOverflow({
         <FilterSection
           label="Status"
           icon={ListFilter}
-          options={statuses.map((s) => ({ value: s.id, label: s.name, color: s.color }))}
+          options={statuses.map((s) => ({ value: s.id, label: s.name, color: s.color, isStatus: true }))}
           selected={statusFilter}
           onChange={onStatusFilterChange}
         />

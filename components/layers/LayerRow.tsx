@@ -278,8 +278,8 @@ export function LayerRow({
       >
         <span
           data-slot="lane-label-name"
-          className="text-[11px] font-medium truncate"
-          style={{ color: layer.color }}
+          className="text-[11px] font-medium truncate text-(--layer-color)"
+          style={{ '--layer-color': layer.color } as React.CSSProperties}
         >
           {layer.name}
         </span>
@@ -468,6 +468,7 @@ function EventCardStacked({
 
       <span
         data-slot="event-card-status"
+        data-status-color={statusColor}
         className="self-start px-1.5 py-0.5 rounded-full text-[9px] font-semibold uppercase tracking-wide leading-none text-foreground bg-(--status-color)/40"
         style={{ '--status-color': statusColor } as React.CSSProperties}
       >
@@ -513,6 +514,7 @@ export function EventCardPreview({
 
       <span
         data-slot="event-card-status"
+        data-status-color={statusColor}
         className="self-start px-1.5 py-0.5 rounded-full text-[9px] font-semibold uppercase tracking-wide leading-none text-foreground bg-(--status-color)/[36.08%]"
         style={{ '--status-color': statusColor } as React.CSSProperties}
       >

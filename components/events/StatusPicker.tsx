@@ -84,6 +84,7 @@ export function StatusPicker({ statuses, projectId, value, onChange, onReorder }
         <button
           type="button"
           data-slot="status-tag"
+          data-status-color={current?.color ?? FALLBACK_COLOR}
           className="flex items-center gap-1.5 rounded-full px-2.5 py-0.5 text-[11px] font-semibold transition-opacity hover:opacity-80 bg-(--status-color)/[18.82%] text-(--status-color)"
           style={{ '--status-color': current?.color ?? FALLBACK_COLOR } as React.CSSProperties}
         >
@@ -228,9 +229,13 @@ function StatusRow({
         <GripVertical className="h-3.5 w-3.5" />
       </button>
 
+      {/* The dot shows the color through --status-color, so a theme can
+          show a stored default differently; the color input keeps the
+          stored value. */}
       <label
-        className="relative h-3 w-3 shrink-0 cursor-pointer rounded-full ring-1 ring-inset ring-black/15 transition-transform hover:scale-125 dark:ring-white/15 after:absolute after:-inset-1.5"
-        style={{ backgroundColor: status.color }}
+        data-status-color={status.color}
+        className="relative h-3 w-3 shrink-0 cursor-pointer rounded-full ring-1 ring-inset ring-black/15 transition-transform hover:scale-125 dark:ring-white/15 after:absolute after:-inset-1.5 bg-(--status-color)"
+        style={{ '--status-color': status.color } as React.CSSProperties}
         title="Click to change color"
         onClick={(e) => e.stopPropagation()}
       >

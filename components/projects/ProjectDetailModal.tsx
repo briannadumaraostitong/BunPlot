@@ -447,6 +447,7 @@ function ProjectCoverImage({
 
   return (
     <div
+      data-slot="cover-picker"
       className="group/cover relative aspect-2/3 w-24 sm:w-37.5 shrink-0 cursor-pointer overflow-hidden rounded-lg bg-primary"
       onClick={() => !uploading && fileInputRef.current?.click()}
       onDragOver={(e) => e.preventDefault()}

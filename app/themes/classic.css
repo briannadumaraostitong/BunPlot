@@ -119,3 +119,128 @@
 [data-theme="classic-dark"] [data-slot="event-card-status"] {
   background-color: color-mix(in oklab, var(--status-color) 25%, transparent);
 }
+
+/* Timeline lane names in ink, with a small rounded-square swatch in the
+   layer's color before them, in place of colored text (light layer colors
+   fail on the lane, yellow and orange most). */
+:is([data-theme="classic-light"], [data-theme="classic-dark"]) [data-slot="lane-label-name"] {
+  color: hsl(var(--foreground));
+}
+:is([data-theme="classic-light"], [data-theme="classic-dark"]) [data-slot="lane-label-name"]::before {
+  content: "";
+  display: inline-block;
+  width: 8px;
+  height: 8px;
+  margin-right: 6px;
+  border-radius: 2px;
+  background-color: var(--layer-color);
+  vertical-align: 0.02em;
+}
+
+/* The "Outline" status: new projects store it as indigo #6366F1, which
+   doesn't fit the warm palette, so Classic shows that stored default as a
+   dusty plum instead (statuses a writer recolored keep their color), apart
+   from the grey Draft. Light's is deep, Dark's pale, so the ink on its fill
+   on event cards passes 4.5:1 at rest and on hover. Tags, the status
+   picker's list dots and the status filter's dots all carry the hook; the
+   picker's color input keeps the stored value. Important, because each
+   sets --status-color in its inline style. */
+[data-theme="classic-light"] [data-status-color="#6366f1" i] {
+  --status-color: #7A4E6B !important;
+}
+[data-theme="classic-dark"] [data-status-color="#6366f1" i] {
+  --status-color: #C9A3BC !important;
+}
+/* The event dialog's status tag writes its name in the status color, which
+   fails 4.5:1 on its own faint fill for most colors (Draft's grey in Dark
+   most). The text is mixed 40% status color into 60% ink instead, so it
+   keeps its hue and passes; the dot keeps the pure color. */
+:is([data-theme="classic-light"], [data-theme="classic-dark"]) [data-slot="status-tag"] {
+  color: color-mix(in srgb, var(--status-color) 40%, hsl(var(--foreground)));
+}
+
+/* Page titles: Bricolage at 800 with the handoff's tight tracking. */
+:is([data-theme="classic-light"], [data-theme="classic-dark"]) :is([data-slot="page-heading"], [data-slot="page-title"]) {
+  font-weight: 800;
+  letter-spacing: -0.025em;
+}
+
+/* Section labels as the handoff's eyebrows: Figtree 700, 13px, uppercase,
+   0.09em, muted, no background. Panel headings and the timeline's "Layer"
+   corner take the same weight and spacing at their own smaller sizes. */
+:is([data-theme="classic-light"], [data-theme="classic-dark"]) [data-slot="section-label"] {
+  font-size: 13px;
+  font-weight: 700;
+  letter-spacing: 0.09em;
+  text-transform: uppercase;
+  color: hsl(var(--muted-foreground));
+}
+:is([data-theme="classic-light"], [data-theme="classic-dark"]) :is([data-slot="panel-heading"], [data-slot="timeline-corner-label"]) {
+  font-weight: 700;
+  letter-spacing: 0.09em;
+}
+
+/* Menu highlights (dropdown, menubar, select): the neutral tag color with
+   ink, not the solid primary with cream. Destructive items keep theirs. */
+:is([data-theme="classic-light"], [data-theme="classic-dark"]) :is([data-slot="dropdown-menu-item"], [data-slot="dropdown-menu-checkbox-item"], [data-slot="dropdown-menu-radio-item"], [data-slot="dropdown-menu-sub-trigger"], [data-slot="menubar-item"], [data-slot="menubar-checkbox-item"], [data-slot="menubar-radio-item"], [data-slot="menubar-sub-trigger"], [data-slot="select-item"]):not([data-variant="destructive"]):is(:focus, [data-state="open"], [data-open]) {
+  background-color: hsl(var(--tag-neutral));
+  color: hsl(var(--tag-neutral-ink));
+}
+:is([data-theme="classic-light"], [data-theme="classic-dark"]) :is([data-slot="dropdown-menu-item"], [data-slot="dropdown-menu-checkbox-item"], [data-slot="dropdown-menu-radio-item"], [data-slot="dropdown-menu-sub-trigger"], [data-slot="menubar-item"], [data-slot="menubar-checkbox-item"], [data-slot="menubar-radio-item"], [data-slot="menubar-sub-trigger"], [data-slot="select-item"]):not([data-variant="destructive"]):is(:focus, [data-state="open"], [data-open]) * {
+  color: hsl(var(--tag-neutral-ink));
+}
+
+/* A project without a cover: a title page, the name in Bricolage on the
+   blue tag color (powder blue in Light, dark slate in Dark), in place of
+   the solid primary block. The project dialog's empty cover picker takes
+   the same color. Places keep their own placeholder. */
+:is([data-theme="classic-light"], [data-theme="classic-dark"]) :is([data-slot="project-cover"], [data-slot="cover-picker"]) {
+  background-color: hsl(var(--tag-blue));
+}
+:is([data-theme="classic-light"], [data-theme="classic-dark"]) [data-slot="project-card"] [data-slot="title-page"] {
+  display: flex;
+  height: 100%;
+  align-items: center;
+  justify-content: center;
+  padding: 1rem;
+  text-align: center;
+}
+:is([data-theme="classic-light"], [data-theme="classic-dark"]) [data-slot="project-card"] [data-slot="title-page-title"] {
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 4;
+  line-clamp: 4;
+  overflow: hidden;
+  overflow-wrap: anywhere;
+  font-family: var(--theme-font-heading);
+  font-size: 1.375rem;
+  font-weight: 800;
+  letter-spacing: -0.025em;
+  line-height: 1.1;
+  color: hsl(var(--tag-blue-ink));
+}
+:is([data-theme="classic-light"], [data-theme="classic-dark"]) [data-slot="project-card"] [data-slot="title-page-fleuron"] {
+  display: none;
+}
+
+/* The active item in the sidebar and in the Outline documents, character,
+   place and storyboard chapter lists (same nav-item hook): the neutral tag
+   color with ink, like the menus, instead of the solid primary block or the
+   gray fill, and a short rounded marker in the primary color at its left
+   (not a stripe down the rounded edge). */
+:is([data-theme="classic-light"], [data-theme="classic-dark"]) [data-slot="nav-item"][data-active] {
+  position: relative;
+  color: hsl(var(--foreground));
+  background-color: hsl(var(--tag-neutral));
+}
+:is([data-theme="classic-light"], [data-theme="classic-dark"]) [data-slot="nav-item"][data-active]::before {
+  content: "";
+  position: absolute;
+  top: 50%;
+  left: 0;
+  width: 3px;
+  height: 14px;
+  border-radius: 0 2px 2px 0;
+  background-color: hsl(var(--primary));
+  transform: translateY(-50%);
+}
