@@ -244,3 +244,11 @@
   background-color: hsl(var(--primary));
   transform: translateY(-50%);
 }
+
+/* The wordmark next to the logo, as in the handoff's nav: Bricolage 800
+   with the headings' tight tracking. */
+:is([data-theme="classic-light"], [data-theme="classic-dark"]) [data-slot="wordmark"] {
+  font-family: var(--theme-font-heading);
+  font-weight: 800;
+  letter-spacing: -0.025em;
+}
