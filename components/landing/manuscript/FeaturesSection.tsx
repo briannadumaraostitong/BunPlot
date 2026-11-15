@@ -1,7 +1,7 @@
 import { CHAPTER, CHARACTER, EXPORTS, FEATURES, OUTLINE } from '../content'
 import { CONTAINER } from '../layout'
 import { Fleuron } from './Fleuron'
-import { EYEBROW, H2, H3, HEADING, ITALIC_EYEBROW, LABEL, SHEET, SPLIT, ampersand, numberWord, roman } from './styles'
+import { EYEBROW, H2, H3, HEADING, ITALIC_EYEBROW, LABEL, SHEET, SPLIT, featureLabel, numberWord, roman } from './styles'
 
 // Each feature: an italic label, a heading, a paragraph and three short
 // points marked with an oxblood ❧, with a picture of that part of the app
@@ -14,7 +14,7 @@ function FeatureRow({
   className,
   children,
 }: {
-  label: string
+  label: readonly string[]
   title: string
   body: string
   points: readonly string[]
@@ -24,7 +24,7 @@ function FeatureRow({
   return (
     <div className={`${SPLIT} ${className ?? ''}`}>
       <div className="min-w-0 flex-[1_1_400px]">
-        <p className={`mb-2 text-[19px] ${ITALIC_EYEBROW}`}>{ampersand(label)}</p>
+        <p className={`mb-2 text-[19px] ${ITALIC_EYEBROW}`}>{featureLabel(label)}</p>
         <h3 className={H3}>{title}</h3>
         <p className="mb-5 text-[17px] leading-[1.75]">{body}</p>
         <ul className="text-[16px] leading-[2]">

@@ -2,7 +2,7 @@ import { Eyebrow } from '@/components/hud/Eyebrow'
 import { ThemeFrame, ThemeFrameSlot } from '@/components/hud/ThemeFrame'
 import { CHAPTER, CHARACTER, EXPORTS, FEATURES, OUTLINE } from '../content'
 import { CONTAINER } from '../layout'
-import { BAND, BODY, H2, H3, SECTION_EYEBROW, SPLIT, SPLIT_TEXT, sectionNumber } from './styles'
+import { BAND, BODY, H2, H3, SECTION_EYEBROW, SPLIT, SPLIT_TEXT, featureLabel, sectionNumber } from './styles'
 
 // Each feature: a label, a heading, a paragraph and three short points, with
 // a picture of that part of the app beside it.
@@ -16,7 +16,7 @@ function FeatureRow({
   className,
   children,
 }: {
-  label: string
+  label: readonly string[]
   labelTone: string
   title: string
   body: string
@@ -28,7 +28,7 @@ function FeatureRow({
   return (
     <div className={`${SPLIT} gap-y-10 ${className ?? ''}`}>
       <div className={SPLIT_TEXT}>
-        <p className={`mb-3.5 font-mono text-[12px] uppercase ${labelTone}`}>{label}</p>
+        <p className={`mb-3.5 font-mono text-[12px] uppercase ${labelTone}`}>{featureLabel(label)}</p>
         <h3 className={H3}>{title}</h3>
         <p className={`mb-5 ${BODY}`}>{body}</p>
         <ul className="flex flex-col gap-2 font-mono text-[14px] text-secondary-foreground">

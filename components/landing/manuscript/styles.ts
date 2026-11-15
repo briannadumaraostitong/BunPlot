@@ -37,6 +37,5 @@ export const roman = (n: number) => ROMAN[n - 1] ?? String(n)
 const WORDS = ['One', 'Two', 'Three', 'Four', 'Five', 'Six', 'Seven', 'Eight', 'Nine', 'Ten', 'Eleven', 'Twelve']
 export const numberWord = (n: number) => WORDS[n - 1] ?? String(n)
 
-// Feature labels join their two parts with "&" here ("Timeline & Outline");
-// the shared copy writes "+".
-export const ampersand = (label: string) => label.replace(' + ', ' & ')
+// Feature labels join their parts with "&": "Timeline & Outline".
+export const featureLabel = (parts: readonly string[]) => parts.join(' & ')

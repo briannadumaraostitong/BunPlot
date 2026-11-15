@@ -65,25 +65,27 @@ export const WHY = {
   },
 }
 
+// Each feature row's label is its parts; each theme joins them in its own
+// style ("Timeline + Outline", "Timeline & Outline").
 export const FEATURES = {
   number: 2,
   label: 'Features',
   title: 'Everything in its place',
   rows: {
     outline: {
-      label: 'Timeline + Outline',
+      label: ['Timeline', 'Outline'],
       title: 'See the plot, then write it',
       body: 'Lay out events by chapter and storyline on the timeline grid, then draft in an outline editor with real book fonts and images that wrap around your text.',
       points: ['Grid and flow views', 'Filter by character, place or storyline', 'Edits backed up as you type'],
     },
     characters: {
-      label: 'Characters + Places',
+      label: ['Characters', 'Places'],
       title: 'Know who everyone is to everyone',
       body: "Give each character a color, a role and notes, and map how they're related on family tree canvases. Keep every place with its cover image and description.",
       points: ['Relationship maps and family trees', 'Places with cover images', 'Linked to every event they appear in'],
     },
     exports: {
-      label: 'Exports',
+      label: ['Exports'],
       title: 'Take it with you',
       body: 'Export your manuscript as a book-style PDF or Word file, or a story bible with every character, place and event in one reference document. Preview it before you download.',
       points: ['Book style at A4 or 6×9', 'Story bible with a contents page', 'Storyboard as PDF or images'],

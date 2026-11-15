@@ -16,3 +16,6 @@ export const SECTION_EYEBROW = 'mb-3 tracking-normal'
 
 // Section numbers as the eyebrows show them: "01".
 export const sectionNumber = (n: number) => String(n).padStart(2, '0')
+
+// Feature labels join their parts with "+": "Timeline + Outline".
+export const featureLabel = (parts: readonly string[]) => parts.join(' + ')
