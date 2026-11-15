@@ -1,6 +1,7 @@
 'use client'
 
 import { useAuthTheme, type AuthTheme } from './AuthTheme'
+import { ClassicAuthShell } from './ClassicAuthShell'
 import { CyberpunkAuthShell } from './CyberpunkAuthShell'
 import { ManuscriptAuthShell } from './ManuscriptAuthShell'
 
@@ -19,6 +20,9 @@ export type AuthShellProps = {
 // its landing page. The theme comes from the server (app/(auth)/layout.tsx)
 // through AuthThemeProvider, as the landing page picks its own.
 const SHELLS: Record<AuthTheme, (props: AuthShellProps) => React.ReactNode> = {
+  // One shell for both Classic modes: they differ only in colors.
+  'classic-light': ClassicAuthShell,
+  'classic-dark': ClassicAuthShell,
   cyberpunk: CyberpunkAuthShell,
   manuscript: ManuscriptAuthShell,
 }
@@ -32,9 +36,18 @@ export function AuthShell(props: AuthShellProps) {
 // gives each theme its label style).
 export const AUTH_LABEL = 'text-[10px] font-semibold uppercase tracking-wider text-muted-foreground'
 
+// Classic: underlined slate links, buttons in their own case, Figtree 800.
+const CLASSIC_LOOK = {
+  link: 'text-link underline underline-offset-[3px] transition-colors hover:text-foreground',
+  button: '',
+  submit: 'font-extrabold',
+}
+
 // The classes that differ by theme in the forms themselves: the footer link,
 // the buttons' case and the submit button's weight.
 const LOOKS: Record<AuthTheme, { link: string; button: string; submit: string }> = {
+  'classic-light': CLASSIC_LOOK,
+  'classic-dark': CLASSIC_LOOK,
   cyberpunk: {
     link: 'text-accent-2 uppercase tracking-[1px] transition-colors hover:text-accent',
     button: 'uppercase tracking-[1px]',

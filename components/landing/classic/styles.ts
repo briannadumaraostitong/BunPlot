@@ -35,5 +35,9 @@ export const TAG_BLUE = 'bg-[hsl(var(--tag-blue))] text-[hsl(var(--tag-blue-ink)
 export const TAG_NEUTRAL = 'bg-[hsl(var(--tag-neutral))] text-[hsl(var(--tag-neutral-ink))]'
 export const TAG_OUTLINE = 'border-2 border-[hsl(var(--taupe))] text-foreground'
 
+// The app window's three dots (the hero, the login card): taupe, powder blue
+// and the neutral tag.
+export const WINDOW_DOTS = ['bg-[hsl(var(--taupe))]', 'bg-[hsl(var(--band-line))]', 'bg-[hsl(var(--tag-neutral))]']
+
 // Feature labels join their parts with "and": "Timeline and Outline".
 export const featureLabel = (parts: readonly string[]) => parts.join(' and ')

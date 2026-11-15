@@ -2,7 +2,7 @@ import Link from 'next/link'
 import { HERO, PROJECT, TIMELINE } from '../content'
 import { CONTAINER } from '../layout'
 import { CTA } from './cta'
-import { CARD, EYEBROW, HEADING, STRONG, TAG, TAG_BLUE, TAG_NEUTRAL, TAG_OUTLINE } from './styles'
+import { CARD, EYEBROW, HEADING, STRONG, TAG, TAG_BLUE, TAG_NEUTRAL, TAG_OUTLINE, WINDOW_DOTS } from './styles'
 
 // Each storyline's event tags, keyed by the lane's tone: blue for Main,
 // neutral for Ilsa, taupe-outlined for Letters (the outline takes 2px of the
@@ -13,8 +13,6 @@ const GRID = 'grid grid-cols-[72px_repeat(4,minmax(0,1fr))] gap-2.5'
 const LANE_LABEL = 'text-[14px] font-extrabold text-muted-foreground'
 
 const CHAPTERS = Array.from({ length: TIMELINE.chapters }, (_, i) => `Ch. ${i + 1}`)
-// The window's three dots: taupe, powder blue and the neutral tag.
-const DOTS = ['bg-[hsl(var(--taupe))]', 'bg-[hsl(var(--band-line))]', 'bg-[hsl(var(--tag-neutral))]']
 
 export function Hero() {
   return (
@@ -45,7 +43,7 @@ export function Hero() {
         >
           <div className="flex items-center gap-3 border-b border-border px-[22px] py-4">
             <span className="flex gap-1.5">
-              {DOTS.map((dot) => (
+              {WINDOW_DOTS.map((dot) => (
                 <span key={dot} className={`size-[11px] rounded-full ${dot}`} />
               ))}
             </span>
