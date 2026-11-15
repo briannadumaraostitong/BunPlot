@@ -1,14 +1,24 @@
 import type { Metadata } from 'next'
-import { Geist, Geist_Mono, Chakra_Petch, JetBrains_Mono, Literata, Courier_Prime, Cormorant_Garamond } from 'next/font/google'
+import { Figtree, Bricolage_Grotesque, Geist_Mono, Chakra_Petch, JetBrains_Mono, Literata, Courier_Prime, Cormorant_Garamond } from 'next/font/google'
 import './globals.css'
 import { ThemeProvider } from '@/components/theme/ThemeProvider'
 import { ThemeScript } from '@/components/theme/ThemeScript'
 import { TooltipProvider } from '@/components/ui/tooltip'
 import { Toaster } from '@/components/ui/sonner'
 
-const geistSans = Geist({
-  variable: '--font-geist-sans',
+// Classic theme fonts, preloaded: Classic is the default look. Figtree for
+// text and UI, Bricolage Grotesque for headings (both variable fonts: every
+// weight from one file; Bricolage with its optical-size axis), Geist Mono in
+// the mono role (code, hex values).
+const figtree = Figtree({
+  variable: '--font-figtree',
   subsets: ['latin'],
+})
+
+const bricolage = Bricolage_Grotesque({
+  variable: '--font-bricolage',
+  subsets: ['latin'],
+  axes: ['opsz'],
 })
 
 const geistMono = Geist_Mono({
@@ -70,7 +80,7 @@ export default function RootLayout({
   return (
     // The font variables sit on <html>, where the theme's --theme-font-* tokens
     // are set: a variable defined only on <body> can't resolve up there.
-    <html lang="en" className={`${geistSans.variable} ${geistMono.variable} ${chakraPetch.variable} ${jetbrainsMono.variable} ${literata.variable} ${courierPrime.variable} ${cormorant.variable}`} suppressHydrationWarning>
+    <html lang="en" className={`${figtree.variable} ${bricolage.variable} ${geistMono.variable} ${chakraPetch.variable} ${jetbrainsMono.variable} ${literata.variable} ${courierPrime.variable} ${cormorant.variable}`} suppressHydrationWarning>
       <head>
         <ThemeScript />
       </head>

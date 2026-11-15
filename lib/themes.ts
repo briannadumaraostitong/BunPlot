@@ -32,11 +32,12 @@ export interface ThemeDefinition {
   tokens: Record<string, string>
 }
 
-// The look every theme has had so far: rounded corners, a plain background, Geist.
+// Classic Light and Dark share one look and differ only in colors: rounded
+// corners, a plain background, Figtree with Bricolage Grotesque headings.
 const CLASSIC_LOOK = {
   shape: 'rounded',
   texture: 'none',
-  fonts: { sans: '--font-geist-sans', mono: '--font-geist-mono', heading: '--font-geist-sans' },
+  fonts: { sans: '--font-figtree', mono: '--font-geist-mono', heading: '--font-bricolage' },
   frames: null,
   radius: '0.5rem',
 } satisfies Pick<ThemeDefinition, 'shape' | 'texture' | 'fonts' | 'frames' | 'radius'>

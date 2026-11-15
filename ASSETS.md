@@ -39,7 +39,9 @@ Downloaded from Google Fonts at build time by `next/font/google` (`app/layout.ts
 
 | Family | Author | Source | Where it's used |
 |---|---|---|---|
-| Geist, Geist Mono | Vercel | https://github.com/vercel/geist-font | Classic themes |
+| Figtree | Erik Kennedy | https://github.com/erikdkennedy/figtree | Classic themes (text and UI) |
+| Bricolage Grotesque | Mathieu Triay | https://github.com/ateliertriay/bricolage | Classic themes (headings) |
+| Geist Mono | Vercel | https://github.com/vercel/geist-font | Classic themes (mono) |
 | Chakra Petch | Cadson Demak | https://github.com/cadsondemak/Chakra-Petch | Cyberpunk theme |
 | JetBrains Mono | JetBrains | https://github.com/JetBrains/JetBrainsMono | Cyberpunk theme |
 | Literata | The Literata Project Authors | https://github.com/googlefonts/literata | Manuscript theme (text and UI) |

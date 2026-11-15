@@ -105,9 +105,9 @@
   --radius: 0.5rem;
 
   /* Fonts — classic default (overridden per-theme by lib/themes.ts) */
-  --theme-font-sans: var(--font-geist-sans);
+  --theme-font-sans: var(--font-figtree);
   --theme-font-mono: var(--font-geist-mono);
-  --theme-font-heading: var(--font-geist-sans);
+  --theme-font-heading: var(--font-bricolage);
 
   /* Base colors */
   --background:         0 0% 99%;
