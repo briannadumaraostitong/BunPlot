@@ -1,6 +1,7 @@
 // Colours for the story bible's cards and labels, worked out once as plain
 // #RRGGBB so the PDF and DOCX print the same ones. Neither can be relied on
-// for transparency (DOCX has none), so tints are mixed over white here.
+// for transparency (DOCX has none), so tints are mixed over white here. The
+// contrast helpers are also used by the app's avatars (lib/initialsInk.ts).
 
 // The app's colour for a character, place or event without one.
 export const DEFAULT_ACCENT = '#6366F1'
@@ -18,20 +19,20 @@ const MIN_CONTRAST = 4.5
 // as it is.
 const MIN_BAR_CONTRAST = 1.5
 
-type Rgb = [number, number, number]
+export type Rgb = [number, number, number]
 
 const WHITE: Rgb = [255, 255, 255]
 const BLACK: Rgb = [0, 0, 0]
 
 // #rgb or #rrggbb, any case; anything else is null.
-function parseHex(value: string): Rgb | null {
+export function parseHex(value: string): Rgb | null {
   const match = /^#?([0-9a-f]{3}|[0-9a-f]{6})$/i.exec(value.trim())
   if (!match) return null
   const hex = match[1].length === 3 ? [...match[1]].map((c) => c + c).join('') : match[1]
   return [0, 2, 4].map((i) => parseInt(hex.slice(i, i + 2), 16)) as Rgb
 }
 
-function toHex(rgb: Rgb): string {
+export function toHex(rgb: Rgb): string {
   return '#' + rgb.map((c) => Math.round(c).toString(16).padStart(2, '0')).join('').toUpperCase()
 }
 
@@ -49,7 +50,7 @@ function luminance(rgb: Rgb): number {
   return 0.2126 * r + 0.7152 * g + 0.0722 * b
 }
 
-function contrast(a: Rgb, b: Rgb): number {
+export function contrast(a: Rgb, b: Rgb): number {
   const [hi, lo] = [luminance(a), luminance(b)].sort((x, y) => y - x)
   return (hi + 0.05) / (lo + 0.05)
 }
@@ -57,7 +58,7 @@ function contrast(a: Rgb, b: Rgb): number {
 // The colour, darkened towards black only as far as it takes to reach ratio
 // against background (readable, by default). Checked as the whole numbers
 // it's printed as, since rounding can lose the last bit of contrast.
-function readableOn(color: Rgb, background: Rgb, ratio = MIN_CONTRAST): Rgb {
+export function readableOn(color: Rgb, background: Rgb, ratio = MIN_CONTRAST): Rgb {
   const bg = background.map(Math.round) as Rgb
   for (let t = 0; t < 1; t += 0.02) {
     const darker = mix(BLACK, color, t).map(Math.round) as Rgb

@@ -5,6 +5,7 @@ import { Link2, Unlink } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { playClickSound } from '@/lib/sound'
 import { getInitials } from './CharacterRow'
+import { initialsInk } from '@/lib/initialsInk'
 import type { Character } from '@/types/database'
 
 export const NODE_WIDTH = 168
@@ -119,8 +120,9 @@ export function CharacterNode({
         <Unlink className="h-2.5 w-2.5" />
       </button>
       <div
+        data-slot="character-avatar"
         className="h-8 w-8 shrink-0 rounded-full flex items-center justify-center text-[11px] font-semibold text-white"
-        style={{ backgroundColor: character.color ?? '#6366F1' }}
+        style={{ backgroundColor: character.color ?? '#6366F1', '--initials-ink': initialsInk(character.color) } as React.CSSProperties}
       >
         {getInitials(character.name)}
       </div>

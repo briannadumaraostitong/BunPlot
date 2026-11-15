@@ -327,3 +327,11 @@ html:has([data-slot="theme-scope"][data-theme="cyberpunk"]) {
 [data-theme="cyberpunk"] [data-slot="status-tag-dot"]:where(:not([data-slot="theme-scope"]:not([data-theme="cyberpunk"]) *)) {
   border-radius: 0;
 }
+
+/* Character avatars (list, tree nodes, relationships, the panel's framed
+   portrait): the initials in white where it reaches 4.5:1 on the
+   character's color, else a dark shade of that color (--initials-ink,
+   lib/initialsInk.ts), so yellow, lime and pale colors read too. */
+[data-theme="cyberpunk"] :is([data-slot="character-avatar"], [data-slot="character-portrait"]):where(:not([data-slot="theme-scope"]:not([data-theme="cyberpunk"]) *)) {
+  color: var(--initials-ink);
+}

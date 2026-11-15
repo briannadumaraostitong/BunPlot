@@ -6,6 +6,7 @@ import { cn } from '@/lib/utils'
 import { playClickSound } from '@/lib/sound'
 import { deleteCharacter, updateCharacter } from '@/actions/characters'
 import { reportResult, settle } from '@/lib/notify'
+import { initialsInk } from '@/lib/initialsInk'
 import type { Character } from '@/types/database'
 
 export function getInitials(name: string) {
@@ -78,8 +79,9 @@ export function CharacterRow({
     >
       <div className="relative shrink-0">
         <div
+          data-slot="character-avatar"
           className="h-6 w-6 rounded-full flex items-center justify-center text-[10px] font-semibold text-white ring-1 ring-inset ring-black/15 dark:ring-white/15"
-          style={{ backgroundColor: character.color ?? '#6366F1' }}
+          style={{ backgroundColor: character.color ?? '#6366F1', '--initials-ink': initialsInk(character.color) } as React.CSSProperties}
         >
           {getInitials(character.name)}
         </div>

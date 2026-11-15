@@ -9,6 +9,7 @@ import { Textarea } from '@/components/ui/textarea'
 import { updateCharacter } from '@/actions/characters'
 import { reportResult, settle } from '@/lib/notify'
 import { getInitials } from './CharacterRow'
+import { initialsInk, sealShare } from '@/lib/initialsInk'
 import { ThemeFrame, ThemeFrameSlot } from '@/components/hud/ThemeFrame'
 import type { Character, CharacterRelationship } from '@/types/database'
 
@@ -167,7 +168,7 @@ function CharacterDetailContent({
                 <div
                   data-slot="character-portrait"
                   className="h-12 w-12 rounded-full flex items-center justify-center text-sm font-semibold text-white bg-(--character-color)"
-                  style={{ '--character-color': character.color ?? '#6366F1' } as React.CSSProperties}
+                  style={{ '--character-color': character.color ?? '#6366F1', '--initials-ink': initialsInk(character.color), '--seal-share': `${sealShare(character.color)}%` } as React.CSSProperties}
                 >
                   {getInitials(character.name)}
                 </div>
@@ -175,8 +176,9 @@ function CharacterDetailContent({
             >
               <ThemeFrameSlot frame="portrait" className="flex items-center justify-center">
                 <div
+                  data-slot="character-avatar"
                   className="flex size-12 items-center justify-center text-sm font-semibold text-white"
-                  style={{ backgroundColor: character.color ?? '#6366F1' }}
+                  style={{ backgroundColor: character.color ?? '#6366F1', '--initials-ink': initialsInk(character.color) } as React.CSSProperties}
                 >
                   {getInitials(character.name)}
                 </div>
@@ -276,8 +278,9 @@ function CharacterDetailContent({
                     className="flex w-full items-center gap-2 rounded-md px-2 py-1.5 hover:bg-secondary/50 transition-colors text-left"
                   >
                     <div
+                      data-slot="character-avatar"
                       className="h-6 w-6 shrink-0 rounded-full flex items-center justify-center text-[9px] font-semibold text-white"
-                      style={{ backgroundColor: other.color ?? '#6366F1' }}
+                      style={{ backgroundColor: other.color ?? '#6366F1', '--initials-ink': initialsInk(other.color) } as React.CSSProperties}
                     >
                       {getInitials(other.name)}
                     </div>

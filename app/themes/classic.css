@@ -298,3 +298,11 @@
   font-weight: 800;
   letter-spacing: -0.025em;
 }
+
+/* Character avatars (list, tree nodes, relationships, the panel's portrait):
+   the initials in white where it reaches 4.5:1 on the character's color,
+   else a dark shade of that color (--initials-ink, lib/initialsInk.ts), so
+   yellow, lime and pale colors read too. */
+:is([data-theme="classic-light"], [data-theme="classic-dark"], [data-theme="classic"]) :is([data-slot="character-avatar"], [data-slot="character-portrait"]):where(:not([data-slot="theme-scope"]:not([data-theme^="classic"]) *)) {
+  color: var(--initials-ink);
+}

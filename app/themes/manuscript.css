@@ -445,10 +445,13 @@
 /* The character portrait as a wax seal, as on the handoff's About letter:
    its scalloped outline (a mask, so the fill follows the shape) in the
    character's color with 45% ink, a darker inner ring, and the initials in
-   cream Cormorant italic. 45% is the least ink that keeps the cream at 4.5:1
-   for pale colors (amber 4.8:1); a cream tinted with the color needs more. */
+   cream Cormorant italic. 45% keeps the cream at 4.5:1 for every default
+   color (amber 4.8:1); paler ones (yellows, pale limes, near-whites) get
+   just enough more ink, worked out per color (--seal-share, the color's
+   share, from lib/initialsInk.ts). A cream tinted with the color needs
+   more. */
 [data-theme="manuscript"] [data-slot="character-portrait"]:where(:not([data-slot="theme-scope"]:not([data-theme="manuscript"]) *)) {
-  --seal: color-mix(in srgb, var(--character-color) 55%, hsl(var(--foreground)));
+  --seal: color-mix(in srgb, var(--character-color) var(--seal-share, 55%), hsl(var(--foreground)));
   position: relative;
   isolation: isolate;
   width: 4rem;
@@ -513,4 +516,12 @@
   order: 2;
   font-family: var(--theme-font-mono);
   font-weight: 700;
+}
+
+/* Character avatars (list, tree nodes, relationships): the initials in
+   white where it reaches 4.5:1 on the character's color, else a dark shade
+   of that color (--initials-ink, lib/initialsInk.ts). Not the panel's
+   portrait: that's the wax seal, which mixes ink into the color instead. */
+[data-theme="manuscript"] [data-slot="character-avatar"]:where(:not([data-slot="theme-scope"]:not([data-theme="manuscript"]) *)) {
+  color: var(--initials-ink);
 }
