@@ -1,0 +1,43 @@
+/* app/themes/classic.css
+   Classic Light and Classic Dark's restyling of the app's own screens and
+   their landing page. They share one look (fonts, shape, radius) and differ
+   only in colors, so rules cover both ids and only these values differ by
+   mode. Every selector starts with a Classic data-theme, so the other
+   themes are untouched. Unlayered, so it wins over Tailwind's utilities.
+   Built to design/landing-classic/; the screen rules come in later commits. */
+
+/* Values no token covers, from the handoff: the strip under the landing's
+   hero, the sign-up band, the tag fills and their text, taupe (progress,
+   outlined tags, list stars) and the cards' soft shadow. Colors are HSL
+   triples, like the tokens. */
+[data-theme="classic-light"] {
+  --strip: 26 12.7% 21.6%;        /* #3E3630 */
+  --strip-ink: 50 82.9% 93.1%;    /* #FCF7DF */
+  --strip-hint: 36 18.8% 73.9%;   /* #C9BFB0 */
+  --strip-icon-bg: 26 11.6% 27.1%; /* #4D443D */
+  --strip-icon: 204 21.7% 82%;    /* #C7D3DB */
+  --band: 204 33.3% 91.2%;        /* #E1EAF0 */
+  --band-line: 204 21.7% 82%;     /* #C7D3DB */
+  --tag-blue: 204 21.7% 82%;      /* #C7D3DB */
+  --tag-blue-ink: 207 19.3% 22.4%; /* #2E3A44 */
+  --tag-neutral: 38 30.2% 87.6%;  /* #E9E2D6 */
+  --tag-neutral-ink: 26 12.7% 21.6%; /* #3E3630 */
+  --taupe: 33 14.1% 59.8%;        /* #A79A8A */
+  --card-shadow: 0 10px 24px -14px hsl(26 12.7% 21.6% / 0.35);
+}
+
+[data-theme="classic-dark"] {
+  --strip: 207 13.8% 25.5%;       /* #38424A */
+  --strip-ink: 50 82.9% 93.1%;    /* #FCF7DF */
+  --strip-hint: 204 21.7% 82%;    /* #C7D3DB */
+  --strip-icon-bg: 204 21.7% 82%; /* #C7D3DB */
+  --strip-icon: 24 15.2% 12.9%;   /* #26201C */
+  --band: 207 11.1% 19.4%;        /* #2C3237 */
+  --band-line: 205 13.1% 28.4%;   /* #3F4A52 */
+  --tag-blue: 205 13.1% 28.4%;    /* #3F4A52 */
+  --tag-blue-ink: 205 27.3% 91.4%; /* #E3EAEF */
+  --tag-neutral: 26 12.1% 25.9%;  /* #4A413A */
+  --tag-neutral-ink: 50 82.9% 93.1%; /* #FCF7DF */
+  --taupe: 33 14.1% 59.8%;        /* #A79A8A */
+  --card-shadow: 0 12px 26px -14px hsl(0 0% 0% / 0.6);
+}

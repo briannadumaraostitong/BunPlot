@@ -2,6 +2,7 @@
 @import "tailwindcss";
 @import "tw-animate-css";
 /* Per-theme screen styles, every selector under that theme's data-theme. */
+@import "./themes/classic.css";
 @import "./themes/cyberpunk.css";
 @import "./themes/manuscript.css";
 /* Colors for the HUD pieces and landing page (Cyberpunk only). */
@@ -78,6 +79,7 @@
   --color-accent: hsl(var(--accent));
   --color-accent-2: hsl(var(--accent-2));
   --color-accent-3: hsl(var(--accent-3));
+  --color-link: hsl(var(--link));
   --color-muted-foreground: hsl(var(--muted-foreground));
   --color-muted: hsl(var(--muted));
   --color-secondary-foreground: hsl(var(--secondary-foreground));
@@ -102,60 +104,62 @@
 }
 
 :root {
-  --radius: 0.5rem;
+  --radius: 0.625rem;
 
   /* Fonts — classic default (overridden per-theme by lib/themes.ts) */
   --theme-font-sans: var(--font-figtree);
   --theme-font-mono: var(--font-geist-mono);
   --theme-font-heading: var(--font-bricolage);
 
-  /* Base colors */
-  --background:         0 0% 99%;
-  --foreground:         220 20% 10%;
-  --card:               0 0% 100%;
-  --card-foreground:    220 20% 10%;
-  --popover:            0 0% 100%;
-  --popover-foreground: 220 20% 10%;
-  --primary:            220 20% 10%;
-  --primary-foreground: 0 0% 99%;
-  --secondary:          220 14% 96%;
-  --secondary-foreground: 220 20% 20%;
-  --muted:              220 14% 96%;
-  --muted-foreground:   220 10% 50%;
-  --destructive:        0 84% 60%;
-  --border:             220 13% 91%;
-  --input:              220 13% 91%;
-  --ring:               217 91% 60%;
+  /* Classic Light's tokens, the fallback before a theme applies (every
+     theme sets all of these; keep in sync with lib/themes.ts) */
+  --background:         50 82.9% 93.1%;
+  --foreground:         26 12.7% 21.6%;
+  --card:               50 100% 97.6%;
+  --card-foreground:    26 12.7% 21.6%;
+  --popover:            50 100% 97.6%;
+  --popover-foreground: 26 12.7% 21.6%;
+  --primary:            26 12.7% 21.6%;
+  --primary-foreground: 50 82.9% 93.1%;
+  --secondary:          38 30.2% 87.6%;
+  --secondary-foreground: 27 12.5% 31.4%;
+  --muted:              38 30.2% 87.6%;
+  --muted-foreground:   31 12.8% 38.2%;
+  --destructive:        9 59.6% 40.8%;
+  --border:             42 40.5% 83.5%;
+  --input:              31 11.5% 50.4%;
+  --ring:               206 23.7% 38%;
 
-  /* Accent — classic-light default (overridden per-theme by lib/themes.ts) */
-  --accent:             217 91% 60%;
-  --accent-foreground:  0 0% 100%;
-  --accent-hover:       217 91% 53%;
-  --accent-muted:       217 91% 95%;
-  --accent-border:      217 91% 80%;
-  --accent-2:           262 83% 63%;
-  --accent-3:           158 64% 46%;
+  /* Accent */
+  --accent:             26 12.7% 21.6%;
+  --accent-foreground:  50 82.9% 93.1%;
+  --accent-hover:       26 11.6% 27.1%;
+  --accent-muted:       38 30.2% 87.6%;
+  --accent-border:      36 18.8% 73.9%;
+  --accent-2:           204 21.7% 82%;
+  --accent-3:           33 14.1% 59.8%;
+  --link:               206 23.7% 38%;
 
   /* Sidebar */
-  --sidebar:            220 20% 98%;
-  --sidebar-foreground: 220 20% 10%;
-  --sidebar-primary:    220 20% 10%;
-  --sidebar-primary-foreground: 0 0% 99%;
-  --sidebar-accent:     220 14% 94%;
-  --sidebar-accent-foreground: 220 20% 10%;
-  --sidebar-border:     220 13% 91%;
-  --sidebar-ring:       217 91% 60%;
+  --sidebar:            47 64% 90.2%;
+  --sidebar-foreground: 26 12.7% 21.6%;
+  --sidebar-primary:    26 12.7% 21.6%;
+  --sidebar-primary-foreground: 50 82.9% 93.1%;
+  --sidebar-accent:     45 47.7% 87.3%;
+  --sidebar-accent-foreground: 26 12.7% 21.6%;
+  --sidebar-border:     42 40.5% 83.5%;
+  --sidebar-ring:       206 23.7% 38%;
 
   /* Charts */
-  --chart-1: 217 91% 60%;
-  --chart-2: 262 83% 63%;
-  --chart-3: 158 64% 46%;
-  --chart-4: 35 92% 55%;
-  --chart-5: 0 84% 60%;
+  --chart-1: 206 23.7% 38%;
+  --chart-2: 33 14.1% 59.8%;
+  --chart-3: 204 21.7% 82%;
+  --chart-4: 46 67.5% 47.1%;
+  --chart-5: 9 59.6% 40.8%;
 
   /* Timeline */
-  --timeline-track-bg:   220 14% 96%;
-  --timeline-grid-line:  220 13% 88%;
+  --timeline-track-bg:   46 57.7% 89.8%;
+  --timeline-grid-line:  42 40.5% 83.5%;
   --event-card-radius:   0.375rem;
 }
 

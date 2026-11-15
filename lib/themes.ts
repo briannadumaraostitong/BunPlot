@@ -39,7 +39,7 @@ const CLASSIC_LOOK = {
   texture: 'none',
   fonts: { sans: '--font-figtree', mono: '--font-geist-mono', heading: '--font-bricolage' },
   frames: null,
-  radius: '0.5rem',
+  radius: '0.625rem',
 } satisfies Pick<ThemeDefinition, 'shape' | 'texture' | 'fonts' | 'frames' | 'radius'>
 
 export const THEMES: ThemeDefinition[] = [
@@ -49,44 +49,48 @@ export const THEMES: ThemeDefinition[] = [
     isDark: false,
     ...CLASSIC_LOOK,
     tokens: {
-      '--background':         '0 0% 99%',
-      '--foreground':         '220 20% 10%',
-      '--card':               '0 0% 100%',
-      '--card-foreground':    '220 20% 10%',
-      '--popover':            '0 0% 100%',
-      '--popover-foreground': '220 20% 10%',
-      '--primary':            '220 20% 10%',
-      '--primary-foreground': '0 0% 99%',
-      '--secondary':          '220 14% 96%',
-      '--secondary-foreground': '220 20% 20%',
-      '--muted':              '220 14% 96%',
-      '--muted-foreground':   '220 10% 50%',
-      '--destructive':        '0 84% 60%',
-      '--border':              '220 13% 91%',
-      '--input':              '220 13% 91%',
-      '--ring':                '217 91% 60%',
-      '--accent':              '217 91% 60%',
-      '--accent-foreground':  '0 0% 100%',
-      '--accent-hover':       '217 91% 53%',
-      '--accent-muted':       '217 91% 95%',
-      '--accent-border':      '217 91% 80%',
-      '--accent-2':           '262 83% 63%',
-      '--accent-3':           '158 64% 46%',
-      '--sidebar':            '220 20% 98%',
-      '--sidebar-foreground': '220 20% 10%',
-      '--sidebar-primary':    '220 20% 10%',
-      '--sidebar-primary-foreground': '0 0% 99%',
-      '--sidebar-accent':     '220 14% 94%',
-      '--sidebar-accent-foreground': '220 20% 10%',
-      '--sidebar-border':     '220 13% 91%',
-      '--sidebar-ring':       '217 91% 60%',
-      '--chart-1': '217 91% 60%',
-      '--chart-2': '262 83% 63%',
-      '--chart-3': '158 64% 46%',
-      '--chart-4': '35 92% 55%',
-      '--chart-5': '0 84% 60%',
-      '--timeline-track-bg':  '220 14% 96%',
-      '--timeline-grid-line': '220 13% 88%',
+      // Colors from design/landing-classic/HANDOFF.md ("milk chocolate and
+      // powder blue"), converted from hex. Buttons and the accent are the
+      // chocolate; links are slate (--link).
+      '--background':         '50 82.9% 93.1%',  // #FCF7DF cream
+      '--foreground':         '26 12.7% 21.6%',  // #3E3630 headings, strong text
+      '--card':               '50 100% 97.6%',   // #FFFDF3
+      '--card-foreground':    '26 12.7% 21.6%',
+      '--popover':            '50 100% 97.6%',
+      '--popover-foreground': '26 12.7% 21.6%',
+      '--primary':            '26 12.7% 21.6%',  // #3E3630 chocolate
+      '--primary-foreground': '50 82.9% 93.1%',
+      '--secondary':          '38 30.2% 87.6%',  // #E9E2D6 neutral tag
+      '--secondary-foreground': '27 12.5% 31.4%', // #5A4F46 body
+      '--muted':              '38 30.2% 87.6%',
+      '--muted-foreground':   '31 12.8% 38.2%',  // #6E6255
+      '--destructive':        '9 59.6% 40.8%',   // #A63D2A
+      '--border':              '42 40.5% 83.5%', // #E6DCC4
+      '--input':              '31 11.5% 50.4%',  // #8F8172, 3.7:1 field edges
+      '--ring':                '206 23.7% 38%',  // #4A6478 slate
+      '--accent':              '26 12.7% 21.6%', // the primary: chocolate
+      '--accent-foreground':  '50 82.9% 93.1%',
+      '--accent-hover':       '26 11.6% 27.1%',  // #4D443D
+      '--accent-muted':       '38 30.2% 87.6%',
+      '--accent-border':      '36 18.8% 73.9%',  // #C9BFB0
+      '--accent-2':           '204 21.7% 82%',   // #C7D3DB powder blue
+      '--accent-3':           '33 14.1% 59.8%',  // #A79A8A taupe
+      '--link':               '206 23.7% 38%',   // #4A6478 slate
+      '--sidebar':            '47 64% 90.2%',    // #F6EFD6
+      '--sidebar-foreground': '26 12.7% 21.6%',
+      '--sidebar-primary':    '26 12.7% 21.6%',
+      '--sidebar-primary-foreground': '50 82.9% 93.1%',
+      '--sidebar-accent':     '45 47.7% 87.3%',  // #EEE6CF
+      '--sidebar-accent-foreground': '26 12.7% 21.6%',
+      '--sidebar-border':     '42 40.5% 83.5%',
+      '--sidebar-ring':       '206 23.7% 38%',
+      '--chart-1': '206 23.7% 38%',
+      '--chart-2': '33 14.1% 59.8%',
+      '--chart-3': '204 21.7% 82%',
+      '--chart-4': '46 67.5% 47.1%',
+      '--chart-5': '9 59.6% 40.8%',
+      '--timeline-track-bg':  '46 57.7% 89.8%',  // #F4EDD6
+      '--timeline-grid-line': '42 40.5% 83.5%',
     },
   },
   {
@@ -95,44 +99,49 @@ export const THEMES: ThemeDefinition[] = [
     isDark: true,
     ...CLASSIC_LOOK,
     tokens: {
-      '--background':         '222 25% 9%',
-      '--foreground':         '210 20% 92%',
-      '--card':               '222 25% 12%',
-      '--card-foreground':    '210 20% 92%',
-      '--popover':            '222 25% 12%',
-      '--popover-foreground': '210 20% 92%',
-      '--primary':            '210 20% 92%',
-      '--primary-foreground': '222 25% 9%',
-      '--secondary':          '222 20% 16%',
-      '--secondary-foreground': '210 20% 80%',
-      '--muted':              '222 20% 16%',
-      '--muted-foreground':   '210 10% 55%',
-      '--destructive':        '0 72% 51%',
-      '--border':              '222 20% 20%',
-      '--input':              '222 20% 20%',
-      '--ring':                '217 91% 65%',
-      '--accent':              '217 91% 65%',
-      '--accent-foreground':  '0 0% 100%',
-      '--accent-hover':       '217 91% 72%',
-      '--accent-muted':       '217 40% 15%',
-      '--accent-border':      '217 60% 30%',
-      '--accent-2':           '262 83% 63%',
-      '--accent-3':           '158 64% 46%',
-      '--sidebar':            '222 25% 7%',
-      '--sidebar-foreground': '210 20% 92%',
-      '--sidebar-primary':    '217 91% 65%',
-      '--sidebar-primary-foreground': '0 0% 100%',
-      '--sidebar-accent':     '222 20% 14%',
-      '--sidebar-accent-foreground': '210 20% 92%',
-      '--sidebar-border':     '222 20% 14%',
-      '--sidebar-ring':       '217 91% 65%',
-      '--chart-1': '217 91% 60%',
-      '--chart-2': '262 83% 63%',
-      '--chart-3': '158 64% 46%',
-      '--chart-4': '35 92% 55%',
-      '--chart-5': '0 84% 60%',
-      '--timeline-track-bg':  '222 20% 14%',
-      '--timeline-grid-line': '222 20% 18%',
+      // Colors from design/landing-classic/HANDOFF.md, converted from hex.
+      // Buttons, the accent and links are all powder blue.
+      '--background':         '24 15.2% 12.9%',  // #26201C deep chocolate
+      '--foreground':         '50 82.9% 93.1%',  // #FCF7DF
+      '--card':               '23 14.6% 17.5%',  // #332B26
+      '--card-foreground':    '50 82.9% 93.1%',
+      '--popover':            '23 14.6% 17.5%',
+      '--popover-foreground': '50 82.9% 93.1%',
+      '--primary':            '204 21.7% 82%',   // #C7D3DB powder blue
+      '--primary-foreground': '24 15.2% 12.9%',
+      // Darker than the handoff's neutral tag (#4A413A, cream text): muted
+      // text sits on these in the app, and needs 4.5:1 (4.6 here, 3.6 there).
+      '--secondary':          '26 13.7% 20%',    // #3A322C
+      '--secondary-foreground': '42 35.1% 84.9%', // #E6DECB body
+      '--muted':              '26 13.7% 20%',
+      '--muted-foreground':   '33 14.1% 59.8%',  // #A79A8A taupe
+      '--destructive':        '12 68.7% 67.5%',  // #E58A73
+      '--border':              '26 12.1% 25.9%', // #4A413A
+      '--input':              '32 11.3% 48.6%',  // #8A7D6E, 3.5:1 field edges
+      '--ring':                '204 21.7% 82%',
+      '--accent':              '204 21.7% 82%',  // the primary: powder blue
+      '--accent-foreground':  '24 15.2% 12.9%',
+      '--accent-hover':       '203 22.8% 88.8%', // #DCE4E9
+      '--accent-muted':       '205 13.1% 28.4%', // #3F4A52
+      '--accent-border':      '206 13.3% 41.2%', // #5B6B77
+      '--accent-2':           '205 13.1% 28.4%', // #3F4A52 blue tag
+      '--accent-3':           '33 14.1% 59.8%',  // #A79A8A taupe
+      '--link':               '204 21.7% 82%',   // #C7D3DB
+      '--sidebar':            '22 14.7% 14.7%',  // #2B2420
+      '--sidebar-foreground': '50 82.9% 93.1%',
+      '--sidebar-primary':    '204 21.7% 82%',
+      '--sidebar-primary-foreground': '24 15.2% 12.9%',
+      '--sidebar-accent':     '26 13.7% 20%',    // #3A322C
+      '--sidebar-accent-foreground': '50 82.9% 93.1%',
+      '--sidebar-border':     '26 12.1% 25.9%',
+      '--sidebar-ring':       '204 21.7% 82%',
+      '--chart-1': '204 21.7% 82%',
+      '--chart-2': '33 14.1% 59.8%',
+      '--chart-3': '206 13.3% 41.2%',
+      '--chart-4': '41 59.4% 63.3%',
+      '--chart-5': '12 68.7% 67.5%',
+      '--timeline-track-bg':  '25 15% 15.7%',    // #2E2722
+      '--timeline-grid-line': '26 13% 21.2%',    // #3D352F
     },
   },
   {
@@ -169,6 +178,7 @@ export const THEMES: ThemeDefinition[] = [
       '--accent-muted':       '303 38% 10.2%',
       '--accent-border':      '326 59% 30%',
       '--accent-2':           '189 100% 59.6%',
+      '--link':               '189 100% 59.6%',  // as --accent-2, unused here so far
       '--accent-3':           '249 100% 74.1%',
       '--sidebar':            '227 53% 3.3%',
       '--sidebar-foreground': '217 70% 93.5%',
@@ -224,6 +234,7 @@ export const THEMES: ThemeDefinition[] = [
       '--accent-muted':       '25 42.3% 89.8%',  // oxblood 10% on card
       '--accent-border':      '9 44.2% 69.8%',   // #D49A90
       '--accent-2':           '212 43.8% 30%',
+      '--link':               '212 43.8% 30%',   // ink blue, as --accent-2
       '--accent-3':           '94 29.7% 32.4%',  // #4F6B3A olive
       '--sidebar':            '41 44.7% 85.1%',  // #EADFC8
       '--sidebar-foreground': '28 32.1% 10.4%',
