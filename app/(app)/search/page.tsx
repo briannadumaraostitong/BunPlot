@@ -108,7 +108,7 @@ export default function SearchPage() {
               key={i}
               className="flex items-center gap-3 rounded-lg border border-border px-3 py-2.5"
             >
-              <Skeleton className="h-4 w-14 rounded-full shrink-0" />
+              <Skeleton data-chip="" className="h-4 w-14 rounded-full shrink-0" />
               <Skeleton className="h-4 flex-1" />
             </div>
           ))}
@@ -141,7 +141,7 @@ export default function SearchPage() {
               href={resultHref(result)}
               className="flex items-center gap-3 rounded-lg border border-border px-3 py-2.5 transition-colors hover:border-primary hover:bg-secondary/30"
             >
-              <span className="shrink-0 rounded-full border border-border bg-secondary/50 px-1.5 py-0.5 text-[10px] font-medium text-muted-foreground">
+              <span data-chip="" className="shrink-0 rounded-full border border-border bg-secondary/50 px-1.5 py-0.5 text-[10px] font-medium text-muted-foreground">
                 {TYPE_LABEL[result.entity_type]}
               </span>
               <span className="min-w-0 flex-1 truncate text-sm">{result.title}</span>

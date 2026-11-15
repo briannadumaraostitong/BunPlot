@@ -247,7 +247,7 @@ export function CharactersPanel({ projectId, initialSelectedCharacterId }: Chara
         <div className="relative flex-1 min-h-0 overflow-hidden">
           {pendingSourceId && (
             <div
-              className="absolute top-2 left-1/2 -translate-x-1/2 z-30 rounded-full px-3 py-1 text-[11px] font-medium text-white shadow-md"
+              data-chip="" className="absolute top-2 left-1/2 -translate-x-1/2 z-30 rounded-full px-3 py-1 text-[11px] font-medium text-white shadow-md"
               style={{ backgroundColor: 'hsl(var(--accent))' }}
             >
               Click a character on the canvas to connect — Esc to cancel

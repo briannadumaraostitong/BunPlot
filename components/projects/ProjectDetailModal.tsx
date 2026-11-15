@@ -202,7 +202,7 @@ export function ProjectDetailModal({ project, folders, stats, open, onClose, onU
                     <div className="flex items-center gap-1.5">
                       <h2 className="truncate text-lg font-semibold leading-tight">{project.title}</h2>
                       {project.archived && (
-                        <span className="shrink-0 rounded-full border border-border bg-secondary/50 px-1.5 py-0.5 text-[10px] font-medium text-muted-foreground">
+                        <span data-chip="" className="shrink-0 rounded-full border border-border bg-secondary/50 px-1.5 py-0.5 text-[10px] font-medium text-muted-foreground">
                           Archived
                         </span>
                       )}

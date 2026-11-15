@@ -108,7 +108,7 @@ export function ChapterLinkPicker({ chapter, allChapters, projectId }: ChapterLi
               {links.map((link) => (
                 <div
                   key={link.id}
-                  className="group flex items-center gap-1 rounded-full border border-border bg-secondary/30 py-0.5 pl-2 pr-1.5 text-xs"
+                  data-chip="" className="group flex items-center gap-1 rounded-full border border-border bg-secondary/30 py-0.5 pl-2 pr-1.5 text-xs"
                 >
                   <span className="max-w-28 truncate">{link.continues_from.title}</span>
                   <button

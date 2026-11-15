@@ -218,7 +218,7 @@ function FlowCard({
       <span data-slot="event-card-title" className="truncate text-xs font-semibold text-(--event-color)">
         {event.title}
       </span>
-      <span className="truncate text-[10px] text-muted-foreground">{chapterTitle ?? 'No chapter'}</span>
+      <span data-slot="event-card-meta" className="truncate text-[10px] text-muted-foreground">{chapterTitle ?? 'No chapter'}</span>
     </button>
   )
 }

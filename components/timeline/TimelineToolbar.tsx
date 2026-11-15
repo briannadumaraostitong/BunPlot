@@ -191,7 +191,7 @@ function MultiSelectFilter({
           <Icon className="h-3 w-3" />
           {label}
           {selected.size > 0 && (
-            <span className="flex h-4 min-w-4 items-center justify-center rounded-full bg-primary px-1 text-[10px] font-semibold text-primary-foreground">
+            <span data-chip="" className="flex h-4 min-w-4 items-center justify-center rounded-full bg-primary px-1 text-[10px] font-semibold text-primary-foreground">
               {selected.size}
             </span>
           )}
@@ -303,7 +303,7 @@ function FiltersOverflow({
         >
           <ListFilter className="h-3.5 w-3.5" />
           {totalActive > 0 && (
-            <span className="absolute -right-1 -top-1 flex h-4 min-w-4 items-center justify-center rounded-full bg-primary px-1 text-[10px] font-semibold text-primary-foreground">
+            <span data-chip="" className="absolute -right-1 -top-1 flex h-4 min-w-4 items-center justify-center rounded-full bg-primary px-1 text-[10px] font-semibold text-primary-foreground">
               {totalActive}
             </span>
           )}

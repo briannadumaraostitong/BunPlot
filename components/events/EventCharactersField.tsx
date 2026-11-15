@@ -81,7 +81,7 @@ export function EventCharactersField({
                 key={character.id}
                 onClick={() => onAdd(character)}
                 title={`Add ${character.name}`}
-                className="flex items-center gap-1.5 rounded-full border border-border/60 py-1 pl-1.5 pr-2 text-xs text-muted-foreground transition-colors hover:border-primary hover:bg-secondary/30 hover:text-foreground"
+                data-chip="" className="flex items-center gap-1.5 rounded-full border border-border/60 py-1 pl-1.5 pr-2 text-xs text-muted-foreground transition-colors hover:border-primary hover:bg-secondary/30 hover:text-foreground"
               >
                 <span
                   className="h-2 w-2 shrink-0 rounded-full"
@@ -97,8 +97,8 @@ export function EventCharactersField({
 
       {loading ? (
         <div className="flex items-center gap-1.5">
-          <Skeleton className="h-6 w-20 rounded-full" />
-          <Skeleton className="h-6 w-16 rounded-full" />
+          <Skeleton data-chip="" className="h-6 w-20 rounded-full" />
+          <Skeleton data-chip="" className="h-6 w-16 rounded-full" />
         </div>
       ) : loadFailed ? (
         <LoadError compact thing="linked characters" onRetry={onRetry} />
@@ -107,7 +107,7 @@ export function EventCharactersField({
           {characters.map((character) => (
             <div
               key={character.id}
-              className="group flex items-center gap-1.5 rounded-full border border-border bg-secondary/30 py-1 pl-1.5 pr-2 text-xs"
+              data-chip="" className="group flex items-center gap-1.5 rounded-full border border-border bg-secondary/30 py-1 pl-1.5 pr-2 text-xs"
             >
               <span
                 className="h-2 w-2 shrink-0 rounded-full"
@@ -126,7 +126,7 @@ export function EventCharactersField({
 
           <Popover open={open} onOpenChange={handleOpenChange}>
             <PopoverTrigger asChild>
-              <button className="flex items-center gap-1 rounded-full px-2 py-1 text-xs text-muted-foreground transition-colors hover:bg-secondary/50 hover:text-foreground">
+              <button data-chip="" className="flex items-center gap-1 rounded-full px-2 py-1 text-xs text-muted-foreground transition-colors hover:bg-secondary/50 hover:text-foreground">
                 <Plus className="h-3 w-3" />
                 Add character
               </button>

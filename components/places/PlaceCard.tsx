@@ -88,7 +88,7 @@ export function PlaceCard({ place, chapters, selected, onSelect }: PlaceCardProp
             {chapters.map((chapter) => (
               <span
                 key={chapter.id}
-                className="rounded-full bg-secondary/50 px-1.5 py-0.5 text-[9px] font-medium text-muted-foreground truncate max-w-32"
+                data-chip="" className="rounded-full bg-secondary/50 px-1.5 py-0.5 text-[9px] font-medium text-muted-foreground truncate max-w-32"
               >
                 {chapter.title}
               </span>

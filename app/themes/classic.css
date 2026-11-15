@@ -4,7 +4,7 @@
    only in colors, so rules cover both ids and only these values differ by
    mode. Every selector starts with a Classic data-theme, so the other
    themes are untouched. Unlayered, so it wins over Tailwind's utilities.
-   Built to design/landing-classic/; the screen rules come in later commits. */
+   Built to design/landing-classic/. */
 
 /* Values no token covers, from the handoff: the strip under the landing's
    hero, the sign-up band, the tag fills and their text, taupe (progress,
@@ -24,6 +24,7 @@
   --tag-neutral-ink: 26 12.7% 21.6%; /* #3E3630 */
   --taupe: 33 14.1% 59.8%;        /* #A79A8A */
   --card-shadow: 0 10px 24px -14px hsl(26 12.7% 21.6% / 0.35);
+  --card-shadow-hover: 0 14px 28px -14px hsl(26 12.7% 21.6% / 0.45);
 }
 
 [data-theme="classic-dark"] {
@@ -40,4 +41,81 @@
   --tag-neutral-ink: 50 82.9% 93.1%; /* #FCF7DF */
   --taupe: 33 14.1% 59.8%;        /* #A79A8A */
   --card-shadow: 0 12px 26px -14px hsl(0 0% 0% / 0.6);
+  --card-shadow-hover: 0 16px 30px -14px hsl(0 0% 0% / 0.75);
+}
+
+/* No pills: chips, counts, status tags, relationship labels and badges get
+   small 5px corners (half the 10px radius) instead of rounded-full. Round
+   things stay round: dots, swatches, avatars, icon buttons and thin bars.
+   data-chip marks the pill-shaped chips that have no hook of their own. */
+:is([data-theme="classic-light"], [data-theme="classic-dark"]) :is([data-chip], [data-slot="status-tag"], [data-slot="event-card-status"], [data-slot="relationship-tag"], [data-slot="badge"]) {
+  border-radius: calc(var(--radius) * 0.5);
+}
+/* The switch: a 5px track and a 3px thumb. */
+:is([data-theme="classic-light"], [data-theme="classic-dark"]) [data-slot="switch"] {
+  border-radius: calc(var(--radius) * 0.5);
+}
+:is([data-theme="classic-light"], [data-theme="classic-dark"]) [data-slot="switch-thumb"] {
+  border-radius: calc(var(--radius) * 0.3);
+}
+
+/* Cards: the 10px radius (project and place cards are rounded-xl, 15px
+   here) and the handoff's soft shadow, a little stronger on hover. A
+   selected place card keeps its ring, which is a box-shadow too. */
+:is([data-theme="classic-light"], [data-theme="classic-dark"]) :is([data-slot="project-card"], [data-slot="place-card"]) {
+  border-radius: var(--radius);
+}
+:is([data-theme="classic-light"], [data-theme="classic-dark"]) :is([data-slot="project-card"], [data-slot="place-card"]:not([data-selected]), [data-slot="panel-card"]) {
+  box-shadow: var(--card-shadow);
+}
+@media (hover: hover) {
+  :is([data-theme="classic-light"], [data-theme="classic-dark"]) :is([data-slot="project-card"], [data-slot="place-card"]:not([data-selected])):hover {
+    box-shadow: var(--card-shadow-hover);
+  }
+}
+
+/* Timeline event cards (grid, flow view and drag preview): the whole card
+   tinted with the event's color mixed into the card (22% Light, 30% Dark),
+   a 1px border in a deeper mix of it, and the title in ink, in place of the
+   colored left bar and the colored title. No one-sided colored edge on a
+   rounded corner. A selected card keeps its ring and its border in the full
+   event color. Hover deepens the tint (to 30% Light, 34% Dark) in place of
+   the brightness filter, and keeps its shadow. On the tint the muted color
+   falls under 4.5:1, so the description and the flow card's chapter use
+   ink at 90%, and in Dark the status fill drops from 40% to 25% so its ink
+   still passes on yellow, orange and lime, hovered too. */
+[data-theme="classic-light"] {
+  --event-tint: 22%;
+  --event-tint-hover: 30%;
+  --event-edge: 45%;
+}
+[data-theme="classic-dark"] {
+  --event-tint: 30%;
+  --event-tint-hover: 34%;
+  --event-edge: 55%;
+}
+:is([data-theme="classic-light"], [data-theme="classic-dark"]) [data-slot="event-card"] {
+  border-width: 1px;
+  background-color: color-mix(in srgb, var(--event-color) var(--event-tint), hsl(var(--card)));
+}
+@media (hover: hover) {
+  :is([data-theme="classic-light"], [data-theme="classic-dark"]) [data-slot="event-card"]:hover {
+    filter: none;
+    background-color: color-mix(in srgb, var(--event-color) var(--event-tint-hover), hsl(var(--card)));
+  }
+}
+:is([data-theme="classic-light"], [data-theme="classic-dark"]) [data-slot="event-card"]:not([data-selected]) {
+  border-color: color-mix(in srgb, var(--event-color) var(--event-edge), hsl(var(--card)));
+}
+:is([data-theme="classic-light"], [data-theme="classic-dark"]) [data-slot="event-card"][data-selected] {
+  border-color: var(--event-color);
+}
+:is([data-theme="classic-light"], [data-theme="classic-dark"]) [data-slot="event-card-title"] {
+  color: hsl(var(--foreground));
+}
+:is([data-theme="classic-light"], [data-theme="classic-dark"]) :is([data-slot="event-card-description"], [data-slot="event-card-meta"]) {
+  color: color-mix(in srgb, hsl(var(--foreground)) 90%, hsl(var(--card)));
+}
+[data-theme="classic-dark"] [data-slot="event-card-status"] {
+  background-color: color-mix(in oklab, var(--status-color) 25%, transparent);
 }
