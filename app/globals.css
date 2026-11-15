@@ -8,7 +8,21 @@
 /* Colors for the HUD pieces and landing page (Cyberpunk only). */
 @import "../components/hud/hud.css";
 
-@custom-variant dark (&:is(.dark *));
+/* Dark mode: inside a .dark element (<html> or a ThemeScope in a dark
+   theme), and inside a "classic" ThemeScope, which follows the device's
+   setting in CSS, when the device is dark. Inside a "classic" scope a dark
+   <html> (the visitor's own theme) doesn't count. The exclusion is in
+   :where(), so these rules keep the specificity they always had. */
+@custom-variant dark {
+  &:is(.dark *):where(:not([data-theme="classic"] *)) {
+    @slot;
+  }
+  @media (prefers-color-scheme: dark) {
+    &:is([data-theme="classic"] *) {
+      @slot;
+    }
+  }
+}
 
 /* Maps Radix's data-state="active" to the data-active: variant tabs.tsx
    expects — without this, every Tabs active/inactive style is a no-op. */

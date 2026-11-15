@@ -293,6 +293,21 @@ export function normalizeThemeSetting(value: unknown): ThemeSetting {
   return (THEME_SETTINGS as string[]).includes(value) ? (value as ThemeSetting) : DEFAULT_THEME_SETTING
 }
 
+// Themes a ThemeScope can show in the device's light or dark setting, picked
+// in CSS (prefers-color-scheme), so the server needn't know it and nothing
+// flashes or mismatches on hydration: "classic" is Classic Light or Classic
+// Dark. For pages whose theme the server sets (the landing, login, signup);
+// the visitor's own setting is left alone. Both modes must share one look
+// (shape, fonts, radius, frames): only their colors switch.
+export const DEVICE_THEMES = {
+  classic: { light: 'classic-light', dark: 'classic-dark' },
+} as const satisfies Record<string, { light: ThemeId; dark: ThemeId }>
+export type DeviceThemeId = keyof typeof DEVICE_THEMES
+// What a ThemeScope takes: a fixed theme or one that follows the device.
+export type ScopeThemeId = ThemeId | DeviceThemeId
+
+export const isDeviceTheme = (id: ScopeThemeId): id is DeviceThemeId => Object.hasOwn(DEVICE_THEMES, id)
+
 export function getTheme(id: ThemeId): ThemeDefinition {
   return THEMES.find((t) => t.id === id) ?? THEMES[0]
 }

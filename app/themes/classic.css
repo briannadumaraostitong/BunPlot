@@ -2,15 +2,20 @@
    Classic Light and Classic Dark's restyling of the app's own screens and
    their landing page. They share one look (fonts, shape, radius) and differ
    only in colors, so rules cover both ids and only these values differ by
-   mode. Every selector starts with a Classic data-theme, so the other
-   themes are untouched. Unlayered, so it wins over Tailwind's utilities.
+   mode. A third id, "classic" (a ThemeScope that follows the device's light
+   or dark setting: the landing, login and signup), gets Light's values and,
+   under prefers-color-scheme: dark, a copy of Dark's; keep those copies in
+   step with the Dark blocks. Every selector starts with a Classic
+   data-theme, so the other themes are untouched. Unlayered, so it wins over
+   Tailwind's utilities.
    Built to design/landing-classic/. */
 
 /* Values no token covers, from the handoff: the strip under the landing's
    hero, the sign-up band, the tag fills and their text, taupe (progress,
    outlined tags, list markers) and the cards' soft shadow. Colors are HSL
    triples, like the tokens. */
-[data-theme="classic-light"] {
+[data-theme="classic-light"],
+[data-theme="classic"] {
   --strip: 26 12.7% 21.6%;        /* #3E3630 */
   --strip-ink: 50 82.9% 93.1%;    /* #FCF7DF */
   --strip-hint: 36 18.8% 73.9%;   /* #C9BFB0 */
@@ -43,33 +48,51 @@
   --card-shadow: 0 12px 26px -14px hsl(0 0% 0% / 0.6);
   --card-shadow-hover: 0 16px 30px -14px hsl(0 0% 0% / 0.75);
 }
+@media (prefers-color-scheme: dark) {
+  [data-theme="classic"] {
+    --strip: 207 13.8% 25.5%;       /* #38424A */
+    --strip-ink: 50 82.9% 93.1%;    /* #FCF7DF */
+    --strip-hint: 204 21.7% 82%;    /* #C7D3DB */
+    --strip-icon-bg: 204 21.7% 82%; /* #C7D3DB */
+    --strip-icon: 24 15.2% 12.9%;   /* #26201C */
+    --band: 207 11.1% 19.4%;        /* #2C3237 */
+    --band-line: 205 13.1% 28.4%;   /* #3F4A52 */
+    --tag-blue: 205 13.1% 28.4%;    /* #3F4A52 */
+    --tag-blue-ink: 205 27.3% 91.4%; /* #E3EAEF */
+    --tag-neutral: 26 12.1% 25.9%;  /* #4A413A */
+    --tag-neutral-ink: 50 82.9% 93.1%; /* #FCF7DF */
+    --taupe: 33 14.1% 59.8%;        /* #A79A8A */
+    --card-shadow: 0 12px 26px -14px hsl(0 0% 0% / 0.6);
+    --card-shadow-hover: 0 16px 30px -14px hsl(0 0% 0% / 0.75);
+  }
+}
 
 /* No pills: chips, counts, status tags, relationship labels and badges get
    small 5px corners (half the 10px radius) instead of rounded-full. Round
    things stay round: dots, swatches, avatars, icon buttons and thin bars.
    data-chip marks the pill-shaped chips that have no hook of their own. */
-:is([data-theme="classic-light"], [data-theme="classic-dark"]) :is([data-chip], [data-slot="status-tag"], [data-slot="event-card-status"], [data-slot="relationship-tag"], [data-slot="badge"]) {
+:is([data-theme="classic-light"], [data-theme="classic-dark"], [data-theme="classic"]) :is([data-chip], [data-slot="status-tag"], [data-slot="event-card-status"], [data-slot="relationship-tag"], [data-slot="badge"]) {
   border-radius: calc(var(--radius) * 0.5);
 }
 /* The switch: a 5px track and a 3px thumb. */
-:is([data-theme="classic-light"], [data-theme="classic-dark"]) [data-slot="switch"] {
+:is([data-theme="classic-light"], [data-theme="classic-dark"], [data-theme="classic"]) [data-slot="switch"] {
   border-radius: calc(var(--radius) * 0.5);
 }
-:is([data-theme="classic-light"], [data-theme="classic-dark"]) [data-slot="switch-thumb"] {
+:is([data-theme="classic-light"], [data-theme="classic-dark"], [data-theme="classic"]) [data-slot="switch-thumb"] {
   border-radius: calc(var(--radius) * 0.3);
 }
 
 /* Cards: the 10px radius (project and place cards are rounded-xl, 15px
    here) and the handoff's soft shadow, a little stronger on hover. A
    selected place card keeps its ring, which is a box-shadow too. */
-:is([data-theme="classic-light"], [data-theme="classic-dark"]) :is([data-slot="project-card"], [data-slot="place-card"]) {
+:is([data-theme="classic-light"], [data-theme="classic-dark"], [data-theme="classic"]) :is([data-slot="project-card"], [data-slot="place-card"]) {
   border-radius: var(--radius);
 }
-:is([data-theme="classic-light"], [data-theme="classic-dark"]) :is([data-slot="project-card"], [data-slot="place-card"]:not([data-selected]), [data-slot="panel-card"]) {
+:is([data-theme="classic-light"], [data-theme="classic-dark"], [data-theme="classic"]) :is([data-slot="project-card"], [data-slot="place-card"]:not([data-selected]), [data-slot="panel-card"]) {
   box-shadow: var(--card-shadow);
 }
 @media (hover: hover) {
-  :is([data-theme="classic-light"], [data-theme="classic-dark"]) :is([data-slot="project-card"], [data-slot="place-card"]:not([data-selected])):hover {
+  :is([data-theme="classic-light"], [data-theme="classic-dark"], [data-theme="classic"]) :is([data-slot="project-card"], [data-slot="place-card"]:not([data-selected])):hover {
     box-shadow: var(--card-shadow-hover);
   }
 }
@@ -84,7 +107,8 @@
    falls under 4.5:1, so the description and the flow card's chapter use
    ink at 90%, and in Dark the status fill drops from 40% to 25% so its ink
    still passes on yellow, orange and lime, hovered too. */
-[data-theme="classic-light"] {
+[data-theme="classic-light"],
+[data-theme="classic"] {
   --event-tint: 22%;
   --event-tint-hover: 30%;
   --event-edge: 45%;
@@ -94,39 +118,51 @@
   --event-tint-hover: 34%;
   --event-edge: 55%;
 }
-:is([data-theme="classic-light"], [data-theme="classic-dark"]) [data-slot="event-card"] {
+@media (prefers-color-scheme: dark) {
+  [data-theme="classic"] {
+    --event-tint: 30%;
+    --event-tint-hover: 34%;
+    --event-edge: 55%;
+  }
+}
+:is([data-theme="classic-light"], [data-theme="classic-dark"], [data-theme="classic"]) [data-slot="event-card"] {
   border-width: 1px;
   background-color: color-mix(in srgb, var(--event-color) var(--event-tint), hsl(var(--card)));
 }
 @media (hover: hover) {
-  :is([data-theme="classic-light"], [data-theme="classic-dark"]) [data-slot="event-card"]:hover {
+  :is([data-theme="classic-light"], [data-theme="classic-dark"], [data-theme="classic"]) [data-slot="event-card"]:hover {
     filter: none;
     background-color: color-mix(in srgb, var(--event-color) var(--event-tint-hover), hsl(var(--card)));
   }
 }
-:is([data-theme="classic-light"], [data-theme="classic-dark"]) [data-slot="event-card"]:not([data-selected]) {
+:is([data-theme="classic-light"], [data-theme="classic-dark"], [data-theme="classic"]) [data-slot="event-card"]:not([data-selected]) {
   border-color: color-mix(in srgb, var(--event-color) var(--event-edge), hsl(var(--card)));
 }
-:is([data-theme="classic-light"], [data-theme="classic-dark"]) [data-slot="event-card"][data-selected] {
+:is([data-theme="classic-light"], [data-theme="classic-dark"], [data-theme="classic"]) [data-slot="event-card"][data-selected] {
   border-color: var(--event-color);
 }
-:is([data-theme="classic-light"], [data-theme="classic-dark"]) [data-slot="event-card-title"] {
+:is([data-theme="classic-light"], [data-theme="classic-dark"], [data-theme="classic"]) [data-slot="event-card-title"] {
   color: hsl(var(--foreground));
 }
-:is([data-theme="classic-light"], [data-theme="classic-dark"]) :is([data-slot="event-card-description"], [data-slot="event-card-meta"]) {
+:is([data-theme="classic-light"], [data-theme="classic-dark"], [data-theme="classic"]) :is([data-slot="event-card-description"], [data-slot="event-card-meta"]) {
   color: color-mix(in srgb, hsl(var(--foreground)) 90%, hsl(var(--card)));
 }
 [data-theme="classic-dark"] [data-slot="event-card-status"] {
   background-color: color-mix(in oklab, var(--status-color) 25%, transparent);
 }
+@media (prefers-color-scheme: dark) {
+  [data-theme="classic"] [data-slot="event-card-status"] {
+    background-color: color-mix(in oklab, var(--status-color) 25%, transparent);
+  }
+}
 
 /* Timeline lane names in ink, with a small rounded-square swatch in the
    layer's color before them, in place of colored text (light layer colors
    fail on the lane, yellow and orange most). */
-:is([data-theme="classic-light"], [data-theme="classic-dark"]) [data-slot="lane-label-name"] {
+:is([data-theme="classic-light"], [data-theme="classic-dark"], [data-theme="classic"]) [data-slot="lane-label-name"] {
   color: hsl(var(--foreground));
 }
-:is([data-theme="classic-light"], [data-theme="classic-dark"]) [data-slot="lane-label-name"]::before {
+:is([data-theme="classic-light"], [data-theme="classic-dark"], [data-theme="classic"]) [data-slot="lane-label-name"]::before {
   content: "";
   display: inline-block;
   width: 8px;
@@ -145,22 +181,28 @@
    picker's list dots and the status filter's dots all carry the hook; the
    picker's color input keeps the stored value. Important, because each
    sets --status-color in its inline style. */
-[data-theme="classic-light"] [data-status-color="#6366f1" i] {
+[data-theme="classic-light"] [data-status-color="#6366f1" i],
+[data-theme="classic"] [data-status-color="#6366f1" i] {
   --status-color: #7A4E6B !important;
 }
 [data-theme="classic-dark"] [data-status-color="#6366f1" i] {
   --status-color: #C9A3BC !important;
 }
+@media (prefers-color-scheme: dark) {
+  [data-theme="classic"] [data-status-color="#6366f1" i] {
+    --status-color: #C9A3BC !important;
+  }
+}
 /* The event dialog's status tag writes its name in the status color, which
    fails 4.5:1 on its own faint fill for most colors (Draft's grey in Dark
    most). The text is mixed 40% status color into 60% ink instead, so it
    keeps its hue and passes; the dot keeps the pure color. */
-:is([data-theme="classic-light"], [data-theme="classic-dark"]) [data-slot="status-tag"] {
+:is([data-theme="classic-light"], [data-theme="classic-dark"], [data-theme="classic"]) [data-slot="status-tag"] {
   color: color-mix(in srgb, var(--status-color) 40%, hsl(var(--foreground)));
 }
 
 /* Page titles: Bricolage at 800 with the handoff's tight tracking. */
-:is([data-theme="classic-light"], [data-theme="classic-dark"]) :is([data-slot="page-heading"], [data-slot="page-title"]) {
+:is([data-theme="classic-light"], [data-theme="classic-dark"], [data-theme="classic"]) :is([data-slot="page-heading"], [data-slot="page-title"]) {
   font-weight: 800;
   letter-spacing: -0.025em;
 }
@@ -168,25 +210,25 @@
 /* Section labels as the handoff's eyebrows: Figtree 700, 13px, uppercase,
    0.09em, muted, no background. Panel headings and the timeline's "Layer"
    corner take the same weight and spacing at their own smaller sizes. */
-:is([data-theme="classic-light"], [data-theme="classic-dark"]) [data-slot="section-label"] {
+:is([data-theme="classic-light"], [data-theme="classic-dark"], [data-theme="classic"]) [data-slot="section-label"] {
   font-size: 13px;
   font-weight: 700;
   letter-spacing: 0.09em;
   text-transform: uppercase;
   color: hsl(var(--muted-foreground));
 }
-:is([data-theme="classic-light"], [data-theme="classic-dark"]) :is([data-slot="panel-heading"], [data-slot="timeline-corner-label"]) {
+:is([data-theme="classic-light"], [data-theme="classic-dark"], [data-theme="classic"]) :is([data-slot="panel-heading"], [data-slot="timeline-corner-label"]) {
   font-weight: 700;
   letter-spacing: 0.09em;
 }
 
 /* Menu highlights (dropdown, menubar, select): the neutral tag color with
    ink, not the solid primary with cream. Destructive items keep theirs. */
-:is([data-theme="classic-light"], [data-theme="classic-dark"]) :is([data-slot="dropdown-menu-item"], [data-slot="dropdown-menu-checkbox-item"], [data-slot="dropdown-menu-radio-item"], [data-slot="dropdown-menu-sub-trigger"], [data-slot="menubar-item"], [data-slot="menubar-checkbox-item"], [data-slot="menubar-radio-item"], [data-slot="menubar-sub-trigger"], [data-slot="select-item"]):not([data-variant="destructive"]):is(:focus, [data-state="open"], [data-open]) {
+:is([data-theme="classic-light"], [data-theme="classic-dark"], [data-theme="classic"]) :is([data-slot="dropdown-menu-item"], [data-slot="dropdown-menu-checkbox-item"], [data-slot="dropdown-menu-radio-item"], [data-slot="dropdown-menu-sub-trigger"], [data-slot="menubar-item"], [data-slot="menubar-checkbox-item"], [data-slot="menubar-radio-item"], [data-slot="menubar-sub-trigger"], [data-slot="select-item"]):not([data-variant="destructive"]):is(:focus, [data-state="open"], [data-open]) {
   background-color: hsl(var(--tag-neutral));
   color: hsl(var(--tag-neutral-ink));
 }
-:is([data-theme="classic-light"], [data-theme="classic-dark"]) :is([data-slot="dropdown-menu-item"], [data-slot="dropdown-menu-checkbox-item"], [data-slot="dropdown-menu-radio-item"], [data-slot="dropdown-menu-sub-trigger"], [data-slot="menubar-item"], [data-slot="menubar-checkbox-item"], [data-slot="menubar-radio-item"], [data-slot="menubar-sub-trigger"], [data-slot="select-item"]):not([data-variant="destructive"]):is(:focus, [data-state="open"], [data-open]) * {
+:is([data-theme="classic-light"], [data-theme="classic-dark"], [data-theme="classic"]) :is([data-slot="dropdown-menu-item"], [data-slot="dropdown-menu-checkbox-item"], [data-slot="dropdown-menu-radio-item"], [data-slot="dropdown-menu-sub-trigger"], [data-slot="menubar-item"], [data-slot="menubar-checkbox-item"], [data-slot="menubar-radio-item"], [data-slot="menubar-sub-trigger"], [data-slot="select-item"]):not([data-variant="destructive"]):is(:focus, [data-state="open"], [data-open]) * {
   color: hsl(var(--tag-neutral-ink));
 }
 
@@ -194,10 +236,10 @@
    blue tag color (powder blue in Light, dark slate in Dark), in place of
    the solid primary block. The project dialog's empty cover picker takes
    the same color. Places keep their own placeholder. */
-:is([data-theme="classic-light"], [data-theme="classic-dark"]) :is([data-slot="project-cover"], [data-slot="cover-picker"]) {
+:is([data-theme="classic-light"], [data-theme="classic-dark"], [data-theme="classic"]) :is([data-slot="project-cover"], [data-slot="cover-picker"]) {
   background-color: hsl(var(--tag-blue));
 }
-:is([data-theme="classic-light"], [data-theme="classic-dark"]) [data-slot="project-card"] [data-slot="title-page"] {
+:is([data-theme="classic-light"], [data-theme="classic-dark"], [data-theme="classic"]) [data-slot="project-card"] [data-slot="title-page"] {
   display: flex;
   height: 100%;
   align-items: center;
@@ -205,7 +247,7 @@
   padding: 1rem;
   text-align: center;
 }
-:is([data-theme="classic-light"], [data-theme="classic-dark"]) [data-slot="project-card"] [data-slot="title-page-title"] {
+:is([data-theme="classic-light"], [data-theme="classic-dark"], [data-theme="classic"]) [data-slot="project-card"] [data-slot="title-page-title"] {
   display: -webkit-box;
   -webkit-box-orient: vertical;
   -webkit-line-clamp: 4;
@@ -219,7 +261,7 @@
   line-height: 1.1;
   color: hsl(var(--tag-blue-ink));
 }
-:is([data-theme="classic-light"], [data-theme="classic-dark"]) [data-slot="project-card"] [data-slot="title-page-fleuron"] {
+:is([data-theme="classic-light"], [data-theme="classic-dark"], [data-theme="classic"]) [data-slot="project-card"] [data-slot="title-page-fleuron"] {
   display: none;
 }
 
@@ -228,12 +270,12 @@
    color with ink, like the menus, instead of the solid primary block or the
    gray fill, and a short rounded marker in the primary color at its left
    (not a stripe down the rounded edge). */
-:is([data-theme="classic-light"], [data-theme="classic-dark"]) [data-slot="nav-item"][data-active] {
+:is([data-theme="classic-light"], [data-theme="classic-dark"], [data-theme="classic"]) [data-slot="nav-item"][data-active] {
   position: relative;
   color: hsl(var(--foreground));
   background-color: hsl(var(--tag-neutral));
 }
-:is([data-theme="classic-light"], [data-theme="classic-dark"]) [data-slot="nav-item"][data-active]::before {
+:is([data-theme="classic-light"], [data-theme="classic-dark"], [data-theme="classic"]) [data-slot="nav-item"][data-active]::before {
   content: "";
   position: absolute;
   top: 50%;
@@ -247,7 +289,7 @@
 
 /* The wordmark next to the logo, as in the handoff's nav: Bricolage 800
    with the headings' tight tracking. */
-:is([data-theme="classic-light"], [data-theme="classic-dark"]) [data-slot="wordmark"] {
+:is([data-theme="classic-light"], [data-theme="classic-dark"], [data-theme="classic"]) [data-slot="wordmark"] {
   font-family: var(--theme-font-heading);
   font-weight: 800;
   letter-spacing: -0.025em;

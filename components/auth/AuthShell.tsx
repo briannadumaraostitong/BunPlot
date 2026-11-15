@@ -20,7 +20,9 @@ export type AuthShellProps = {
 // its landing page. The theme comes from the server (app/(auth)/layout.tsx)
 // through AuthThemeProvider, as the landing page picks its own.
 const SHELLS: Record<AuthTheme, (props: AuthShellProps) => React.ReactNode> = {
-  // One shell for both Classic modes: they differ only in colors.
+  // One shell for Classic, device-following or a fixed mode: the modes
+  // differ only in colors.
+  classic: ClassicAuthShell,
   'classic-light': ClassicAuthShell,
   'classic-dark': ClassicAuthShell,
   cyberpunk: CyberpunkAuthShell,
@@ -46,6 +48,7 @@ const CLASSIC_LOOK = {
 // The classes that differ by theme in the forms themselves: the footer link,
 // the buttons' case and the submit button's weight.
 const LOOKS: Record<AuthTheme, { link: string; button: string; submit: string }> = {
+  classic: CLASSIC_LOOK,
   'classic-light': CLASSIC_LOOK,
   'classic-dark': CLASSIC_LOOK,
   cyberpunk: {

@@ -1,7 +1,7 @@
 import Image from 'next/image'
 import { cn } from '@/lib/utils'
 import { LOGO_SRCS } from '@/lib/brand'
-import type { ThemeId } from '@/lib/themes'
+import { DEVICE_THEMES, type ThemeId } from '@/lib/themes'
 
 // The app's logo mark (files named per theme in lib/brand.ts), optionally with
 // the "BunPlot" wordmark. Each theme can have its own version: one image per
@@ -21,9 +21,15 @@ const PER_THEME = LOGO_FILES.length > 1
 // Inside each theme, hide the logo images that aren't for it, except inside a
 // differently themed element nested in it (a ThemeScope), whose own rule
 // decides. Generated from the theme ids so a new theme is covered.
-const LOGO_CSS = Object.keys(LOGO_SRCS)
-  .map((id) => `[data-theme="${id}"] [data-logo]:not([data-logo~="${id}"]):not([data-theme="${id}"] [data-theme]:not([data-theme="${id}"]) [data-logo]){display:none}`)
-  .join('')
+const hideOthers = (scope: string, show: ThemeId) =>
+  `[data-theme="${scope}"] [data-logo]:not([data-logo~="${show}"]):not([data-theme="${scope}"] [data-theme]:not([data-theme="${scope}"]) [data-logo]){display:none}`
+// A device theme's scope (lib/themes.ts DEVICE_THEMES) shows its light
+// mode's logo, or its dark mode's on a dark device.
+const LOGO_CSS =
+  Object.keys(LOGO_SRCS).map((id) => hideOthers(id, id as ThemeId)).join('') +
+  Object.entries(DEVICE_THEMES)
+    .map(([id, { light, dark }]) => `@media not all and (prefers-color-scheme: dark){${hideOthers(id, light)}}@media (prefers-color-scheme: dark){${hideOthers(id, dark)}}`)
+    .join('')
 
 interface LogoProps {
   size?: number

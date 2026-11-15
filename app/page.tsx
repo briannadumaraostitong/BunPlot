@@ -14,15 +14,18 @@ export const metadata: Metadata = {
 // theme is chosen here on the server, so the page can branch on it, unlike
 // the app, whose theme only the browser knows.
 const LANDINGS = {
-  // One landing for both Classic modes: they differ only in colors.
+  // One landing for Classic, in the device's light or dark setting
+  // ('classic') or a fixed mode: the modes differ only in colors.
+  classic: ClassicLanding,
   'classic-light': ClassicLanding,
   'classic-dark': ClassicLanding,
   cyberpunk: CyberpunkLanding,
   manuscript: ManuscriptLanding,
 }
 
-// The landing page's theme, whatever the visitor's own.
-const THEME: keyof typeof LANDINGS = 'cyberpunk'
+// The landing page's theme, whatever the visitor's own: Classic, light or
+// dark as the visitor's device is set.
+const THEME: keyof typeof LANDINGS = 'classic'
 
 // The landing page for signed-out visitors (proxy.ts sends signed-in ones to
 // the dashboard). The ThemeScope applies THEME to this page only, its tokens,
