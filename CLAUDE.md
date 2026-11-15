@@ -243,3 +243,4 @@ When working on a new feature, always read these first:
 ## Pending Features
 - Event connections/linking
 - Returning visitors in their own theme: the landing, login and signup should follow a returning visitor's saved theme (a Manuscript user sees the Manuscript landing), while visitors without a stored theme keep today's device-following Classic (`THEME = 'classic'`). The landing picks its components on the server (`LANDINGS`), so the server has to know that theme: store the setting in a cookie as well as localStorage, and read it in `app/page.tsx` and the auth layout
+- Future themes (Dusk, Frutiger Aero), parked for a later update.
