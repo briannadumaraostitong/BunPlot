@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState, useRef, useSyncExternalStore } from "react";
+import { useEffect, useState, useRef } from "react";
 import {
   Trash2,
   Loader2,
@@ -23,13 +23,8 @@ import {
   DialogTitle,
   DialogDescription,
 } from "@/components/ui/dialog";
-import {
-  Sheet,
-  SheetClose,
-  SheetContent,
-  SheetTitle,
-  SheetDescription,
-} from "@/components/ui/sheet";
+import { SheetClose } from "@/components/ui/sheet";
+import { PhoneSheet } from "@/components/ui/phone-sheet";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -63,8 +58,7 @@ import { EventPlacesField } from "@/components/events/EventPlacesField";
 import { StatusPicker } from "@/components/events/StatusPicker";
 import type { Event, Layer, Chapter, Place, Character, Status } from "@/types/database";
 import { cn } from "@/lib/utils";
-import { useIsBelowMd } from "@/hooks/useIsBelowMd";
-import { useVisibleArea } from "@/hooks/useVisibleArea";
+import { usePhoneSurface } from "@/hooks/usePhoneSurface";
 import { EDITABLE_TEXT_CLASS } from "@/lib/editableText";
 import { reportResult, settle } from "@/lib/notify";
 
@@ -728,31 +722,6 @@ function Field({
   );
 }
 
-// Scrolls the form so its focused field (or, in rich text, the caret) is
-// in view between the form's top and its sticky bottom bar.
-function revealFocused(body: HTMLElement) {
-  const el = document.activeElement;
-  if (!(el instanceof HTMLElement) || !body.contains(el)) return;
-  let rect = el.getBoundingClientRect();
-  if (el.isContentEditable) {
-    const selection = window.getSelection();
-    const caret = selection?.rangeCount ? selection.getRangeAt(0).getBoundingClientRect() : null;
-    if (caret && caret.height > 0) rect = caret;
-  }
-  const box = body.getBoundingClientRect();
-  const bar = body.querySelector('[data-slot="event-actions"]')?.getBoundingClientRect().height ?? 0;
-  const top = box.top + 8;
-  const bottom = box.bottom - bar - 8;
-  if (rect.bottom > bottom) body.scrollTop += rect.bottom - bottom;
-  else if (rect.top < top) body.scrollTop -= top - rect.top;
-}
-
-// For useSyncExternalStore: true once the browser is running, false on the
-// server and during hydration.
-const noSubscribe = () => () => {};
-const isClient = () => true;
-const isServer = () => false;
-
 export function EventModal({
   event,
   layer,
@@ -774,49 +743,9 @@ export function EventModal({
   onClose,
   onUpdated,
 }: EventModalProps) {
-  // Sheet or dialog, chosen when the event opens and kept until it closes:
-  // switching mid-edit (a phone rotated past 768px) would replace EventForm
-  // and drop its unsaved edits. The choice waits for a real measurement:
-  // during hydration useIsBelowMd still reports the server's guess (not a
-  // phone), so an event already open on a full page load (?entity=) locks
-  // only once the browser is running. After closing, the last surface stays
-  // for its exit animation; the next open chooses again.
-  const belowMd = useIsBelowMd();
-  const measured = useSyncExternalStore(noSubscribe, isClient, isServer);
-  const [surface, setSurface] = useState<{ phone: boolean; locked: boolean } | null>(null);
-  if (open && measured && !surface?.locked) setSurface({ phone: belowMd, locked: true });
-  if (!open && surface?.locked) setSurface({ phone: surface.phone, locked: false });
-  const isPhone = surface?.locked || !open ? (surface?.phone ?? belowMd) : belowMd;
-
-  // The phone sheet above the on-screen keyboard: what part of the page is
-  // visible (window.visualViewport), only while the sheet is open.
-  const visible = useVisibleArea(isPhone && open);
-  const sheetRef = useRef<HTMLDivElement>(null);
-
-  // Keep the focused field (the editor's caret, in the rich text) in the
-  // visible part of the form, above its sticky bottom bar: after the
-  // keyboard opens or the visible area changes, on moving between fields and
-  // as you type. Browsers scroll a focused field into view themselves, but
-  // not clear of the bar.
-  const keyboardOpen = (visible?.bottomInset ?? 0) > 0;
-  useEffect(() => {
-    if (!isPhone || !open) return;
-    const body = sheetRef.current?.querySelector<HTMLElement>('[data-slot="event-sheet-body"]');
-    if (!body) return;
-    let frame = 0;
-    const reveal = () => {
-      cancelAnimationFrame(frame);
-      frame = requestAnimationFrame(() => revealFocused(body));
-    };
-    if (keyboardOpen) reveal();
-    body.addEventListener("focusin", reveal);
-    body.addEventListener("input", reveal);
-    return () => {
-      cancelAnimationFrame(frame);
-      body.removeEventListener("focusin", reveal);
-      body.removeEventListener("input", reveal);
-    };
-  }, [isPhone, open, keyboardOpen, visible?.height]);
+  // Sheet or dialog, chosen when the event opens and kept until it closes
+  // (usePhoneSurface).
+  const isPhone = usePhoneSurface(open);
   const form = event && layer && (
     <EventForm
       key={event.id}
@@ -849,32 +778,16 @@ export function EventModal({
   // all do), so unsaved edits behave exactly as on Escape today.
   if (isPhone) {
     return (
-      <Sheet open={open} onOpenChange={onClose}>
-        <SheetContent
-          ref={sheetRef}
-          side="bottom"
-          showCloseButton={false}
-          // While the keyboard covers the bottom of the page, the sheet sits
-          // on top of it and fits what's still visible.
-          style={
-            visible?.bottomInset
-              ? { bottom: visible.bottomInset, maxHeight: `min(92dvh, ${Math.round(visible.height * 0.92)}px)` }
-              : undefined
-          }
-          className={cn(
-            // Up to 92dvh tall. The form brings its own close button, in a
-            // header row above its scrolling fields (inSheet).
-            "max-h-[92dvh] gap-0 overflow-hidden rounded-t-lg p-0 bg-card",
-            // Clear of the home indicator once the viewport opts in to
-            // safe areas (viewport-fit=cover); 0 until then.
-            "pb-[env(safe-area-inset-bottom)]"
-          )}
-        >
-          <SheetTitle className="sr-only">{title}</SheetTitle>
-          <SheetDescription className="sr-only">{description}</SheetDescription>
-          {form}
-        </SheetContent>
-      </Sheet>
+      <PhoneSheet
+        open={open}
+        onOpenChange={onClose}
+        title={title}
+        description={description}
+        bodySlot="event-sheet-body"
+        barSlot="event-actions"
+      >
+        {form}
+      </PhoneSheet>
     );
   }
 
