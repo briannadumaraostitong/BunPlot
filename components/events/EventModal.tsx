@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState, useRef } from "react";
+import { useEffect, useState, useRef, useSyncExternalStore } from "react";
 import {
   Trash2,
   Loader2,
@@ -15,6 +15,7 @@ import {
   AlignCenter,
   AlignRight,
   AlignJustify,
+  XIcon,
 } from "lucide-react";
 import {
   Dialog,
@@ -22,6 +23,13 @@ import {
   DialogTitle,
   DialogDescription,
 } from "@/components/ui/dialog";
+import {
+  Sheet,
+  SheetClose,
+  SheetContent,
+  SheetTitle,
+  SheetDescription,
+} from "@/components/ui/sheet";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -55,6 +63,7 @@ import { EventPlacesField } from "@/components/events/EventPlacesField";
 import { StatusPicker } from "@/components/events/StatusPicker";
 import type { Event, Layer, Chapter, Place, Character, Status } from "@/types/database";
 import { cn } from "@/lib/utils";
+import { useIsBelowMd } from "@/hooks/useIsBelowMd";
 import { EDITABLE_TEXT_CLASS } from "@/lib/editableText";
 import { reportResult, settle } from "@/lib/notify";
 
@@ -255,6 +264,7 @@ function EventForm({
   onCharacterUnlinked,
   onClose,
   onUpdated,
+  inSheet = false,
 }: {
   event: Event;
   layer: Layer;
@@ -274,6 +284,9 @@ function EventForm({
   onCharacterUnlinked?: (eventId: string, characterId: string) => void;
   onClose: () => void;
   onUpdated: () => void;
+  // In the phone sheet: a header row with the close button above the
+  // fields, which scroll below it.
+  inSheet?: boolean;
 }) {
   const [title, setTitle] = useState(event.title);
   const [description, setDescription] = useState(event.description ?? "");
@@ -435,9 +448,28 @@ function EventForm({
   return (
     <div
       data-slot="event-form"
-      className="flex flex-col max-h-dvh overflow-y-auto w-full md:h-160 md:max-h-none md:flex-row"
+      className={
+        inSheet
+          ? "flex min-h-0 w-full flex-col overflow-hidden"
+          : "flex flex-col max-h-dvh overflow-y-auto w-full md:h-160 md:max-h-none md:flex-row"
+      }
       style={{ '--event-color': color } as React.CSSProperties}
     >
+      {/* In the phone sheet, a header row holds the close button, and the
+          fields scroll in the area below it, so nothing passes under the
+          button. Elsewhere the wrapper is display: contents, so the dialog's
+          layout is untouched. */}
+      {inSheet && (
+        <div data-slot="event-sheet-header" className="flex h-11 shrink-0 items-center justify-end px-2">
+          <SheetClose asChild>
+            <Button variant="ghost" size="icon-sm" className="relative after:absolute after:-inset-2">
+              <XIcon />
+              <span className="sr-only">Close</span>
+            </Button>
+          </SheetClose>
+        </div>
+      )}
+      <div className={inSheet ? "flex min-h-0 flex-1 flex-col overflow-y-auto overscroll-contain" : "contents"}>
       {/* Left metadata sidebar */}
       <div className="grid grid-cols-2 content-start gap-4 border-b border-border p-5 shrink-0 bg-secondary/20 md:grid-cols-1 md:gap-6 md:w-56 md:border-b-0 md:border-r md:overflow-y-auto md:scrollbar-thin">
         <Field label="Layer">
@@ -670,6 +702,7 @@ function EventForm({
           </div>
         </div>
       </div>
+      </div>
     </div>
   );
 }
@@ -690,6 +723,12 @@ function Field({
     </div>
   );
 }
+
+// For useSyncExternalStore: true once the browser is running, false on the
+// server and during hydration.
+const noSubscribe = () => () => {};
+const isClient = () => true;
+const isServer = () => false;
 
 export function EventModal({
   event,
@@ -712,36 +751,87 @@ export function EventModal({
   onClose,
   onUpdated,
 }: EventModalProps) {
+  // Sheet or dialog, chosen when the event opens and kept until it closes:
+  // switching mid-edit (a phone rotated past 768px) would replace EventForm
+  // and drop its unsaved edits. The choice waits for a real measurement:
+  // during hydration useIsBelowMd still reports the server's guess (not a
+  // phone), so an event already open on a full page load (?entity=) locks
+  // only once the browser is running. After closing, the last surface stays
+  // for its exit animation; the next open chooses again.
+  const belowMd = useIsBelowMd();
+  const measured = useSyncExternalStore(noSubscribe, isClient, isServer);
+  const [surface, setSurface] = useState<{ phone: boolean; locked: boolean } | null>(null);
+  if (open && measured && !surface?.locked) setSurface({ phone: belowMd, locked: true });
+  if (!open && surface?.locked) setSurface({ phone: surface.phone, locked: false });
+  const isPhone = surface?.locked || !open ? (surface?.phone ?? belowMd) : belowMd;
+  const form = event && layer && (
+    <EventForm
+      key={event.id}
+      event={event}
+      layer={layer}
+      chapters={chapters}
+      layers={layers}
+      statuses={statuses}
+      onStatusReorder={onStatusReorder}
+      allPlaces={allPlaces}
+      allCharacters={allCharacters}
+      allPlacesFailed={allPlacesFailed}
+      onRetryAllPlaces={onRetryAllPlaces}
+      allCharactersFailed={allCharactersFailed}
+      onRetryAllCharacters={onRetryAllCharacters}
+      onPlaceLinked={onPlaceLinked}
+      onPlaceUnlinked={onPlaceUnlinked}
+      onCharacterLinked={onCharacterLinked}
+      onCharacterUnlinked={onCharacterUnlinked}
+      onClose={onClose}
+      onUpdated={onUpdated}
+      inSheet={isPhone}
+    />
+  );
+  const title = event?.title ?? "Event";
+  const description = "Edit event details, status, and notes";
+
+  // On phones the same form opens as a bottom sheet. It closes through the
+  // same onClose as the dialog (its close button, Escape and a tap outside
+  // all do), so unsaved edits behave exactly as on Escape today.
+  if (isPhone) {
+    return (
+      <Sheet open={open} onOpenChange={onClose}>
+        <SheetContent
+          side="bottom"
+          showCloseButton={false}
+          className={cn(
+            // Up to 92dvh tall. The form brings its own close button, in a
+            // header row above its scrolling fields (inSheet).
+            "max-h-[92dvh] gap-0 overflow-hidden rounded-t-lg p-0 bg-card",
+            // Clear of the home indicator once the viewport opts in to
+            // safe areas (viewport-fit=cover); 0 until then.
+            "pb-[env(safe-area-inset-bottom)]",
+            // Fade and rise in, sink and fade out. Keyed on Radix's
+            // data-state: the Sheet's own data-open:/data-closed: classes
+            // never match, since Radix sets no data-open attribute. Under
+            // reduced motion the slide distance is 0, so only the fade runs.
+            "data-[state=open]:animate-in data-[state=open]:fade-in-0 data-[state=open]:slide-in-from-bottom-10",
+            "data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=closed]:slide-out-to-bottom-10",
+            "motion-reduce:data-[state=open]:[--tw-enter-translate-y:0]! motion-reduce:data-[state=closed]:[--tw-exit-translate-y:0]!"
+          )}
+        >
+          <SheetTitle className="sr-only">{title}</SheetTitle>
+          <SheetDescription className="sr-only">{description}</SheetDescription>
+          {form}
+        </SheetContent>
+      </Sheet>
+    );
+  }
+
   return (
     <Dialog open={open} onOpenChange={onClose}>
       <DialogContent className="sm:max-w-4xl p-0 overflow-hidden gap-0 bg-card">
-        <DialogTitle className="sr-only">{event?.title ?? "Event"}</DialogTitle>
+        <DialogTitle className="sr-only">{title}</DialogTitle>
         <DialogDescription className="sr-only">
-          Edit event details, status, and notes
+          {description}
         </DialogDescription>
-        {event && layer && (
-          <EventForm
-            key={event.id}
-            event={event}
-            layer={layer}
-            chapters={chapters}
-            layers={layers}
-            statuses={statuses}
-            onStatusReorder={onStatusReorder}
-            allPlaces={allPlaces}
-            allCharacters={allCharacters}
-            allPlacesFailed={allPlacesFailed}
-            onRetryAllPlaces={onRetryAllPlaces}
-            allCharactersFailed={allCharactersFailed}
-            onRetryAllCharacters={onRetryAllCharacters}
-            onPlaceLinked={onPlaceLinked}
-            onPlaceUnlinked={onPlaceUnlinked}
-            onCharacterLinked={onCharacterLinked}
-            onCharacterUnlinked={onCharacterUnlinked}
-            onClose={onClose}
-            onUpdated={onUpdated}
-          />
-        )}
+        {form}
       </DialogContent>
     </Dialog>
   );

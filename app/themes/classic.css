@@ -34,6 +34,7 @@
   --taupe: 33 14.1% 59.8%;        /* #A79A8A */
   --card-shadow: 0 10px 24px -14px hsl(26 12.7% 21.6% / 0.35);
   --card-shadow-hover: 0 14px 28px -14px hsl(26 12.7% 21.6% / 0.45);
+  --sheet-shadow: 0 -10px 24px -14px hsl(26 12.7% 21.6% / 0.35);
 }
 
 [data-theme="classic-dark"] {
@@ -51,6 +52,7 @@
   --taupe: 33 14.1% 59.8%;        /* #A79A8A */
   --card-shadow: 0 12px 26px -14px hsl(0 0% 0% / 0.6);
   --card-shadow-hover: 0 16px 30px -14px hsl(0 0% 0% / 0.75);
+  --sheet-shadow: 0 -12px 26px -14px hsl(0 0% 0% / 0.6);
 }
 @media (prefers-color-scheme: dark) {
   [data-theme="classic"] {
@@ -68,6 +70,7 @@
     --taupe: 33 14.1% 59.8%;        /* #A79A8A */
     --card-shadow: 0 12px 26px -14px hsl(0 0% 0% / 0.6);
     --card-shadow-hover: 0 16px 30px -14px hsl(0 0% 0% / 0.75);
+    --sheet-shadow: 0 -12px 26px -14px hsl(0 0% 0% / 0.6);
   }
 }
 
@@ -99,6 +102,13 @@
   :is([data-theme="classic-light"], [data-theme="classic-dark"], [data-theme="classic"]) :is([data-slot="project-card"], [data-slot="place-card"]:not([data-selected])):hover:where(:not([data-slot="theme-scope"]:not([data-theme^="classic"]) *)) {
     box-shadow: var(--card-shadow-hover);
   }
+}
+
+/* A bottom sheet (the event dialog on phones): the cards' soft shadow,
+   cast upward from its top edge (--sheet-shadow); its top corners take the
+   10px radius from rounded-t-lg. */
+:is([data-theme="classic-light"], [data-theme="classic-dark"], [data-theme="classic"]) [data-slot="sheet-content"][data-side="bottom"]:where(:not([data-slot="theme-scope"]:not([data-theme^="classic"]) *)) {
+  box-shadow: var(--sheet-shadow);
 }
 
 /* Timeline event cards (grid, flow view and drag preview): the whole card
