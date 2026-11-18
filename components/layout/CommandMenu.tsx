@@ -187,16 +187,17 @@ export function CommandMenuView({
     <CommandDialog
       open={open}
       onOpenChange={onOpenChange}
-      title="Go to"
+      title="Search"
       description="Search your projects, events, characters and places, then press Enter to open one."
     >
       {/* Results come from the server and are matched there, so cmdk's own
-          filtering is off. */}
-      <Command shouldFilter={false} loop>
+          filtering is off. label names the input: cmdk renders it as the
+          input's hidden <label>. */}
+      <Command label="Search projects, events, characters and places" shouldFilter={false} loop>
         <CommandInput
           value={query}
           onValueChange={onQueryChange}
-          placeholder="Go to a project, event, character or place…"
+          placeholder="Search"
         />
         <CommandList>
           {projectsFailed && (
@@ -256,6 +257,9 @@ export function CommandMenuView({
             </CommandGroup>
           )}
 
+          {!trimmed && projects === null && !projectsFailed && (
+            <p className="px-3 py-6 text-center text-sm text-muted-foreground">Loading projects…</p>
+          )}
           {!trimmed && projects !== null && matchedProjects.length === 0 && !projectsFailed && (
             <p className="px-3 py-6 text-center text-sm text-muted-foreground">Type to search your projects, events, characters and places.</p>
           )}

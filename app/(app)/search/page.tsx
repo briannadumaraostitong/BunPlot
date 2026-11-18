@@ -44,7 +44,7 @@ export default function SearchPage() {
               autoFocus
               value={query}
               onChange={(e) => setQuery(e.target.value)}
-              placeholder="Search characters, events, places, chapters..."
+              placeholder="Search characters, events, places, chapters…"
               className="pl-9"
             />
           </div>
