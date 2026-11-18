@@ -24,6 +24,13 @@ function revealFocused(body: HTMLElement, barSlot: string | undefined) {
   else if (rect.top < top) body.scrollTop -= top - rect.top
 }
 
+// Blurs the focused element, so a field that saves on blur saves before its
+// sheet closes and unmounts it (Escape closes without moving focus).
+export function blurFocused() {
+  const el = document.activeElement
+  if (el instanceof HTMLElement) el.blur()
+}
+
 interface PhoneSheetProps {
   open: boolean
   onOpenChange: (open: boolean) => void
@@ -35,6 +42,10 @@ interface PhoneSheetProps {
   // on-screen keyboard and the bar.
   bodySlot: string
   barSlot?: string
+  // Where focus goes once the sheet has closed. By default it returns to
+  // what had it before the sheet opened; call event.preventDefault() and
+  // focus something else to send it there instead.
+  onCloseAutoFocus?: (event: Event) => void
   children: React.ReactNode
 }
 
@@ -43,7 +54,7 @@ interface PhoneSheetProps {
 // close button of its own: the children bring one, in a header row above
 // their scrolling body. It closes through onOpenChange (that button, Escape
 // and a tap outside), and sits above the on-screen keyboard while it's up.
-export function PhoneSheet({ open, onOpenChange, title, description, bodySlot, barSlot, children }: PhoneSheetProps) {
+export function PhoneSheet({ open, onOpenChange, title, description, bodySlot, barSlot, onCloseAutoFocus, children }: PhoneSheetProps) {
   // What part of the page is visible (window.visualViewport), only while the
   // sheet is open.
   const visible = useVisibleArea(open)
@@ -79,6 +90,7 @@ export function PhoneSheet({ open, onOpenChange, title, description, bodySlot, b
         ref={sheetRef}
         side="bottom"
         showCloseButton={false}
+        onCloseAutoFocus={onCloseAutoFocus}
         // While the keyboard covers the bottom of the page, the sheet sits on
         // top of it and fits what's still visible.
         style={

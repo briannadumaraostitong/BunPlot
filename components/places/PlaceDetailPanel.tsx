@@ -20,6 +20,8 @@ import { dismissError, reportResult, settle } from '@/lib/notify'
 import { PLACE_TYPES } from '@/lib/places.config'
 import { ACCEPTED_IMAGE_ACCEPT, isAcceptedImage } from '@/lib/imageTypes'
 import { PlaceRichTextEditor } from './PlaceRichTextEditor'
+import { PhoneSheet, blurFocused } from '@/components/ui/phone-sheet'
+import { usePhoneSurface } from '@/hooks/usePhoneSurface'
 import type { Chapter, Event, PlaceType } from '@/types/database'
 import type { PlaceWithCover } from '@/actions/places'
 
@@ -56,6 +58,43 @@ export function PlaceDetailPanel({
   onUpdated,
   onSelectEvent,
 }: PlaceDetailPanelProps) {
+  // A bottom drawer below md, chosen when it opens and kept until it closes
+  // (usePhoneSurface); the side panel from md up.
+  const isPhone = usePhoneSurface(open)
+  // The drawer keeps showing the last place while it slides away.
+  const [shown, setShown] = useState(place)
+  if (place && place !== shown) setShown(place)
+
+  if (isPhone) {
+    return (
+      <PhoneSheet
+        open={open}
+        onOpenChange={(next) => {
+          if (next) return
+          // The name and the rich text save on blur: blur the focused field
+          // first, so an Escape mid-edit still saves it.
+          blurFocused()
+          onClose()
+        }}
+        title={shown?.name || 'Place'}
+        description="Edit the place's details, description and notes"
+        bodySlot="place-panel-body"
+      >
+        {shown && (
+          <PlaceDetailContent
+            key={shown.id}
+            place={shown}
+            connectedEvents={connectedEvents}
+            inSheet
+            onClose={onClose}
+            onUpdated={onUpdated}
+            onSelectEvent={onSelectEvent}
+          />
+        )}
+      </PhoneSheet>
+    )
+  }
+
   return (
     <div
       className={cn(
@@ -80,12 +119,16 @@ export function PlaceDetailPanel({
 function PlaceDetailContent({
   place,
   connectedEvents,
+  inSheet = false,
   onClose,
   onUpdated,
   onSelectEvent,
 }: {
   place: PlaceWithCover
   connectedEvents: ConnectedEvent[]
+  // In the phone drawer, whose height comes from its content up to 92dvh:
+  // the body may shrink to scroll, and scrolling stops at its ends.
+  inSheet?: boolean
   onClose: () => void
   onUpdated: (id: string, updates: Partial<PlaceWithCover>) => void
   onSelectEvent: (event: Event) => void
@@ -131,13 +174,17 @@ function PlaceDetailContent({
           variant="ghost"
           size="icon-sm"
           onClick={onClose}
+          aria-label="Close"
           className="relative after:absolute after:-inset-2"
         >
           <X className="h-3.5 w-3.5" />
         </Button>
       </div>
 
-      <div className="flex-1 overflow-y-auto scrollbar-thin p-4 space-y-5">
+      <div
+        data-slot="place-panel-body"
+        className={cn('flex-1 overflow-y-auto scrollbar-thin p-4 space-y-5', inSheet && 'min-h-0 overscroll-contain')}
+      >
         <CoverImageField place={place} onUpdated={onUpdated} />
 
         <input

@@ -52,6 +52,9 @@ export function CharactersPanel({ projectId, initialSelectedCharacterId }: Chara
   }>({ open: false, source: null, target: null })
 
   const canvasRef = useRef<RelationshipCanvasHandle>(null)
+  // The phone banner's Cancel button: focus moves to it while the character
+  // drawer steps aside to connect.
+  const connectCancelRef = useRef<HTMLButtonElement>(null)
 
   useEffect(() => {
     let cancelled = false
@@ -247,12 +250,35 @@ export function CharactersPanel({ projectId, initialSelectedCharacterId }: Chara
         <div className="relative flex-1 min-h-0 overflow-hidden">
           {pendingSourceId && (
             <div
-              data-chip="" className="absolute top-2 left-1/2 -translate-x-1/2 z-30 rounded-full px-3 py-1 text-[11px] font-medium text-white shadow-md"
+              data-chip="" className="absolute top-2 left-1/2 -translate-x-1/2 z-30 hidden md:block rounded-full px-3 py-1 text-[11px] font-medium text-white shadow-md"
               style={{ backgroundColor: 'hsl(var(--accent))' }}
             >
               Click a character on the canvas to connect — Esc to cancel
             </div>
           )}
+          {/* On phones the character's drawer steps aside while you pick
+              (CharacterDetailPanel's connecting), and comes back after. The
+              status region is always there, so screen readers announce the
+              banner when it appears in it; it has no box of its own (the
+              banner is positioned against the canvas). */}
+          <div role="status" className="md:hidden">
+            {pendingSourceId && (
+              <div
+                data-chip=""
+                className="absolute top-2 left-1/2 -translate-x-1/2 z-30 flex items-center gap-3 whitespace-nowrap rounded-full bg-accent py-1.5 pl-3.5 pr-3 text-xs font-medium text-accent-foreground shadow-md"
+              >
+                Tap a character to connect
+                <button
+                  ref={connectCancelRef}
+                  type="button"
+                  onClick={handleCancelConnect}
+                  className="relative font-semibold underline underline-offset-2 after:absolute after:-inset-x-2 after:-inset-y-2.5"
+                >
+                  Cancel
+                </button>
+              </div>
+            )}
+          </div>
 
           {activeTreeId && (
             <RelationshipCanvas
@@ -276,6 +302,8 @@ export function CharactersPanel({ projectId, initialSelectedCharacterId }: Chara
             relationships={relationships}
             open={selectedCharacterId !== null}
             pending={selectedCharacterId !== null && selectedCharacterId === pendingSourceId}
+            connecting={pendingSourceId !== null || modalState.open}
+            connectFocusRef={connectCancelRef}
             onClose={() => setSelectedCharacterId(null)}
             onUpdated={handleCharacterUpdated}
             onSelectRelated={setSelectedCharacterId}

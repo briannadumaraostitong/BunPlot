@@ -11,6 +11,8 @@ import { reportResult, settle } from '@/lib/notify'
 import { getInitials } from './CharacterRow'
 import { initialsInk, sealShare } from '@/lib/initialsInk'
 import { ThemeFrame, ThemeFrameSlot } from '@/components/hud/ThemeFrame'
+import { PhoneSheet, blurFocused } from '@/components/ui/phone-sheet'
+import { usePhoneSurface } from '@/hooks/usePhoneSurface'
 import type { Character, CharacterRelationship } from '@/types/database'
 
 interface CharacterDetailPanelProps {
@@ -19,6 +21,14 @@ interface CharacterDetailPanelProps {
   relationships: CharacterRelationship[]
   open: boolean
   pending: boolean
+  // Set while a connection is being made (choosing the other character, then
+  // the relationship dialog). The phone drawer steps aside for it and comes
+  // back after; the desktop panel stays.
+  connecting: boolean
+  // The control that takes focus while the drawer steps aside to connect
+  // (the canvas banner's Cancel button), so keyboard and screen-reader users
+  // land on the way back. Reopening, the drawer takes focus again itself.
+  connectFocusRef?: React.RefObject<HTMLElement | null>
   onClose: () => void
   onUpdated: (id: string, updates: Partial<Character>) => void
   onSelectRelated: (id: string) => void
@@ -61,12 +71,61 @@ export function CharacterDetailPanel({
   relationships,
   open,
   pending,
+  connecting,
+  connectFocusRef,
   onClose,
   onUpdated,
   onSelectRelated,
   onStartConnect,
   onCancelConnect,
 }: CharacterDetailPanelProps) {
+  // A bottom drawer below md, chosen when it opens and kept until it closes
+  // (usePhoneSurface); the side panel from md up.
+  const isPhone = usePhoneSurface(open)
+  // The drawer keeps showing the last character while it slides away.
+  const [shown, setShown] = useState(character)
+  if (character && character !== shown) setShown(character)
+
+  if (isPhone) {
+    return (
+      <PhoneSheet
+        open={open && !connecting}
+        onOpenChange={(next) => {
+          if (next) return
+          // Fields save on blur: blur the focused one first, so an Escape
+          // mid-edit still saves it.
+          blurFocused()
+          onClose()
+        }}
+        title={shown?.name || 'Character'}
+        description="Edit the character's details, notes and relationships"
+        bodySlot="character-panel-body"
+        onCloseAutoFocus={(event) => {
+          const target = connecting ? connectFocusRef?.current : null
+          if (!target) return
+          event.preventDefault()
+          target.focus()
+        }}
+      >
+        {shown && (
+          <CharacterDetailContent
+            key={shown.id}
+            character={shown}
+            characters={characters}
+            relationships={relationships}
+            pending={pending}
+            inSheet
+            onClose={onClose}
+            onUpdated={onUpdated}
+            onSelectRelated={onSelectRelated}
+            onStartConnect={onStartConnect}
+            onCancelConnect={onCancelConnect}
+          />
+        )}
+      </PhoneSheet>
+    )
+  }
+
   return (
     <div
       className={cn(
@@ -97,6 +156,7 @@ function CharacterDetailContent({
   characters,
   relationships,
   pending,
+  inSheet = false,
   onClose,
   onUpdated,
   onSelectRelated,
@@ -107,6 +167,9 @@ function CharacterDetailContent({
   characters: Character[]
   relationships: CharacterRelationship[]
   pending: boolean
+  // In the phone drawer, whose height comes from its content up to 92dvh:
+  // the body may shrink to scroll, and scrolling stops at its ends.
+  inSheet?: boolean
   onClose: () => void
   onUpdated: (id: string, updates: Partial<Character>) => void
   onSelectRelated: (id: string) => void
@@ -148,13 +211,17 @@ function CharacterDetailContent({
           variant="ghost"
           size="icon-sm"
           onClick={onClose}
+          aria-label="Close"
           className="relative after:absolute after:-inset-2"
         >
           <X className="h-3.5 w-3.5" />
         </Button>
       </div>
 
-      <div className="flex-1 overflow-y-auto scrollbar-thin p-4 space-y-5">
+      <div
+        data-slot="character-panel-body"
+        className={cn('flex-1 overflow-y-auto scrollbar-thin p-4 space-y-5', inSheet && 'min-h-0 overscroll-contain')}
+      >
         <div className="flex items-center gap-3">
           <div className="relative shrink-0">
             {/* The portrait frame under a frame set (Cyberpunk), with square
