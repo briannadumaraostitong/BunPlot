@@ -511,3 +511,70 @@ body {
   display: table;
   clear: both;
 }
+
+/* Open and close motion for overlays: menus, popovers, selects, tooltips,
+   dialogs and sheets (tw-animate-css's enter and exit keyframes, run by the
+   components' data-[state=…]:animate-in and animate-out classes). Each
+   theme sets the timing; these are Classic's, gentle: menus and popovers
+   in 180ms, out 130ms, growing from 96% at their trigger; dialogs and
+   sheets in 240ms, out 170ms. Cyberpunk is crisp and quick, Manuscript
+   soft (their stylesheets). Exits are faster than entrances. The command
+   menu has no animation classes, so it opens and closes at once.
+   In :where() so a theme's own values (on [data-theme]) win, and set on a
+   ThemeScope too, so one inside another theme starts from Classic's. */
+:where(html, [data-slot="theme-scope"]) {
+  --ease-out: cubic-bezier(0.23, 1, 0.32, 1);
+  --ease-drawer: cubic-bezier(0.32, 0.72, 0, 1);
+  --motion-popup: 180ms;
+  --motion-popup-exit: 130ms;
+  --motion-tooltip: 150ms;
+  --motion-modal: 240ms;
+  --motion-modal-exit: 170ms;
+  --motion-scale: 0.96;
+}
+:is([data-slot="dropdown-menu-content"], [data-slot="dropdown-menu-sub-content"], [data-slot="menubar-content"], [data-slot="menubar-sub-content"], [data-slot="popover-content"], [data-slot="select-content"]) {
+  --tw-ease: var(--ease-out);
+  --tw-animation-duration: var(--motion-popup);
+  --tw-enter-scale: var(--motion-scale);
+  --tw-exit-scale: var(--motion-scale);
+}
+:is([data-slot="dropdown-menu-content"], [data-slot="dropdown-menu-sub-content"], [data-slot="menubar-content"], [data-slot="menubar-sub-content"], [data-slot="popover-content"], [data-slot="select-content"], [data-slot="tooltip-content"])[data-state="closed"] {
+  --tw-animation-duration: var(--motion-popup-exit);
+}
+[data-slot="tooltip-content"] {
+  --tw-ease: var(--ease-out);
+  --tw-animation-duration: var(--motion-tooltip);
+  --tw-enter-scale: var(--motion-scale);
+  --tw-exit-scale: var(--motion-scale);
+}
+[data-slot="dialog-content"] {
+  --tw-ease: var(--ease-out);
+  --tw-animation-duration: var(--motion-modal);
+  --tw-enter-scale: var(--motion-scale);
+  --tw-exit-scale: var(--motion-scale);
+}
+/* Sheets slide on the iOS drawer curve; overlays only fade. */
+[data-slot="sheet-content"] {
+  --tw-ease: var(--ease-drawer);
+  --tw-animation-duration: var(--motion-modal);
+}
+:is([data-slot="dialog-overlay"], [data-slot="sheet-overlay"]) {
+  --tw-ease: var(--ease-out);
+  --tw-animation-duration: var(--motion-modal);
+}
+:is([data-slot="dialog-content"], [data-slot="sheet-content"], [data-slot="dialog-overlay"], [data-slot="sheet-overlay"])[data-state="closed"] {
+  --tw-animation-duration: var(--motion-modal-exit);
+}
+
+/* Reduced motion: no growing or sliding, only the fade, at the same
+   timing. */
+@media (prefers-reduced-motion: reduce) {
+  :is([data-slot="dropdown-menu-content"], [data-slot="dropdown-menu-sub-content"], [data-slot="menubar-content"], [data-slot="menubar-sub-content"], [data-slot="popover-content"], [data-slot="select-content"], [data-slot="tooltip-content"], [data-slot="dialog-content"], [data-slot="sheet-content"]) {
+    --tw-enter-scale: 1;
+    --tw-exit-scale: 1;
+    --tw-enter-translate-x: 0;
+    --tw-enter-translate-y: 0;
+    --tw-exit-translate-x: 0;
+    --tw-exit-translate-y: 0;
+  }
+}

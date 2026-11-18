@@ -867,14 +867,7 @@ export function EventModal({
             "max-h-[92dvh] gap-0 overflow-hidden rounded-t-lg p-0 bg-card",
             // Clear of the home indicator once the viewport opts in to
             // safe areas (viewport-fit=cover); 0 until then.
-            "pb-[env(safe-area-inset-bottom)]",
-            // Fade and rise in, sink and fade out. Keyed on Radix's
-            // data-state: the Sheet's own data-open:/data-closed: classes
-            // never match, since Radix sets no data-open attribute. Under
-            // reduced motion the slide distance is 0, so only the fade runs.
-            "data-[state=open]:animate-in data-[state=open]:fade-in-0 data-[state=open]:slide-in-from-bottom-10",
-            "data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=closed]:slide-out-to-bottom-10",
-            "motion-reduce:data-[state=open]:[--tw-enter-translate-y:0]! motion-reduce:data-[state=closed]:[--tw-exit-translate-y:0]!"
+            "pb-[env(safe-area-inset-bottom)]"
           )}
         >
           <SheetTitle className="sr-only">{title}</SheetTitle>

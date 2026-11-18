@@ -18,6 +18,17 @@
   --rule: 39 32.2% 62.9%;
 }
 
+/* Open and close motion (globals.css): soft. Menus and popovers in 220ms,
+   out 160ms, from 97%; dialogs and sheets in 280ms, out 200ms. */
+[data-theme="manuscript"] {
+  --motion-popup: 220ms;
+  --motion-popup-exit: 160ms;
+  --motion-tooltip: 175ms;
+  --motion-modal: 280ms;
+  --motion-modal-exit: 200ms;
+  --motion-scale: 0.97;
+}
+
 /* The landing page's and login's values no token covers, from the handoff:
    heading ink, the light inner rule, the buttons' pressed edge, the
    paperclip, the wax seal's ring and letter, and the book covers' cloth,

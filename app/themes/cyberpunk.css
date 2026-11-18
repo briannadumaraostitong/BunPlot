@@ -16,6 +16,18 @@ html:has([data-slot="theme-scope"][data-theme="cyberpunk"]) {
   background-color: hsl(228 50% 3.9%);
 }
 
+/* Open and close motion (globals.css): crisp and quick. Menus and
+   popovers in 150ms, out 100ms, from 95%; dialogs and sheets in 200ms,
+   out 150ms. */
+[data-theme="cyberpunk"] {
+  --motion-popup: 150ms;
+  --motion-popup-exit: 100ms;
+  --motion-tooltip: 125ms;
+  --motion-modal: 200ms;
+  --motion-modal-exit: 150ms;
+  --motion-scale: 0.95;
+}
+
 /* Project cards: 1px pink reads too thin beside the cut diagonals. The
    skeleton shares the slot so nothing shifts when cards load. */
 [data-theme="cyberpunk"] [data-slot="project-card"]:where(:not([data-slot="theme-scope"]:not([data-theme="cyberpunk"]) *)) {
