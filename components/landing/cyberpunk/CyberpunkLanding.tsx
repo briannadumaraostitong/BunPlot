@@ -1,6 +1,7 @@
 import { BannerStrip } from '@/components/hud/BannerStrip'
 import { APP_PARTS } from '../content'
 import { CONTAINER } from '../layout'
+import { LandingReveals } from '../LandingReveals'
 import { LandingNav } from './LandingNav'
 import { Hero } from './Hero'
 import { WhySection } from './WhySection'
@@ -16,7 +17,8 @@ export function CyberpunkLanding() {
   return (
     <>
       <LandingNav />
-      <main id="top">
+      {/* Section reveals (crisp): motion.css and LandingReveals. */}
+      <main id="top" className="[--reveal-distance:8px] [--reveal-duration:320ms] [--reveal-stagger:40ms]">
         <Hero />
         <BannerStrip items={[...APP_PARTS]} className="mb-2" contentClassName={CONTAINER} />
         <WhySection />
@@ -25,6 +27,7 @@ export function CyberpunkLanding() {
         <AboutSection />
         <SignUpBand />
       </main>
+      <LandingReveals />
       <LandingFooter />
     </>
   )

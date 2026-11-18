@@ -16,7 +16,7 @@ const BUTTON = 'corner-cut-sm inline-block px-[22px] py-3 font-mono text-[12px] 
 export function WhySection() {
   return (
     <section id="why" className={`${CONTAINER} ${SPLIT} gap-y-12 py-[104px]`}>
-      <div className={SPLIT_TEXT}>
+      <div data-reveal className={SPLIT_TEXT}>
         <Eyebrow number={sectionNumber(WHY.number)} className={SECTION_EYEBROW}>{WHY.label}</Eyebrow>
         <h2 className={`mb-5 ${H2}`}>{WHY.title}</h2>
         <p className={`mb-4 ${BODY}`}>{WHY.body[0]}</p>
@@ -25,6 +25,7 @@ export function WhySection() {
 
       {/* A picture of the event dialog, not a working one. */}
       <div
+        data-reveal
         role="img"
         aria-label="An event in BunPlot: Bridge falls, in chapter 3, with Ilsa Varn and Tobin Hale at Merrow Docks, drafted"
         className="min-w-0 max-w-[560px] flex-[1_1_480px]"

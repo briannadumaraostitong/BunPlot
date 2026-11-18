@@ -1,0 +1,31 @@
+/* Landing page motion (components/landing/).
+
+   Section reveals: LandingReveals marks each [data-reveal] element as it
+   scrolls into view, once: data-revealed="in" plays the reveal, "now" shows
+   it at once (already on screen when the page loads, or above the screen).
+   Elements are hidden only while html[data-reveals="on"], which
+   LandingReveals sets, and only on screens without a reduced-motion
+   preference: without JavaScript, with reduced motion and in print, the
+   page shows as it is, with nothing moving. Each landing sets its timing on
+   its <main>: --reveal-duration, --reveal-distance (how far it rises) and
+   --reveal-stagger (between elements revealed together; LandingReveals
+   numbers them in --reveal-step, at most 4). Only opacity and transform
+   change, so nothing shifts the layout. */
+@media screen and (prefers-reduced-motion: no-preference) {
+  html[data-reveals="on"] [data-reveal]:not([data-revealed]) {
+    opacity: 0;
+  }
+
+  html[data-reveals="on"] [data-reveal][data-revealed="in"] {
+    animation: landing-reveal var(--reveal-duration) var(--ease-out) calc(var(--reveal-step, 0) * var(--reveal-stagger)) backwards;
+  }
+}
+
+/* From its hidden state to the element's own styles, so it ends exactly as
+   it would look without the animation. */
+@keyframes landing-reveal {
+  from {
+    opacity: 0;
+    transform: translateY(var(--reveal-distance));
+  }
+}

@@ -12,14 +12,14 @@ const FIELDS = [
 export function WhySection() {
   return (
     <section id="why" className={`${CONTAINER} ${SPLIT} pt-[120px] pb-10`}>
-      <div className="min-w-0 flex-[1_1_420px]">
+      <div data-reveal className="min-w-0 flex-[1_1_420px]">
         <p className={`mb-3.5 ${EYEBROW}`}>{`Chapter ${roman(WHY.number)} · ${WHY.label}`}</p>
         <h2 className={`mb-[22px] ${H2}`}>{WHY.title}</h2>
         <p className="mb-4 max-w-[520px] text-[18px] leading-[1.75]">{WHY.body[0]}</p>
         <p className="max-w-[520px] text-[18px] leading-[1.75]">{WHY.body[1]}</p>
       </div>
 
-      <div className="relative min-w-0 max-w-[520px] flex-[1_1_440px] pt-3.5">
+      <div data-reveal className="relative min-w-0 max-w-[520px] flex-[1_1_440px] pt-3.5">
         {/* The paperclip over the card's top edge, at the right, where
             nothing is written under it (the stamp sits lower). */}
         <svg aria-hidden="true" width="26" height="64" viewBox="0 0 26 64" className="absolute top-0 right-16 z-2">

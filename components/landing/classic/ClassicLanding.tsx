@@ -1,3 +1,4 @@
+import { LandingReveals } from '../LandingReveals'
 import { LandingNav } from './LandingNav'
 import { Hero } from './Hero'
 import { PartsStrip } from './PartsStrip'
@@ -17,7 +18,8 @@ export function ClassicLanding() {
   return (
     <div className="text-secondary-foreground">
       <LandingNav />
-      <main id="top">
+      {/* Section reveals (gentle): motion.css and LandingReveals. */}
+      <main id="top" className="[--reveal-distance:12px] [--reveal-duration:480ms] [--reveal-stagger:60ms]">
         <Hero />
         <PartsStrip />
         <WhySection />
@@ -26,6 +28,7 @@ export function ClassicLanding() {
         <AboutSection />
         <SignUpBand />
       </main>
+      <LandingReveals />
       <LandingFooter />
     </div>
   )

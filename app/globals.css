@@ -7,6 +7,7 @@
 @import "./themes/manuscript.css";
 /* Colors for the HUD pieces and landing page (Cyberpunk only). */
 @import "../components/hud/hud.css";
+@import "../components/landing/motion.css";
 
 /* Dark mode, from the nearest theme: inside a .dark element (<html> or a
    ThemeScope in a dark theme) unless a ThemeScope that isn't dark sits in

@@ -8,13 +8,14 @@ export function AboutSection() {
   return (
     <section id="about" className={BAND}>
       <div className={`${CONTAINER} ${SPLIT} gap-y-12 py-[104px]`}>
-        <div className={SPLIT_TEXT}>
+        <div data-reveal className={SPLIT_TEXT}>
           <Eyebrow number={sectionNumber(ABOUT.number)} className={SECTION_EYEBROW}>{ABOUT.label}</Eyebrow>
           <h2 className={`mb-5 ${H2}`}>{ABOUT.title}</h2>
           <p className={BODY}>{`${ABOUT.body} — ${ABOUT.signature}`}</p>
         </div>
 
         <div
+          data-reveal
           role="img"
           aria-label="A terminal: open project, 12 chapters, 48 events, 9 characters; status, everything in its place"
           className="min-w-0 max-w-[520px] flex-[1_1_440px]"

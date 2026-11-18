@@ -1,3 +1,4 @@
+import { LandingReveals } from '../LandingReveals'
 import { LandingNav } from './LandingNav'
 import { Hero } from './Hero'
 import { ContentsBanner } from './ContentsBanner'
@@ -18,7 +19,8 @@ export function ManuscriptLanding() {
   return (
     <div className="text-secondary-foreground">
       <LandingNav />
-      <main id="top">
+      {/* Section reveals (soft): motion.css and LandingReveals. */}
+      <main id="top" className="[--reveal-distance:12px] [--reveal-duration:560ms] [--reveal-stagger:60ms]">
         <Hero />
         <ContentsBanner />
         <WhySection />
@@ -27,6 +29,7 @@ export function ManuscriptLanding() {
         <AboutSection />
         <SignUpBand />
       </main>
+      <LandingReveals />
       <LandingFooter />
     </div>
   )

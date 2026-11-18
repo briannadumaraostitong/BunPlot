@@ -26,7 +26,7 @@ function FeatureRow({
   children: React.ReactNode
 }) {
   return (
-    <div className={`${SPLIT} gap-y-10 ${className ?? ''}`}>
+    <div data-reveal className={`${SPLIT} gap-y-10 ${className ?? ''}`}>
       <div className={SPLIT_TEXT}>
         <p className={`mb-3.5 font-mono text-[12px] uppercase ${labelTone}`}>{featureLabel(label)}</p>
         <h3 className={H3}>{title}</h3>
@@ -50,8 +50,10 @@ export function FeaturesSection() {
   return (
     <section id="features" className={BAND}>
       <div className={`${CONTAINER} py-[104px]`}>
-        <Eyebrow number={sectionNumber(FEATURES.number)} className={SECTION_EYEBROW}>{FEATURES.label}</Eyebrow>
-        <h2 className={`mb-[72px] ${H2}`}>{FEATURES.title}</h2>
+        <div data-reveal>
+          <Eyebrow number={sectionNumber(FEATURES.number)} className={SECTION_EYEBROW}>{FEATURES.label}</Eyebrow>
+          <h2 className={`mb-[72px] ${H2}`}>{FEATURES.title}</h2>
+        </div>
 
         <FeatureRow
           {...FEATURES.rows.outline}

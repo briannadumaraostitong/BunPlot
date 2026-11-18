@@ -19,7 +19,7 @@ export function AlsoSection() {
       <h2 id="also-title" className={`mb-9 text-[38px] ${HEADING}`}>The rest of the desk</h2>
       <div className="grid grid-cols-[repeat(auto-fit,minmax(240px,1fr))] gap-[22px]">
         {ALSO.items.map(({ title, body }, i) => (
-          <div key={title} className={`border-t-3 px-[22px] pt-5 pb-[18px] ${SHEET} ${RULED} ${CARDS[i]}`}>
+          <div key={title} data-reveal className={`border-t-3 px-[22px] pt-5 pb-[18px] ${SHEET} ${RULED} ${CARDS[i]}`}>
             <h3 className={`mb-1.5 text-[25px] ${HEADING}`}>{title}</h3>
             <p className="text-[15px] leading-7">{body}</p>
           </div>

@@ -30,7 +30,8 @@ export function SignUpBand() {
           </div>
         </div>
 
-        <div className="relative ml-auto min-w-0 max-w-[520px] flex-[1_1_420px]">
+        {/* Only the picture reveals: the buttons beside it never wait. */}
+        <div data-reveal className="relative ml-auto min-w-0 max-w-[520px] flex-[1_1_420px]">
           {/* The card behind, in the neutral tag color, without a shadow. */}
           <div
             aria-hidden="true"

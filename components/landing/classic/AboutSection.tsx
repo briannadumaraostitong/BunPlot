@@ -12,7 +12,7 @@ const STATS = [
 export function AboutSection() {
   return (
     <section id="about" className={`${CONTAINER} flex flex-wrap items-center gap-14 pt-[120px] pb-[110px]`}>
-      <div className="min-w-0 flex-[1_1_520px]">
+      <div data-reveal className="min-w-0 flex-[1_1_520px]">
         <p className={EYEBROW}>{ABOUT.label}</p>
         <h2 className={`mb-[26px] ${H2}`}>{ABOUT.title}</h2>
         <div className={`px-9 pt-8 pb-7 ${CARD}`}>
@@ -21,7 +21,7 @@ export function AboutSection() {
         </div>
       </div>
 
-      <div className="min-w-0 max-w-[400px] flex-[1_1_320px]">
+      <div data-reveal className="min-w-0 max-w-[400px] flex-[1_1_320px]">
         <div
           role="img"
           aria-label={`Project summary: ${PROJECT.title}, ${PROJECT.chapters} chapters, ${PROJECT.events} events, ${PROJECT.characters} characters, ${ABOUT.status}`}

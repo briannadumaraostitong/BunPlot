@@ -22,7 +22,7 @@ function FeatureRow({
   children: React.ReactNode
 }) {
   return (
-    <div className={`${SPLIT} ${className ?? ''}`}>
+    <div data-reveal className={`${SPLIT} ${className ?? ''}`}>
       <div className="min-w-0 flex-[1_1_400px]">
         <p className={`mb-2 text-[19px] ${ITALIC_EYEBROW}`}>{featureLabel(label)}</p>
         <h3 className={H3}>{title}</h3>
@@ -46,7 +46,7 @@ const VISUAL = 'min-w-0 max-w-[580px] flex-[1_1_480px]'
 export function FeaturesSection() {
   return (
     <section id="features" className={`${CONTAINER} pt-[100px]`}>
-      <div className="mb-16 text-center">
+      <div data-reveal className="mb-16 text-center">
         <p className={`mb-3.5 ${EYEBROW}`}>{`Chapter ${roman(FEATURES.number)} · ${FEATURES.label}`}</p>
         <h2 className={`mb-3.5 ${H2}`}>{FEATURES.title}</h2>
         <Fleuron className="inline-block" />

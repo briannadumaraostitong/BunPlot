@@ -8,14 +8,14 @@ const NEUTRAL = `${TAG} ${TAG_PAD} ${TAG_NEUTRAL}`
 export function WhySection() {
   return (
     <section id="why" className={`${CONTAINER} flex flex-wrap items-center gap-14 pt-[120px] pb-10`}>
-      <div className="min-w-0 flex-[1_1_420px]">
+      <div data-reveal className="min-w-0 flex-[1_1_420px]">
         <p className={EYEBROW}>{WHY.label}</p>
         <h2 className={`mb-[22px] ${H2}`}>{WHY.title}</h2>
         <p className="mb-4 max-w-[520px] text-[18px] leading-[1.75]">{WHY.body[0]}</p>
         <p className="max-w-[520px] text-[18px] leading-[1.75]">{WHY.body[1]}</p>
       </div>
 
-      <div className="min-w-0 max-w-[520px] flex-[1_1_440px]">
+      <div data-reveal className="min-w-0 max-w-[520px] flex-[1_1_440px]">
         {/* A picture of the event dialog, not a working one. */}
         <div
           role="img"

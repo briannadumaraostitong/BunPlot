@@ -45,7 +45,7 @@ export function AlsoSection() {
       <h2 id="also-title" className={`mb-8 text-[36px] ${HEADING}`}>And a few more things</h2>
       <div className="grid grid-cols-[repeat(auto-fit,minmax(240px,1fr))] gap-[18px]">
         {ALSO.items.map(({ title, body }, i) => (
-          <div key={title} className={`p-[22px] ${CARD}`}>
+          <div key={title} data-reveal className={`p-[22px] ${CARD}`}>
             <div aria-hidden="true" className={`mb-3.5 flex size-[42px] items-center justify-center rounded-[9px] ${ICONS[i].tile}`}>
               <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
                 {ICONS[i].icon}

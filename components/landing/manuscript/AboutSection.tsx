@@ -5,7 +5,7 @@ import { EYEBROW, H2, SHEET, SPLIT, roman } from './styles'
 export function AboutSection() {
   return (
     <section id="about" className={`${CONTAINER} ${SPLIT} pt-[120px] pb-[110px]`}>
-      <div className="min-w-0 flex-[1_1_520px]">
+      <div data-reveal className="min-w-0 flex-[1_1_520px]">
         <p className={`mb-3.5 ${EYEBROW}`}>{`Chapter ${roman(ABOUT.number)} · ${ABOUT.label}`}</p>
         <h2 className={`mb-[26px] ${H2}`}>{ABOUT.title}</h2>
         {/* A letter, signed and sealed. */}
@@ -26,7 +26,7 @@ export function AboutSection() {
         </div>
       </div>
 
-      <div className="min-w-0 max-w-[400px] flex-[1_1_320px]">
+      <div data-reveal className="min-w-0 max-w-[400px] flex-[1_1_320px]">
         {/* A library catalog card, with its punched hole. */}
         <div
           role="img"
