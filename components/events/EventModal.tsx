@@ -64,6 +64,7 @@ import { StatusPicker } from "@/components/events/StatusPicker";
 import type { Event, Layer, Chapter, Place, Character, Status } from "@/types/database";
 import { cn } from "@/lib/utils";
 import { useIsBelowMd } from "@/hooks/useIsBelowMd";
+import { useVisibleArea } from "@/hooks/useVisibleArea";
 import { EDITABLE_TEXT_CLASS } from "@/lib/editableText";
 import { reportResult, settle } from "@/lib/notify";
 
@@ -469,7 +470,10 @@ function EventForm({
           </SheetClose>
         </div>
       )}
-      <div className={inSheet ? "flex min-h-0 flex-1 flex-col overflow-y-auto overscroll-contain" : "contents"}>
+      <div
+        data-slot={inSheet ? "event-sheet-body" : undefined}
+        className={inSheet ? "flex min-h-0 flex-1 flex-col overflow-y-auto overscroll-contain" : "contents"}
+      >
       {/* Left metadata sidebar */}
       <div className="grid grid-cols-2 content-start gap-4 border-b border-border p-5 shrink-0 bg-secondary/20 md:grid-cols-1 md:gap-6 md:w-56 md:border-b-0 md:border-r md:overflow-y-auto md:scrollbar-thin">
         <Field label="Layer">
@@ -615,7 +619,7 @@ function EventForm({
         </div>
 
         {/* Bottom bar */}
-        <div className="sticky bottom-0 bg-background border-t border-border px-5 py-3 flex items-center justify-between shrink-0">
+        <div data-slot="event-actions" className="sticky bottom-0 bg-background border-t border-border px-5 py-3 flex items-center justify-between shrink-0">
           <div className="flex gap-1">
             {/* Mobile: Delete/Duplicate collapse into an overflow menu, same DropdownMenu pattern as ProjectCard */}
             <DropdownMenu>
@@ -724,6 +728,25 @@ function Field({
   );
 }
 
+// Scrolls the form so its focused field (or, in rich text, the caret) is
+// in view between the form's top and its sticky bottom bar.
+function revealFocused(body: HTMLElement) {
+  const el = document.activeElement;
+  if (!(el instanceof HTMLElement) || !body.contains(el)) return;
+  let rect = el.getBoundingClientRect();
+  if (el.isContentEditable) {
+    const selection = window.getSelection();
+    const caret = selection?.rangeCount ? selection.getRangeAt(0).getBoundingClientRect() : null;
+    if (caret && caret.height > 0) rect = caret;
+  }
+  const box = body.getBoundingClientRect();
+  const bar = body.querySelector('[data-slot="event-actions"]')?.getBoundingClientRect().height ?? 0;
+  const top = box.top + 8;
+  const bottom = box.bottom - bar - 8;
+  if (rect.bottom > bottom) body.scrollTop += rect.bottom - bottom;
+  else if (rect.top < top) body.scrollTop -= top - rect.top;
+}
+
 // For useSyncExternalStore: true once the browser is running, false on the
 // server and during hydration.
 const noSubscribe = () => () => {};
@@ -764,6 +787,36 @@ export function EventModal({
   if (open && measured && !surface?.locked) setSurface({ phone: belowMd, locked: true });
   if (!open && surface?.locked) setSurface({ phone: surface.phone, locked: false });
   const isPhone = surface?.locked || !open ? (surface?.phone ?? belowMd) : belowMd;
+
+  // The phone sheet above the on-screen keyboard: what part of the page is
+  // visible (window.visualViewport), only while the sheet is open.
+  const visible = useVisibleArea(isPhone && open);
+  const sheetRef = useRef<HTMLDivElement>(null);
+
+  // Keep the focused field (the editor's caret, in the rich text) in the
+  // visible part of the form, above its sticky bottom bar: after the
+  // keyboard opens or the visible area changes, on moving between fields and
+  // as you type. Browsers scroll a focused field into view themselves, but
+  // not clear of the bar.
+  const keyboardOpen = (visible?.bottomInset ?? 0) > 0;
+  useEffect(() => {
+    if (!isPhone || !open) return;
+    const body = sheetRef.current?.querySelector<HTMLElement>('[data-slot="event-sheet-body"]');
+    if (!body) return;
+    let frame = 0;
+    const reveal = () => {
+      cancelAnimationFrame(frame);
+      frame = requestAnimationFrame(() => revealFocused(body));
+    };
+    if (keyboardOpen) reveal();
+    body.addEventListener("focusin", reveal);
+    body.addEventListener("input", reveal);
+    return () => {
+      cancelAnimationFrame(frame);
+      body.removeEventListener("focusin", reveal);
+      body.removeEventListener("input", reveal);
+    };
+  }, [isPhone, open, keyboardOpen, visible?.height]);
   const form = event && layer && (
     <EventForm
       key={event.id}
@@ -798,8 +851,16 @@ export function EventModal({
     return (
       <Sheet open={open} onOpenChange={onClose}>
         <SheetContent
+          ref={sheetRef}
           side="bottom"
           showCloseButton={false}
+          // While the keyboard covers the bottom of the page, the sheet sits
+          // on top of it and fits what's still visible.
+          style={
+            visible?.bottomInset
+              ? { bottom: visible.bottomInset, maxHeight: `min(92dvh, ${Math.round(visible.height * 0.92)}px)` }
+              : undefined
+          }
           className={cn(
             // Up to 92dvh tall. The form brings its own close button, in a
             // header row above its scrolling fields (inSheet).
