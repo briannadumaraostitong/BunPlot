@@ -697,7 +697,8 @@ function OutlineDocumentEditor({
         font={font ?? null}
         onFont={(next) => applyFont(editor, next)}
       >
-        <span className="hidden text-muted-foreground sm:inline">
+        {/* Tabular figures, so the count keeps its width as you type. */}
+        <span className="hidden text-muted-foreground tabular-nums sm:inline">
           {wordCount} word{wordCount === 1 ? '' : 's'}
         </span>
         {saveStatus === 'saving' ? (

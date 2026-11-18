@@ -351,7 +351,7 @@ function StatRow({ label, value }: { label: string; value: number }) {
   return (
     <div data-slot="stat-row" className="flex items-center justify-between text-xs">
       <span className="text-muted-foreground">{label}</span>
-      <span className="font-semibold">{value.toLocaleString()}</span>
+      <span className="font-semibold tabular-nums">{value.toLocaleString()}</span>
     </div>
   )
 }
