@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react'
 import { Sidebar } from './Sidebar'
 import { TopBar } from './TopBar'
+import { CommandMenu } from './CommandMenu'
 import { useTheme } from '@/components/theme/ThemeProvider'
 import { normalizeThemeSetting } from '@/lib/themes'
 import type { Profile } from '@/types/database'
@@ -14,6 +15,7 @@ interface AppShellProps {
 
 export function AppShell({ children, profile }: AppShellProps) {
   const [navOpen, setNavOpen] = useState(false)
+  const [commandOpen, setCommandOpen] = useState(false)
   const { adoptTheme } = useTheme()
   const profileTheme = profile ? normalizeThemeSetting(profile.theme) : null
 
@@ -31,11 +33,12 @@ export function AppShell({ children, profile }: AppShellProps) {
     <div className="flex h-screen bg-background bg-texture overflow-hidden">
       <Sidebar open={navOpen} onOpenChange={setNavOpen} />
       <div className="flex flex-col flex-1 min-w-0">
-        <TopBar profile={profile} onMenuClick={() => setNavOpen(true)} />
+        <TopBar profile={profile} onMenuClick={() => setNavOpen(true)} onSearchClick={() => setCommandOpen(true)} />
         <main className="flex-1 overflow-auto scrollbar-thin">
           {children}
         </main>
       </div>
+      <CommandMenu open={commandOpen} onOpenChange={setCommandOpen} />
     </div>
   )
 }

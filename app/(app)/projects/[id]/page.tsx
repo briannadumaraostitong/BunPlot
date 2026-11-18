@@ -6,6 +6,7 @@ import type { Project, Layer, Event, Chapter, Status } from '@/types/database'
 
 interface Props {
   params: Promise<{ id: string }>
+  searchParams: Promise<{ tab?: string | string[]; entity?: string | string[] }>
 }
 
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
@@ -20,8 +21,9 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
   return { title: project?.title ?? 'Project' }
 }
 
-export default async function ProjectPage({ params }: Props) {
+export default async function ProjectPage({ params, searchParams }: Props) {
   const { id } = await params
+  const { tab, entity } = await searchParams
   const supabase = await createClient()
 
   const { data, error } = await supabase
@@ -72,6 +74,10 @@ export default async function ProjectPage({ params }: Props) {
 
   return (
     <ProjectView
+      // ProjectView reads ?tab= and ?entity= once, on mount. A new deep link
+      // into the project already open (the command menu, a search result)
+      // remounts it, so it opens what the link names.
+      key={`${tab ?? ''}:${entity ?? ''}`}
       project={project}
       initialLayers={(layersData ?? []) as Layer[]}
       initialEvents={(eventsData ?? []) as Event[]}

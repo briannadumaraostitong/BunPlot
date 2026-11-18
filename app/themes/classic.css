@@ -221,7 +221,7 @@
   text-transform: uppercase;
   color: hsl(var(--muted-foreground));
 }
-:is([data-theme="classic-light"], [data-theme="classic-dark"], [data-theme="classic"]) :is([data-slot="panel-heading"], [data-slot="timeline-corner-label"]):where(:not([data-slot="theme-scope"]:not([data-theme^="classic"]) *)) {
+:is([data-theme="classic-light"], [data-theme="classic-dark"], [data-theme="classic"]) :is([data-slot="panel-heading"], [data-slot="timeline-corner-label"], [data-slot="command-group-heading"]):where(:not([data-slot="theme-scope"]:not([data-theme^="classic"]) *)) {
   font-weight: 700;
   letter-spacing: 0.09em;
 }
@@ -233,6 +233,15 @@
   color: hsl(var(--tag-neutral-ink));
 }
 :is([data-theme="classic-light"], [data-theme="classic-dark"], [data-theme="classic"]) :is([data-slot="dropdown-menu-item"], [data-slot="dropdown-menu-checkbox-item"], [data-slot="dropdown-menu-radio-item"], [data-slot="dropdown-menu-sub-trigger"], [data-slot="menubar-item"], [data-slot="menubar-checkbox-item"], [data-slot="menubar-radio-item"], [data-slot="menubar-sub-trigger"], [data-slot="select-item"]):not([data-variant="destructive"]):is(:focus, [data-state="open"], [data-open]) *:where(:not([data-slot="theme-scope"]:not([data-theme^="classic"]) *)) {
+  color: hsl(var(--tag-neutral-ink));
+}
+
+/* The command menu's highlighted row, as the menus above. */
+:is([data-theme="classic-light"], [data-theme="classic-dark"], [data-theme="classic"]) [data-slot="command-item"][data-selected="true"]:where(:not([data-slot="theme-scope"]:not([data-theme^="classic"]) *)) {
+  background-color: hsl(var(--tag-neutral));
+  color: hsl(var(--tag-neutral-ink));
+}
+:is([data-theme="classic-light"], [data-theme="classic-dark"], [data-theme="classic"]) [data-slot="command-item"][data-selected="true"] *:where(:not([data-slot="theme-scope"]:not([data-theme^="classic"]) *)) {
   color: hsl(var(--tag-neutral-ink));
 }
 

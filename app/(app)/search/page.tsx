@@ -10,6 +10,7 @@ import { EmptyState } from '@/components/ui/empty-state'
 import { Input } from '@/components/ui/input'
 import { cn } from '@/lib/utils'
 import { useSearch } from '@/hooks/useSearch'
+import { resultHref } from '@/lib/searchHref'
 import type { SearchResult } from '@/types/database'
 
 const TYPE_LABEL: Record<SearchResult['entity_type'], string> = {
@@ -19,27 +20,12 @@ const TYPE_LABEL: Record<SearchResult['entity_type'], string> = {
   chapter: 'Chapter',
 }
 
-function resultHref(result: SearchResult): string {
-  switch (result.entity_type) {
-    case 'character':
-      return `/projects/${result.project_id}?tab=characters&entity=${result.id}`
-    case 'place':
-      return `/projects/${result.project_id}?tab=places&entity=${result.id}`
-    case 'event':
-      return `/projects/${result.project_id}?tab=timeline&entity=${result.id}`
-    case 'chapter':
-      // No chapter detail panel exists anywhere to deep-link into —
-      // chapters are just grid columns — so this lands on the project's
-      // Timeline tab only, same as clicking through would today.
-      return `/projects/${result.project_id}`
-  }
-}
-
 export default function SearchPage() {
   const searchParams = useSearchParams()
   const projectParam = searchParams.get('project')
 
-  const [query, setQuery] = useState('')
+  // ?q= starts the search, as the command menu's "Search everything" sends.
+  const [query, setQuery] = useState(() => searchParams.get('q') ?? '')
   const [scope, setScope] = useState<'project' | 'all'>(projectParam ? 'project' : 'all')
 
   const { results, status, error, retry } = useSearch(query, scope === 'project' ? projectParam : null)

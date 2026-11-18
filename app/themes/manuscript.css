@@ -39,9 +39,10 @@
 
 /* Labels: Courier Prime bold (the regular weight is too faint at 11px),
    uppercase and letter-spaced, in muted ink. The "Layer" corner cell, panel
-   headings, field labels, place types and section labels. Folder names
-   aren't labels but user content, so they keep the UI font. */
-[data-theme="manuscript"] :is([data-slot="timeline-corner-label"], [data-slot="panel-heading"], [data-slot="field-label"], [data-slot="place-type"], [data-slot="section-label"]):where(:not([data-slot="theme-scope"]:not([data-theme="manuscript"]) *)) {
+   headings, field labels, place types, section labels and the command
+   menu's group headings. Folder names aren't labels but user content, so
+   they keep the UI font. */
+[data-theme="manuscript"] :is([data-slot="timeline-corner-label"], [data-slot="panel-heading"], [data-slot="field-label"], [data-slot="place-type"], [data-slot="section-label"], [data-slot="command-group-heading"]):where(:not([data-slot="theme-scope"]:not([data-theme="manuscript"]) *)) {
   font-family: var(--theme-font-mono);
   font-size: 11px;
   font-weight: 700;

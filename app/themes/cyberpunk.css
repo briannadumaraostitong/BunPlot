@@ -74,6 +74,7 @@ html:has([data-slot="theme-scope"][data-theme="cyberpunk"]) {
 [data-theme="cyberpunk"] [data-slot="field-label"]:where(:not([data-slot="theme-scope"]:not([data-theme="cyberpunk"]) *)),
 [data-theme="cyberpunk"] [data-slot="place-type"]:where(:not([data-slot="theme-scope"]:not([data-theme="cyberpunk"]) *)),
 [data-theme="cyberpunk"] [data-slot="section-label"]:where(:not([data-slot="theme-scope"]:not([data-theme="cyberpunk"]) *)),
+[data-theme="cyberpunk"] [data-slot="command-group-heading"]:where(:not([data-slot="theme-scope"]:not([data-theme="cyberpunk"]) *)),
 [data-theme="cyberpunk"] [data-slot="folder-name"]:where(:not([data-slot="theme-scope"]:not([data-theme="cyberpunk"]) *)) {
   font-family: var(--theme-font-mono);
   font-size: 10px;
