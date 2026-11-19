@@ -7,6 +7,7 @@ import { Button } from '@/components/ui/button'
 import {
   Dialog,
   DialogContent,
+  DialogDescription,
   DialogHeader,
   DialogTitle,
   DialogTrigger,
@@ -19,6 +20,8 @@ import { createProject, updateProject } from '@/actions/projects'
 import { notifyError, reportResult, settle } from '@/lib/notify'
 import { cn } from '@/lib/utils'
 import { ACCEPTED_IMAGE_ACCEPT, isAcceptedImage } from '@/lib/imageTypes'
+import { pickExampleTitle } from '@/lib/exampleProjectTitles'
+import { useTypeIn } from '@/hooks/useTypeIn'
 
 interface NewProjectDialogProps {
   trigger?: string
@@ -35,6 +38,46 @@ export function NewProjectDialog({ trigger }: NewProjectDialogProps) {
   const [draggingOver, setDraggingOver] = useState(false)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  // The example name the title starts with, a new one each time the dialog
+  // opens. It types itself in over the field (useTypeIn), which holds the
+  // whole name all along, selected, so typing replaces it.
+  const [example, setExample] = useState<string | null>(null)
+  const titleRef = useRef<HTMLInputElement>(null)
+  const { shown, stop: stopTyping } = useTypeIn(open ? example : null)
+  const typing = shown !== null
+
+  function handleOpenChange(next: boolean) {
+    if (next) {
+      const name = pickExampleTitle()
+      setExample(name)
+      setTitle(name)
+    }
+    setOpen(next)
+  }
+
+  // Select the whole name once the dialog has focused the field.
+  useEffect(() => {
+    if (!open || !example) return
+    const frame = requestAnimationFrame(() => {
+      titleRef.current?.focus()
+      titleRef.current?.select()
+    })
+    return () => cancelAnimationFrame(frame)
+  }, [open, example])
+
+  // The typed text is drawn over the field in the field's own font and
+  // padding (whatever the theme sets), so it lines up with the real text.
+  // Copied as the copy is attached: the dialog's content mounts a render
+  // after it opens (its portal), so an effect could run before it exists.
+  function matchField(typed: HTMLSpanElement | null) {
+    const input = titleRef.current
+    if (!typed || !input) return
+    const style = getComputedStyle(input)
+    typed.style.font = style.font
+    typed.style.letterSpacing = style.letterSpacing
+    typed.style.textTransform = style.textTransform
+    typed.style.paddingLeft = `${parseFloat(style.paddingLeft) + parseFloat(style.borderLeftWidth)}px`
+  }
 
   // Revokes the previous preview URL whenever it's replaced, and on unmount —
   // otherwise every picked file leaks an object URL for the tab's lifetime.
@@ -103,7 +146,7 @@ export function NewProjectDialog({ trigger }: NewProjectDialogProps) {
   }
 
   return (
-    <Dialog open={open} onOpenChange={setOpen}>
+    <Dialog open={open} onOpenChange={handleOpenChange}>
       <DialogTrigger asChild>
         {trigger ? (
           <Button variant="outline" size="sm">{trigger}</Button>
@@ -123,14 +166,44 @@ export function NewProjectDialog({ trigger }: NewProjectDialogProps) {
         <div className="space-y-4 py-2">
           <div className="space-y-2">
             <Label htmlFor="proj-title">Title</Label>
-            <Input
-              id="proj-title"
-              placeholder="My Novel"
-              value={title}
-              onChange={(e) => setTitle(e.target.value)}
-              onKeyDown={(e) => e.key === 'Enter' && handleCreate()}
-              autoFocus
-            />
+            <div className="relative">
+              <Input
+                ref={titleRef}
+                id="proj-title"
+                placeholder="My Novel"
+                value={title}
+                onChange={(e) => setTitle(e.target.value)}
+                // The user's own input stops the typing at once, and wins:
+                // the whole name is selected, so a key or a paste replaces it.
+                onKeyDown={(e) => {
+                  stopTyping()
+                  if (e.key === 'Enter') handleCreate()
+                }}
+                onMouseDown={stopTyping}
+                onPaste={stopTyping}
+                onBlur={stopTyping}
+                autoFocus
+                // While the name types in, the field's own text, caret and
+                // selection are hidden under the typed copy. Its color never
+                // fades (the field's other transitions stay), so the real
+                // text is there the moment the copy goes.
+                className={cn(
+                  'transition-[background-color,border-color,outline-color]',
+                  typing && 'text-transparent caret-transparent selection:bg-transparent selection:text-transparent'
+                )}
+              />
+              {typing && (
+                <span
+                  ref={matchField}
+                  aria-hidden="true"
+                  className="pointer-events-none absolute inset-y-0 left-0 flex items-center whitespace-pre"
+                >
+                  {title.slice(0, shown)}
+                  <span className="ml-px inline-block h-[1.1em] w-px bg-current" />
+                </span>
+              )}
+            </div>
+            <DialogDescription className="text-xs">You can rename it any time.</DialogDescription>
           </div>
 
           <div className="space-y-2">
