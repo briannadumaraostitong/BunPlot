@@ -217,6 +217,73 @@ html:has([data-slot="landing-header"]) {
   }
 }
 
+/* Cyberpunk's About terminal plays once the picture has revealed (its
+   section reveal: its stagger step, plus the reveal's duration). Each
+   command types out at 35ms a character, clipped a character at a time like
+   the hero's labels (one text node each, so it ends as it looks without the
+   motion), with the pink block cursor leading it and holding at its end for
+   a 150ms pause; then its output appears all at once, like a real command's.
+   The second prompt appears with the first output. After the second output,
+   the last line's cursor appears where it sits, and stays (it doesn't
+   blink). Only after a played reveal: shown at once (in view on load),
+   without JavaScript or with reduced motion, the terminal is complete. */
+.cyberpunk-term-typed {
+  display: inline-block;
+}
+
+:is(.cyberpunk-term-cmd1, .cyberpunk-term-cmd2)::after {
+  content: "█";
+  position: absolute;
+  top: 0;
+  left: 2ch;
+  color: hsl(var(--accent));
+  opacity: 0;
+}
+
+@media screen and (prefers-reduced-motion: no-preference) {
+  html[data-reveals="on"] [data-revealed="in"] .cyberpunk-term {
+    --term-start: calc(var(--reveal-step, 0) * var(--reveal-stagger) + var(--reveal-duration));
+    --term-out1: calc(var(--term-start) + var(--cmd1) * 35ms + 150ms);
+    --term-out2: calc(var(--term-out1) + var(--cmd2) * 35ms + 150ms);
+  }
+
+  html[data-reveals="on"] [data-revealed="in"] .cyberpunk-term-cmd1 {
+    --at: var(--term-start);
+  }
+
+  html[data-reveals="on"] [data-revealed="in"] .cyberpunk-term-cmd2 {
+    --at: var(--term-out1);
+    animation: classic-hero-appear 1ms steps(1) var(--term-out1) backwards;
+  }
+
+  html[data-reveals="on"] [data-revealed="in"] :is(.cyberpunk-term-cmd1, .cyberpunk-term-cmd2) .cyberpunk-term-typed {
+    animation: cyberpunk-hero-type calc(var(--n) * 35ms) steps(var(--n), end) var(--at) backwards;
+  }
+
+  html[data-reveals="on"] [data-revealed="in"] :is(.cyberpunk-term-cmd1, .cyberpunk-term-cmd2)::after {
+    animation:
+      cyberpunk-hero-caret calc(var(--n) * 35ms) steps(var(--n), end) var(--at),
+      cyberpunk-term-hold 150ms steps(1) calc(var(--at) + var(--n) * 35ms);
+  }
+
+  html[data-reveals="on"] [data-revealed="in"] .cyberpunk-term-out1 {
+    animation: classic-hero-appear 1ms steps(1) var(--term-out1) backwards;
+  }
+
+  html[data-reveals="on"] [data-revealed="in"] :is(.cyberpunk-term-out2, .cyberpunk-term-cursor) {
+    animation: classic-hero-appear 1ms steps(1) var(--term-out2) backwards;
+  }
+}
+
+/* The cursor waiting at the end of the typed command, for the pause. */
+@keyframes cyberpunk-term-hold {
+  from,
+  to {
+    opacity: 1;
+    translate: calc(var(--n) * 1ch) 0;
+  }
+}
+
 /* Both ends given: a clip-path doesn't animate to none. The end shows the
    whole box, as the panel's own (unclipped) style does. */
 @keyframes hud-boot-frame {
