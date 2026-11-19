@@ -242,6 +242,99 @@ html:has([data-slot="landing-header"]) {
   }
 }
 
+/* Then a new event types itself into the empty Ilsa · Ch. 4 cell, and
+   "Saved ✓" fades in after it. The tag appears, its characters appear in
+   turn, 40ms apart (--char), with a cursor after the newest, which blinks
+   twice after the last and goes. The characters hold their places all
+   along, so nothing moves. From 1300ms on load from md up, once the bar has
+   filled; on phones from 1200ms after the window's reveal (and not at all
+   when the window was shown at once). */
+.classic-hero-char {
+  position: relative;
+}
+
+.classic-hero-char::after {
+  content: "";
+  position: absolute;
+  top: 0.1em;
+  bottom: 0.1em;
+  right: -1px;
+  width: 1px;
+  background: currentColor;
+  opacity: 0;
+}
+
+@media screen and (prefers-reduced-motion: no-preference) {
+  .classic-hero-window {
+    --type-start: 1300ms;
+  }
+
+  .classic-hero-new {
+    animation: classic-hero-appear 1ms steps(1) var(--type-start) backwards;
+  }
+
+  .classic-hero-char {
+    animation: classic-hero-appear 1ms steps(1) calc(var(--type-start) + (var(--char) + 1) * 40ms) backwards;
+  }
+
+  .classic-hero-char::after {
+    animation: classic-hero-cursor 40ms steps(1) calc(var(--type-start) + (var(--char) + 1) * 40ms);
+  }
+
+  .classic-hero-char:last-child::after {
+    animation: classic-hero-cursor-last 1000ms steps(1) calc(var(--type-start) + (var(--char) + 1) * 40ms);
+  }
+
+  .classic-hero-saved {
+    animation: classic-hero-saved 200ms var(--ease-out) calc(var(--type-start) + 670ms) backwards;
+  }
+}
+
+@media screen and (prefers-reduced-motion: no-preference) and (max-width: 767px) {
+  .classic-hero-window[data-revealed="in"] {
+    --type-start: 1200ms;
+  }
+
+  .classic-hero-window:not([data-revealed="in"]) :is(.classic-hero-new, .classic-hero-char, .classic-hero-saved),
+  .classic-hero-window:not([data-revealed="in"]) .classic-hero-char::after {
+    animation: none;
+  }
+}
+
+/* Hidden until its moment (the delay, filled backwards), then its own. */
+@keyframes classic-hero-appear {
+  from {
+    opacity: 0;
+  }
+}
+
+@keyframes classic-hero-cursor {
+  from,
+  to {
+    opacity: 1;
+  }
+}
+
+/* On, off, on, off (steps hold each), then gone: its own style. */
+@keyframes classic-hero-cursor-last {
+  0%,
+  50% {
+    opacity: 1;
+  }
+
+  25%,
+  75%,
+  100% {
+    opacity: 0;
+  }
+}
+
+@keyframes classic-hero-saved {
+  from {
+    opacity: 0;
+  }
+}
+
 /* Both ends given: a clip-path doesn't animate to none. The end looks the
    same as the bar's own (unclipped) style. */
 @keyframes classic-hero-progress {

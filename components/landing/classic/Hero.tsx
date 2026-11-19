@@ -14,6 +14,10 @@ const LANE_LABEL = 'text-[14px] font-extrabold text-muted-foreground'
 
 const CHAPTERS = Array.from({ length: TIMELINE.chapters }, (_, i) => `Ch. ${i + 1}`)
 
+// The event that types itself into Ilsa's empty Ch. 4 cell once the window
+// is in, before "Saved ✓" appears (motion.css). Classic's own copy.
+const NEW_EVENT = { lane: 'Ilsa', chapter: 4, title: 'Crosses back' }
+
 export function Hero() {
   return (
     <section className={`${CONTAINER} flex flex-wrap items-center gap-16 pt-10 md:pt-24 pb-[104px]`}>
@@ -38,7 +42,7 @@ export function Hero() {
         {/* An app window showing the timeline: a picture, not data. */}
         <div
           role="img"
-          aria-label={`A timeline for ${PROJECT.title}: ${TIMELINE.chapters} chapters and ${TIMELINE.lanes.length} storylines, Main, Ilsa and Letters, with events such as The flood, Bridge falls and Meets Tobin. Draft ${PROJECT.draft.done} of ${PROJECT.draft.of}, saved.`}
+          aria-label={`A timeline for ${PROJECT.title}: ${TIMELINE.chapters} chapters and ${TIMELINE.lanes.length} storylines, Main, Ilsa and Letters, with events such as The flood, Bridge falls and Meets Tobin, and a new one, ${NEW_EVENT.title}. Draft ${PROJECT.draft.done} of ${PROJECT.draft.of}, saved.`}
           // Rises in as the page loads, or on phones as it scrolls into view
           // (motion.css, LandingReveals).
           data-reveal="hero"
@@ -62,7 +66,7 @@ export function Hero() {
             </div>
             <div className={`${GRID} items-center`}>
               {TIMELINE.lanes.map(({ label, tone, cells }) => (
-                <LaneRow key={label} label={label} cell={CELL[tone]} cells={cells} />
+                <LaneRow key={label} label={label} cell={CELL[tone]} cells={cells} newEvent={label === NEW_EVENT.lane ? NEW_EVENT : undefined} />
               ))}
             </div>
             <div className="mt-5 flex items-center gap-3.5">
@@ -74,7 +78,8 @@ export function Hero() {
                 />
               </div>
               <span className="text-[14px] font-bold text-muted-foreground">{`Draft ${PROJECT.draft.done} of ${PROJECT.draft.of}`}</span>
-              <span className={`text-[14px] ${STRONG}`}>Saved ✓</span>
+              {/* Appears once the new event has typed in (motion.css). */}
+              <span className={`classic-hero-saved text-[14px] ${STRONG}`}>Saved ✓</span>
             </div>
           </div>
         </div>
@@ -83,7 +88,17 @@ export function Hero() {
   )
 }
 
-function LaneRow({ label, cell, cells }: { label: string; cell: string; cells: readonly (string | null)[] }) {
+function LaneRow({
+  label,
+  cell,
+  cells,
+  newEvent,
+}: {
+  label: string
+  cell: string
+  cells: readonly (string | null)[]
+  newEvent?: typeof NEW_EVENT
+}) {
   return (
     <>
       <span className={LANE_LABEL}>{label}</span>
@@ -91,6 +106,16 @@ function LaneRow({ label, cell, cells }: { label: string; cell: string; cells: r
         title ? (
           <span key={i} className={`${TAG} px-1.5 text-center ${cell}`}>
             {title}
+          </span>
+        ) : newEvent?.chapter === i + 1 ? (
+          // One span per character, each appearing in turn (--char); they hold
+          // their places from the start, so the typing moves nothing.
+          <span key={i} className={`classic-hero-new ${TAG} px-1.5 text-center ${cell}`}>
+            {[...newEvent.title].map((char, j) => (
+              <span key={j} className="classic-hero-char" style={{ '--char': j } as React.CSSProperties}>
+                {char}
+              </span>
+            ))}
           </span>
         ) : (
           <span key={i} />
