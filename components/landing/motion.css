@@ -432,6 +432,53 @@ html:has([data-slot="landing-header"]) {
   }
 }
 
+/* Manuscript's Also cards take ink on hover (pointers that hover only): the
+   hero's hand-drawn underline draws itself under the card's title in 300ms
+   and undraws when the pointer leaves, the card's edge (its sides and
+   bottom; the top rule keeps its storyline color) darkens toward the ink,
+   and the card lifts 2px off the desk onto a softer, lower paper shadow
+   (--paper-shadow-lifted), like the other themes' cards. No glow. The lift
+   uses translate, which keeps the card's tilt (rotate) and its reveal
+   (transform). At rest the underline is a dash moved off its path, so it
+   draws nothing and the cards look as they always have. With reduced
+   motion there's no lift, and the underline appears and goes at once; the
+   edge and the shadow still change. */
+.manuscript-also-underline {
+  stroke-dasharray: 1 1.1;
+  stroke-dashoffset: 1.05;
+}
+
+@media (hover: hover) {
+  .manuscript-also-card {
+    transition:
+      border-left-color 300ms ease,
+      border-right-color 300ms ease,
+      border-bottom-color 300ms ease,
+      box-shadow 300ms ease,
+      translate 300ms ease;
+  }
+
+  .manuscript-also-card:hover {
+    border-inline-color: color-mix(in oklab, hsl(var(--border)), hsl(var(--foreground)) 35%);
+    border-bottom-color: color-mix(in oklab, hsl(var(--border)), hsl(var(--foreground)) 35%);
+    box-shadow: var(--paper-shadow-lifted);
+  }
+
+  .manuscript-also-card:hover .manuscript-also-underline {
+    stroke-dashoffset: 0;
+  }
+}
+
+@media (hover: hover) and (prefers-reduced-motion: no-preference) {
+  .manuscript-also-underline {
+    transition: stroke-dashoffset 300ms var(--ease-out);
+  }
+
+  .manuscript-also-card:hover {
+    translate: 0 -2px;
+  }
+}
+
 /* The path is one unit long (pathLength), so one dash covers it: the dash
    starts just past the start (no round cap peeking out) and slides along.
    Both ends given, so it ends on its own style: no dashes, the whole line. */

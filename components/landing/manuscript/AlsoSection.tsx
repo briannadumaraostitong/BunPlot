@@ -19,8 +19,32 @@ export function AlsoSection() {
       <h2 id="also-title" className={`mb-9 text-[38px] ${HEADING}`}>The rest of the desk</h2>
       <div className="grid grid-cols-[repeat(auto-fit,minmax(240px,1fr))] gap-[22px]">
         {ALSO.items.map(({ title, body }, i) => (
-          <div key={title} data-reveal className={`border-t-3 px-[22px] pt-5 pb-[18px] ${SHEET} ${RULED} ${CARDS[i]}`}>
-            <h3 className={`mb-1.5 text-[25px] ${HEADING}`}>{title}</h3>
+          // On hover (pointers that hover only), a hand-drawn underline, the
+          // hero's, draws itself under the title, the edge darkens toward the
+          // ink, and the card lifts off the desk (motion.css). The cards
+          // aren't links: the cursor stays the default.
+          <div key={title} data-reveal className={`manuscript-also-card border-t-3 px-[22px] pt-5 pb-[18px] ${SHEET} ${RULED} ${CARDS[i]}`}>
+            <h3 className={`mb-1.5 text-[25px] ${HEADING}`}>
+              <span className="relative">
+                {title}
+                <svg
+                  aria-hidden="true"
+                  viewBox="0 0 220 18"
+                  preserveAspectRatio="none"
+                  className="pointer-events-none absolute -bottom-2 left-0 h-2.5 w-[92%]"
+                >
+                  <path
+                    d="M3 12C40 4 90 3 130 7s70 6 87-2"
+                    pathLength={1}
+                    fill="none"
+                    className="manuscript-also-underline stroke-accent"
+                    strokeWidth="1.5"
+                    strokeLinecap="round"
+                    vectorEffect="non-scaling-stroke"
+                  />
+                </svg>
+              </span>
+            </h3>
             <p className="text-[15px] leading-7">{body}</p>
           </div>
         ))}

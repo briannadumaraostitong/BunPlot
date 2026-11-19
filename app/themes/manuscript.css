@@ -11,10 +11,13 @@
 
 /* Values no token covers, from the handoff: the index-card fill (#FFFDF7),
    the sheets' shadow (rgba(60,40,20,.45)) and the rule color of dotted
-   leaders and outer rings (#BFAA82). */
+   leaders and outer rings (#BFAA82). --paper-shadow-lifted is a sheet
+   raised off the desk (the landing's Also cards on hover): the same warm
+   tint, further down and softer. */
 [data-theme="manuscript"] {
   --index-card: 45 100% 98.4%;
   --paper-shadow: 0 12px 26px -16px hsl(30 50% 15.7% / 0.45);
+  --paper-shadow-lifted: 0 18px 32px -16px hsl(30 50% 15.7% / 0.42);
   --rule: 39 32.2% 62.9%;
 }
 
