@@ -479,6 +479,38 @@ html:has([data-slot="landing-header"]) {
   }
 }
 
+/* Then the ledger's footer types itself in like a typewriter: "Draft 10 of
+   16" from 900ms, once the ribbon has dropped, then "Saved ✓" from 1800ms,
+   after a short pause, 50ms a character and no cursor (a typewriter has
+   none). Each label stays one text node, clipped from the right a character
+   at a time, like Cyberpunk's labels (the mono font's characters are all
+   1ch; --n is the label's length), so it ends exactly as it looks without
+   the motion. On load from md up; on phones after the ledger's reveal, and
+   not when the ledger was shown at once. */
+.manuscript-hero-typed {
+  display: inline-block;
+}
+
+@media screen and (prefers-reduced-motion: no-preference) {
+  .manuscript-hero-draft {
+    --type-at: 900ms;
+  }
+
+  .manuscript-hero-saved {
+    --type-at: 1800ms;
+  }
+
+  :is(.manuscript-hero-draft, .manuscript-hero-saved) .manuscript-hero-typed {
+    animation: cyberpunk-hero-type calc(var(--n) * 50ms) steps(var(--n), end) var(--type-at) backwards;
+  }
+}
+
+@media screen and (prefers-reduced-motion: no-preference) and (max-width: 767px) {
+  .manuscript-hero-ledger:not([data-revealed="in"]) .manuscript-hero-typed {
+    animation: none;
+  }
+}
+
 /* The path is one unit long (pathLength), so one dash covers it: the dash
    starts just past the start (no round cap peeking out) and slides along.
    Both ends given, so it ends on its own style: no dashes, the whole line. */

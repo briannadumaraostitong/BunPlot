@@ -14,6 +14,10 @@ const LANE_LABEL = 'font-heading text-[16px] text-muted-foreground'
 const CHAPTERS = Array.from({ length: TIMELINE.chapters }, (_, i) => `Ch. ${roman(i + 1)}`)
 const MARKS = Array.from({ length: PROJECT.draft.of }, (_, i) => i < PROJECT.draft.done)
 
+// The ledger footer's labels, typed in after the ribbon (motion.css).
+const DRAFT_LABEL = `Draft ${PROJECT.draft.done} of ${PROJECT.draft.of}`
+const SAVED_LABEL = 'Saved ✓'
+
 export function Hero() {
   return (
     <section className={`${CONTAINER} flex flex-wrap items-center gap-14 pt-10 md:pt-24 pb-[88px]`}>
@@ -94,8 +98,21 @@ export function Hero() {
                 />
               ))}
             </div>
-            <span className="font-mono text-[13px] text-muted-foreground">{`Draft ${PROJECT.draft.done} of ${PROJECT.draft.of}`}</span>
-            <span className="font-mono text-[13px] font-bold text-accent-3">Saved ✓</span>
+            {/* Typed in like a typewriter once the ribbon has dropped
+                (motion.css): each label one text node, clipped a character
+                at a time (--n, its length). */}
+            <span
+              className="manuscript-hero-draft font-mono text-[13px] text-muted-foreground"
+              style={{ '--n': DRAFT_LABEL.length } as React.CSSProperties}
+            >
+              <span className="manuscript-hero-typed">{DRAFT_LABEL}</span>
+            </span>
+            <span
+              className="manuscript-hero-saved font-mono text-[13px] font-bold text-accent-3"
+              style={{ '--n': SAVED_LABEL.length } as React.CSSProperties}
+            >
+              <span className="manuscript-hero-typed">{SAVED_LABEL}</span>
+            </span>
           </div>
         </div>
       </div>
