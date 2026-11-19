@@ -11,13 +11,18 @@
    --reveal-stagger (between elements revealed together; LandingReveals
    numbers them in --reveal-step, at most 4). Only opacity and transform
    change, so nothing shifts the layout. Hero pictures
-   (data-reveal="hero") have their own animations, below. */
+   (data-reveal="hero") and details with an entrance of their own
+   (data-reveal="detail") have their own animations, below. */
 @media screen and (prefers-reduced-motion: no-preference) {
-  html[data-reveals="on"] [data-reveal]:not([data-reveal="hero"], [data-revealed]) {
+  html[data-reveals="on"] [data-reveal]:not([data-reveal="hero"], [data-reveal="detail"], [data-revealed]) {
     opacity: 0;
   }
 
-  html[data-reveals="on"] [data-reveal]:not([data-reveal="hero"])[data-revealed="in"] {
+  html[data-reveals="on"] [data-reveal="detail"]:not([data-revealed]) {
+    opacity: 0;
+  }
+
+  html[data-reveals="on"] [data-reveal]:not([data-reveal="hero"], [data-reveal="detail"])[data-revealed="in"] {
     animation: landing-reveal var(--reveal-duration) var(--ease-out) calc(var(--reveal-step, 0) * var(--reveal-stagger)) backwards;
   }
 }
@@ -142,6 +147,69 @@
 @keyframes cyberpunk-hero-cursor {
   50% {
     opacity: 0;
+  }
+}
+
+/* Manuscript, soft. The underline under the title draws itself as the page
+   loads, at every width (the title is always on screen). The bookmark
+   ribbon drops in from the ledger's top edge (the sheet clips it): on load
+   from md up; below, the ledger waits to be scrolled into view, rises in
+   like a section, and then the ribbon drops. The DRAFTED stamp on the Why
+   card (data-reveal="detail") lands once it has scrolled into view, a
+   moment after its card, scaled down onto the card; already in view on
+   load, it shows as it is. */
+@media screen and (prefers-reduced-motion: no-preference) {
+  .manuscript-hero-underline {
+    animation: manuscript-hero-underline 700ms var(--ease-out) 200ms backwards;
+  }
+
+  html[data-reveals="on"] .manuscript-why-stamp[data-revealed="in"] {
+    animation: manuscript-why-stamp 220ms var(--ease-out) 250ms backwards;
+  }
+}
+
+@media screen and (prefers-reduced-motion: no-preference) and (min-width: 768px) {
+  .manuscript-hero-ribbon {
+    animation: manuscript-hero-ribbon 420ms var(--ease-drawer) 350ms backwards;
+  }
+}
+
+@media screen and (prefers-reduced-motion: no-preference) and (max-width: 767px) {
+  html[data-reveals="on"] .manuscript-hero-ledger[data-revealed="in"] {
+    animation: landing-reveal var(--reveal-duration) var(--ease-out) backwards;
+  }
+
+  html[data-reveals="on"] .manuscript-hero-ledger[data-revealed="in"] .manuscript-hero-ribbon {
+    animation: manuscript-hero-ribbon 420ms var(--ease-drawer) 350ms backwards;
+  }
+}
+
+/* The path is one unit long (pathLength), so one dash covers it: the dash
+   starts just past the start (no round cap peeking out) and slides along.
+   Both ends given, so it ends on its own style: no dashes, the whole line. */
+@keyframes manuscript-hero-underline {
+  from {
+    stroke-dasharray: 1 1.1;
+    stroke-dashoffset: 1.05;
+  }
+  to {
+    stroke-dasharray: 1 1.1;
+    stroke-dashoffset: 0;
+  }
+}
+
+@keyframes manuscript-hero-ribbon {
+  from {
+    transform: translateY(-100%);
+  }
+}
+
+/* The stamp keeps its tilt (Tailwind's rotate is its own property) and its
+   85% opacity, which it ends on. */
+@keyframes manuscript-why-stamp {
+  from {
+    opacity: 0;
+    scale: 1.3;
   }
 }
 

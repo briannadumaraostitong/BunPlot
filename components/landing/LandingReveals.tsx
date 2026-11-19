@@ -22,9 +22,12 @@ const IN_VIEW = 0.9
 // screen, or scrolled past after a reload or an #anchor) shows at once,
 // unanimated, and so does anything scrolled past later without being seen
 // (a jump to an anchor), so nothing above the screen is ever left hidden.
-// A phone's hero picture is the exception: it starts just below the text,
-// often with its top edge on screen, so it shows at once only if it's
-// already in view (above the observer's line) and otherwise waits to play.
+// A phone's hero picture (data-reveal="hero") is the exception: it starts
+// just below the text, often with its top edge on screen, so it shows at
+// once only if it's already in view (above the observer's line) and
+// otherwise waits to play. A detail with an entrance of its own
+// (data-reveal="detail", such as Manuscript's stamp) is watched by itself,
+// so it still plays when its section was already peeking in on load.
 export function LandingReveals() {
   useEffect(() => {
     if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) return

@@ -23,14 +23,22 @@ export function Hero() {
           {`${HERO.title.lead} `}
           <span className="relative whitespace-nowrap italic text-accent">
             {`${HERO.title.highlight}.`}
-            {/* The hand-drawn underline. */}
+            {/* The hand-drawn underline. It draws itself as the page loads
+                (motion.css; pathLength sets its dashes' scale). */}
             <svg
               aria-hidden="true"
               viewBox="0 0 220 18"
               preserveAspectRatio="none"
               className="absolute bottom-[-10px] left-0 h-4 w-[92%]"
             >
-              <path d="M3 12C40 4 90 3 130 7s70 6 87-2" fill="none" className="stroke-accent" strokeWidth="3" strokeLinecap="round" />
+              <path
+                d="M3 12C40 4 90 3 130 7s70 6 87-2"
+                pathLength={1}
+                fill="none"
+                className="manuscript-hero-underline stroke-accent"
+                strokeWidth="3"
+                strokeLinecap="round"
+              />
             </svg>
           </span>
         </h1>
@@ -45,16 +53,19 @@ export function Hero() {
         </div>
       </div>
 
-      {/* The ledger: a picture of the timeline, not data. */}
+      {/* The ledger: a picture of the timeline, not data. On phones it waits
+          to be scrolled into view, then rises in (motion.css). */}
       <div
+        data-reveal="hero"
         role="img"
         aria-label="A sample timeline: three storylines across four chapters"
-        className="relative min-w-0 max-w-[640px] flex-[1_1_540px]"
+        className="manuscript-hero-ledger relative min-w-0 max-w-[640px] flex-[1_1_540px]"
       >
         <div aria-hidden="true" className={`relative overflow-hidden ${SHEET}`}>
           {/* The bookmark ribbon: short enough that its tip stays above the
-              chapter labels and event cards. */}
-          <div className="absolute top-0 right-10 z-2 h-[72px] w-[22px] bg-accent [clip-path:polygon(0_0,100%_0,100%_100%,50%_84%,0_100%)]" />
+              chapter labels and event cards. It drops in from the sheet's top
+              edge (motion.css). */}
+          <div className="manuscript-hero-ribbon absolute top-0 right-10 z-2 h-[72px] w-[22px] bg-accent [clip-path:polygon(0_0,100%_0,100%_100%,50%_84%,0_100%)]" />
           <div className="flex items-baseline gap-3.5 border-b border-border pt-[18px] pr-[92px] pb-3.5 pl-6">
             <span className={`flex-1 text-[24px] italic ${HEADING}`}>{PROJECT.title}</span>
             <span className={LABEL}>Timeline</span>

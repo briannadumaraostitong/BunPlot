@@ -43,10 +43,12 @@ export function WhySection() {
           </div>
           {/* The rubber stamp, over the card's right side. On phones the
               field values and the paperclip fill that side, so it's stamped
-              under the fields instead, in the flow. */}
+              under the fields instead, in the flow. It lands once it has
+              scrolled into view (motion.css, LandingReveals). */}
           <div
             aria-hidden="true"
-            className="mt-5 ml-1 inline-block -rotate-9 rounded-(--radius) border-2 border-accent px-3 py-1 font-mono text-[18px] font-bold uppercase tracking-[3px] text-accent opacity-85 sm:absolute sm:top-[70px] sm:right-[26px] sm:mt-0 sm:ml-0"
+            data-reveal="detail"
+            className="manuscript-why-stamp mt-5 ml-1 inline-block -rotate-9 rounded-(--radius) border-2 border-accent px-3 py-1 font-mono text-[18px] font-bold uppercase tracking-[3px] text-accent opacity-85 sm:absolute sm:top-[70px] sm:right-[26px] sm:mt-0 sm:ml-0"
           >
             {WHY.event.status}
           </div>
