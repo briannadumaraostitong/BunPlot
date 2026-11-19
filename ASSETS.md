@@ -1,6 +1,6 @@
 # Third-party assets
 
-Every third-party file BunPlot ships or serves, with its author, source, license and any changes we made. npm packages (code, and the icons in `lucide-react`) are covered by their own licenses in `node_modules` and aren't listed here. The bunny logo in `public/brand/` is BunPlot's own placeholder, not third-party.
+Every third-party file BunPlot ships or serves, with its author, source, license and any changes we made. npm packages (code, and the icons in `lucide-react`) are covered by their own licenses in `node_modules` and aren't listed here. The bunny logo in `public/brand/` (and `app/icon.svg`) is BunPlot's own, not third-party.
 
 ## Images
 
