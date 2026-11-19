@@ -4,6 +4,7 @@ import { HERO } from '@/components/landing/content'
 import { ClassicLanding } from '@/components/landing/classic/ClassicLanding'
 import { CyberpunkLanding } from '@/components/landing/cyberpunk/CyberpunkLanding'
 import { ManuscriptLanding } from '@/components/landing/manuscript/ManuscriptLanding'
+import { LandingRevealScript } from '@/components/landing/LandingRevealScript'
 
 export const metadata: Metadata = {
   description: HERO.body,
@@ -35,6 +36,9 @@ export default function HomePage() {
   return (
     // leading-[normal]: the design sets line heights only where it needs them.
     <ThemeScope theme={THEME} className="min-h-dvh overflow-x-clip leading-[normal]">
+      {/* Before the hero in the HTML, so it runs before the hero's first
+          paint. */}
+      <LandingRevealScript />
       <Landing />
     </ThemeScope>
   )

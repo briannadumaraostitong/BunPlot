@@ -63,12 +63,13 @@ html:has([data-slot="landing-header"]) {
    then ends on the element's own styles.
    - From md up, where the picture sits beside the text: CSS animations that
      play once as the page loads, with no JavaScript.
-   - Below md the picture wraps below the text and starts off screen, so it
-     waits for LandingReveals like a section (data-reveal="hero"): hidden
-     while html[data-reveals="on"] until it scrolls into view, then it plays.
-     Without JavaScript it shows as it is. */
+   - Below md the picture wraps below the text, so it waits for
+     LandingReveals like a section (data-reveal="hero"): hidden until it's in
+     view, then it plays, on load if it's on screen. Hidden from the first
+     paint (html[data-reveals="pending"], LandingRevealScript) and while
+     html[data-reveals="on"]. Without JavaScript it shows as it is. */
 @media screen and (prefers-reduced-motion: no-preference) and (max-width: 767px) {
-  html[data-reveals="on"] [data-reveal="hero"]:not([data-revealed]) {
+  html:is([data-reveals="pending"], [data-reveals="on"]) [data-reveal="hero"]:not([data-revealed]) {
     opacity: 0;
   }
 }
