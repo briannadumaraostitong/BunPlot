@@ -19,6 +19,11 @@ const CHIP = {
 const GRID = 'grid grid-cols-[72px_repeat(4,minmax(0,1fr))] gap-2'
 const MONO_LABEL = 'font-mono text-[11px] uppercase text-muted-foreground'
 
+// The progress row's labels, typed in like a terminal line after the boot-up
+// (motion.css): each stays one text node, clipped a character at a time.
+const DRAFT_LABEL = `DRAFT ${PROJECT.draft.done}/${PROJECT.draft.of}`
+const SAVED_LABEL = 'SAVED ✓'
+
 const CHAPTERS = Array.from({ length: TIMELINE.chapters }, (_, i) => `CH ${sectionNumber(i + 1)}`)
 
 export function Hero() {
@@ -55,8 +60,18 @@ export function Hero() {
           filled: PROJECT.draft.done,
           labels: (
             <>
-              <span className="whitespace-nowrap font-mono text-[11px] text-muted-foreground">{`DRAFT ${PROJECT.draft.done}/${PROJECT.draft.of}`}</span>
-              <span className="whitespace-nowrap font-mono text-[11px] text-accent-2">SAVED ✓</span>
+              <span
+                className="cyberpunk-hero-draft relative whitespace-nowrap font-mono text-[11px] text-muted-foreground"
+                style={{ '--n': DRAFT_LABEL.length } as React.CSSProperties}
+              >
+                <span className="cyberpunk-hero-typed">{DRAFT_LABEL}</span>
+              </span>
+              <span
+                className="cyberpunk-hero-saved relative whitespace-nowrap font-mono text-[11px] text-accent-2"
+                style={{ '--n': SAVED_LABEL.length } as React.CSSProperties}
+              >
+                <span className="cyberpunk-hero-typed">{SAVED_LABEL}</span>
+              </span>
             </>
           ),
         }}

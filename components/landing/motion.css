@@ -142,6 +142,81 @@ html:has([data-slot="landing-header"]) {
   }
 }
 
+/* Then the progress row's labels type in like a terminal line: "DRAFT
+   10/16" from 860ms, once the last segment has lit, then "SAVED ✓" from
+   1310ms, 30ms a character. Each label stays one text node, clipped from
+   the right a character at a time (the mono font's characters are all 1ch
+   wide; --n is the label's length), so it ends exactly as it looks without
+   the motion. A cyan block caret steps along in front of the text while
+   each types, and isn't there before or after (the title's cursor is
+   already blinking). The clip sits on the text, not the label, so it doesn't
+   cut off the caret. On load from md up; on phones after the panel's
+   reveal, and not when the panel was shown at once. */
+.cyberpunk-hero-typed {
+  display: inline-block;
+}
+
+:is(.cyberpunk-hero-draft, .cyberpunk-hero-saved)::after {
+  content: "";
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  left: 0;
+  width: 1ch;
+  background: hsl(var(--accent-2));
+  opacity: 0;
+}
+
+@media screen and (prefers-reduced-motion: no-preference) {
+  .cyberpunk-hero-draft {
+    --type-at: 860ms;
+  }
+
+  .cyberpunk-hero-saved {
+    --type-at: 1310ms;
+  }
+
+  :is(.cyberpunk-hero-draft, .cyberpunk-hero-saved) .cyberpunk-hero-typed {
+    animation: cyberpunk-hero-type calc(var(--n) * 30ms) steps(var(--n), end) var(--type-at) backwards;
+  }
+
+  :is(.cyberpunk-hero-draft, .cyberpunk-hero-saved)::after {
+    animation: cyberpunk-hero-caret calc(var(--n) * 30ms) steps(var(--n), end) var(--type-at);
+  }
+}
+
+@media screen and (prefers-reduced-motion: no-preference) and (max-width: 767px) {
+  .hud-boot:not([data-revealed="in"]) .cyberpunk-hero-typed,
+  .hud-boot:not([data-revealed="in"]) :is(.cyberpunk-hero-draft, .cyberpunk-hero-saved)::after {
+    animation: none;
+  }
+}
+
+/* Both ends given: a clip-path doesn't animate to none. Clipped in whole
+   characters (1ch each), so the text stays level with the caret even where
+   a glyph comes from a wider fallback font (the ✓); the end shows the whole
+   label, as its own (unclipped) style does. */
+@keyframes cyberpunk-hero-type {
+  from {
+    clip-path: inset(0 100% 0 0);
+  }
+  to {
+    clip-path: inset(0 calc(100% - var(--n) * 1ch) 0 0);
+  }
+}
+
+/* Visible only while it runs (no fill), one cell along per character. */
+@keyframes cyberpunk-hero-caret {
+  from {
+    opacity: 1;
+    translate: 0 0;
+  }
+  to {
+    opacity: 1;
+    translate: calc(var(--n) * 1ch) 0;
+  }
+}
+
 /* Both ends given: a clip-path doesn't animate to none. The end shows the
    whole box, as the panel's own (unclipped) style does. */
 @keyframes hud-boot-frame {
