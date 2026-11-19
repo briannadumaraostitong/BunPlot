@@ -45,7 +45,15 @@ export function AlsoSection() {
       <h2 id="also-title" className={`mb-8 text-[36px] ${HEADING}`}>And a few more things</h2>
       <div className="grid grid-cols-[repeat(auto-fit,minmax(240px,1fr))] gap-[18px]">
         {ALSO.items.map(({ title, body }, i) => (
-          <div key={title} data-reveal className={`p-[22px] ${CARD}`}>
+          // On hover (pointers that hover only): it rises 2px (not with
+          // reduced motion), takes the stronger warm shadow and an ink-warmed
+          // border, and in Dark, where shadows barely read, a slightly lighter
+          // face. The cards aren't links: the cursor stays the default.
+          <div
+            key={title}
+            data-reveal
+            className={`p-[22px] ${CARD} transition-[translate,box-shadow,border-color,background-color] duration-180 ease-[ease] hover:border-[color-mix(in_oklab,hsl(var(--border)),hsl(var(--foreground))_35%)] hover:[box-shadow:var(--card-shadow-hover)] motion-safe:hover:-translate-y-0.5 dark:hover:bg-[color-mix(in_oklab,hsl(var(--card)),hsl(var(--foreground))_5%)]`}
+          >
             <div aria-hidden="true" className={`mb-3.5 flex size-[42px] items-center justify-center rounded-[9px] ${ICONS[i].tile}`}>
               <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
                 {ICONS[i].icon}
