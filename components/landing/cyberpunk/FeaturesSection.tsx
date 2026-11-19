@@ -1,3 +1,4 @@
+import { Fragment } from 'react'
 import { Eyebrow } from '@/components/hud/Eyebrow'
 import { ThemeFrame, ThemeFrameSlot } from '@/components/hud/ThemeFrame'
 import { CHAPTER, CHARACTER, EXPORTS, FEATURES, OUTLINE } from '../content'
@@ -85,15 +86,75 @@ export function FeaturesSection() {
   )
 }
 
+// The outline's sentence writes itself once the picture has revealed
+// (motion.css), word by word in quick bursts, like someone writing: short
+// gaps inside a phrase, longer ones after every third word, a comma or the
+// full stop, about 1.5s in all. WORD_AT is when each word lands, in ms from
+// the start. The word count goes up one a word, from the count before the
+// sentence to the final one, then "Saved ✓" appears once the caret has gone.
+const WORDS = OUTLINE.text.split(' ')
+const WORD_AT: number[] = []
+{
+  let at = 120
+  let run = 0
+  for (const word of WORDS) {
+    WORD_AT.push(at)
+    run += 1
+    const gap = word.endsWith('.') ? 215 : word.endsWith(',') ? 150 : run === 3 ? 115 : 45
+    if (gap > 45) run = 0
+    at += gap
+  }
+}
+// The caret stays after the last word for a moment, then goes.
+const CARET_TAIL = 400
+const LAST_AT = WORD_AT[WORD_AT.length - 1]
+const FINAL_COUNT = Number(OUTLINE.words.replace(/,/g, ''))
+const ms = (value: number) => `${value}ms`
+
 function OutlinePicture() {
   return (
     <div role="img" aria-label="A chapter in the outline editor, 2,481 words, saved" className={VISUAL}>
       <ThemeFrame name="primary" className="w-full">
-        <ThemeFrameSlot frame="primary" className="flex flex-col justify-between gap-2 overflow-hidden">
+        <ThemeFrameSlot frame="primary" className="cyberpunk-edit flex flex-col justify-between gap-2 overflow-hidden">
           <p className="font-mono text-[11px] text-accent-2 uppercase">{`Chapter ${sectionNumber(CHAPTER.number)} · ${CHAPTER.title}`}</p>
-          <p className="font-serif text-[15px] leading-[1.6] text-foreground">{OUTLINE.text}</p>
-          {/* Right-aligned: the frame has a notch at the bottom left. */}
-          <p className="text-right font-mono text-[11px] text-muted-foreground uppercase">{`${OUTLINE.words} words · Saved ✓`}</p>
+          {/* One span per word, the spaces between them left as text, so the
+              letters inside each word keep their spacing. */}
+          <p className="font-serif text-[15px] leading-[1.6] text-foreground">
+            {WORDS.map((word, i) => (
+              <Fragment key={i}>
+                {i > 0 && ' '}
+                <span
+                  className="cyberpunk-edit-word relative"
+                  style={{ '--at': ms(WORD_AT[i]), '--until': ms(WORD_AT[i + 1] ?? LAST_AT + CARET_TAIL) } as React.CSSProperties}
+                >
+                  {word}
+                </span>
+              </Fragment>
+            ))}
+          </p>
+          {/* Right-aligned: the frame has a notch at the bottom left. The
+              count's earlier values sit over the final one while it climbs. */}
+          <p className="text-right font-mono text-[11px] text-muted-foreground uppercase">
+            <span className="relative">
+              <span className="cyberpunk-edit-final" style={{ '--at': ms(LAST_AT) } as React.CSSProperties}>
+                {OUTLINE.words}
+              </span>
+              {WORDS.map((_, i) => (
+                <span
+                  key={i}
+                  aria-hidden="true"
+                  className={`cyberpunk-edit-count absolute top-0 left-0${i === 0 ? ' cyberpunk-edit-count-first' : ''}`}
+                  style={{ '--at': ms(i === 0 ? 0 : WORD_AT[i - 1]), '--until': ms(WORD_AT[i]) } as React.CSSProperties}
+                >
+                  {(FINAL_COUNT - WORDS.length + i).toLocaleString('en-US')}
+                </span>
+              ))}
+            </span>
+            {' words · '}
+            <span className="cyberpunk-edit-saved" style={{ '--at': ms(LAST_AT + CARET_TAIL) } as React.CSSProperties}>
+              Saved ✓
+            </span>
+          </p>
         </ThemeFrameSlot>
       </ThemeFrame>
     </div>

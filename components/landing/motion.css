@@ -275,6 +275,56 @@ html:has([data-slot="landing-header"]) {
   }
 }
 
+/* Cyberpunk's Timeline + Outline picture writes its sentence once its
+   feature row has revealed (its stagger step, plus the reveal's duration):
+   each word appears at its --at (FeaturesSection's WORD_AT: quick bursts,
+   about 1.5s), with a thin caret after the newest until the next lands
+   (--until), and after the last for a moment. The word count climbs one a
+   word: each earlier value shows over the final number from its --at to
+   its --until (the first from the start), and the final number appears with
+   the last word; the font is mono, so every value is the same width. Then
+   "Saved ✓" fades in. The words hold their places all along, so nothing
+   moves. Only after a played reveal: shown at once (in view on load),
+   without JavaScript or with reduced motion, the picture is complete. */
+.cyberpunk-edit-word::after {
+  content: "";
+  position: absolute;
+  top: 0.15em;
+  bottom: 0.1em;
+  right: -2px;
+  width: 1px;
+  background: currentColor;
+  opacity: 0;
+}
+
+.cyberpunk-edit-count {
+  opacity: 0;
+}
+
+@media screen and (prefers-reduced-motion: no-preference) {
+  html[data-reveals="on"] [data-revealed="in"] .cyberpunk-edit {
+    --edit-start: calc(var(--reveal-step, 0) * var(--reveal-stagger) + var(--reveal-duration));
+  }
+
+  html[data-reveals="on"] [data-revealed="in"] :is(.cyberpunk-edit-word, .cyberpunk-edit-final) {
+    animation: classic-hero-appear 1ms steps(1) calc(var(--edit-start) + var(--at)) backwards;
+  }
+
+  html[data-reveals="on"] [data-revealed="in"] .cyberpunk-edit-word::after,
+  html[data-reveals="on"] [data-revealed="in"] .cyberpunk-edit-count {
+    animation: classic-hero-cursor calc(var(--until) - var(--at)) steps(1) calc(var(--edit-start) + var(--at));
+  }
+
+  /* The count before the sentence also shows while the picture waits. */
+  html[data-reveals="on"] [data-revealed="in"] .cyberpunk-edit-count-first {
+    animation-fill-mode: backwards;
+  }
+
+  html[data-reveals="on"] [data-revealed="in"] .cyberpunk-edit-saved {
+    animation: classic-hero-saved 200ms var(--ease-out) calc(var(--edit-start) + var(--at)) backwards;
+  }
+}
+
 /* The cursor waiting at the end of the typed command, for the pause. */
 @keyframes cyberpunk-term-hold {
   from,
