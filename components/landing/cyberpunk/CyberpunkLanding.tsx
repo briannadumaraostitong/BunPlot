@@ -1,6 +1,7 @@
 import { BannerStrip } from '@/components/hud/BannerStrip'
 import { APP_PARTS } from '../content'
 import { CONTAINER } from '../layout'
+import { LandingHeaderOffset } from '../LandingHeaderOffset'
 import { LandingReveals } from '../LandingReveals'
 import { LandingNav } from './LandingNav'
 import { Hero } from './Hero'
@@ -16,6 +17,9 @@ import { LandingFooter } from './LandingFooter'
 export function CyberpunkLanding() {
   return (
     <>
+      {/* The logo's "back to top" target: the very top of the page (the
+          sticky header can't be, since it's always on screen). */}
+      <div id="top" />
       <LandingNav />
       {/* Section reveals (crisp): motion.css and LandingReveals. */}
       <main className="[--reveal-distance:8px] [--reveal-duration:320ms] [--reveal-stagger:40ms]">
@@ -28,6 +32,7 @@ export function CyberpunkLanding() {
         <SignUpBand />
       </main>
       <LandingReveals />
+      <LandingHeaderOffset />
       <LandingFooter />
     </>
   )

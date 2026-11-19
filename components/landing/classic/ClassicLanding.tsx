@@ -1,3 +1,4 @@
+import { LandingHeaderOffset } from '../LandingHeaderOffset'
 import { LandingReveals } from '../LandingReveals'
 import { LandingNav } from './LandingNav'
 import { Hero } from './Hero'
@@ -17,6 +18,9 @@ import { LandingFooter } from './LandingFooter'
 export function ClassicLanding() {
   return (
     <div className="text-secondary-foreground">
+      {/* The logo's "back to top" target: the very top of the page (the
+          sticky header can't be, since it's always on screen). */}
+      <div id="top" />
       <LandingNav />
       {/* Section reveals (gentle): motion.css and LandingReveals. */}
       <main className="[--reveal-distance:12px] [--reveal-duration:480ms] [--reveal-stagger:60ms]">
@@ -29,6 +33,7 @@ export function ClassicLanding() {
         <SignUpBand />
       </main>
       <LandingReveals />
+      <LandingHeaderOffset />
       <LandingFooter />
     </div>
   )

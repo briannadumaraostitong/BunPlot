@@ -39,6 +39,15 @@
   }
 }
 
+/* The sticky header's height, kept clear above every scroll target on the
+   landing (the only page with that header): an in-page link lands its
+   section just below the header, and a link or button focused from the
+   keyboard is never hidden under it. LandingHeaderOffset measures the
+   height; until then, and without JavaScript, the phone header's. */
+html:has([data-slot="landing-header"]) {
+  scroll-padding-top: var(--landing-header-h, 84px);
+}
+
 /* From its hidden state to the element's own styles, so it ends exactly as
    it would look without the animation. */
 @keyframes landing-reveal {

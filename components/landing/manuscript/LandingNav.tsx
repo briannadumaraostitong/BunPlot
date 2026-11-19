@@ -6,8 +6,10 @@ import { CTA } from './cta'
 
 export function LandingNav() {
   return (
-    // id="top": the logo's "back to top" link lands at the very top.
-    <header id="top" className="border-b border-border bg-background/94">
+    // Sticky at the top, on the page's solid background so nothing shows
+    // through, above the hero's pictures. Its height, measured by
+    // LandingHeaderOffset, keeps scroll targets clear of it (motion.css).
+    <header data-slot="landing-header" className="sticky top-0 z-30 border-b border-border bg-background">
       {/* Phones: one row, the logo on the left and the two links on the right,
           without the section links. From md up the row wraps as needed. */}
       <nav aria-label="Main" className={`${CONTAINER} flex items-center justify-between gap-3 py-[18px] md:flex-wrap md:justify-start md:gap-x-8 md:gap-y-4`}>

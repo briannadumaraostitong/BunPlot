@@ -34,6 +34,9 @@ export function LandingReveals() {
     const root = document.documentElement
     const pending = new Set(document.querySelectorAll<HTMLElement>('[data-reveal]:not([data-revealed])'))
     const phone = window.matchMedia(PHONE).matches
+    // The sticky header covers the top of the screen: what's under it counts
+    // as above the screen, and an element comes into view below it.
+    const headerHeight = document.querySelector('[data-slot="landing-header"]')?.getBoundingClientRect().height ?? 0
 
     const reveal = (el: HTMLElement, how: 'in' | 'now', step = 0) => {
       pending.delete(el)
@@ -41,7 +44,7 @@ export function LandingReveals() {
       if (how === 'in') el.style.setProperty('--reveal-step', String(step))
       el.dataset.revealed = how
     }
-    const isAboveScreen = (el: HTMLElement) => el.getBoundingClientRect().bottom <= 0
+    const isAboveScreen = (el: HTMLElement) => el.getBoundingClientRect().bottom <= headerHeight
 
     const observer = new IntersectionObserver(
       (entries) => {
@@ -52,8 +55,9 @@ export function LandingReveals() {
         }
         for (const el of pending) if (isAboveScreen(el)) reveal(el, 'now')
       },
-      // In view once 10% up from the bottom of the screen.
-      { rootMargin: `0px 0px -${Math.round((1 - IN_VIEW) * 100)}% 0px` }
+      // In view once 10% up from the bottom of the screen, and below the
+      // header.
+      { rootMargin: `-${Math.round(headerHeight)}px 0px -${Math.round((1 - IN_VIEW) * 100)}% 0px` }
     )
 
     for (const el of pending) {
