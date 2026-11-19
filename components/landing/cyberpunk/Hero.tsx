@@ -30,7 +30,8 @@ export function Hero() {
           {HERO.title.lead}
           <br />
           <span className="text-accent">{HERO.title.highlight}</span>
-          <span className="text-accent-2">_</span>
+          {/* Blinks a few times as the page loads (motion.css). */}
+          <span className="cyberpunk-hero-cursor text-accent-2">_</span>
         </h1>
         <p className="mb-[34px] max-w-[500px] text-[19px] leading-[1.6] text-(--hud-text-body)">{HERO.body}</p>
         <div className="flex flex-wrap items-center gap-3.5">
@@ -46,6 +47,8 @@ export function Hero() {
       <HudPanel
         title={PROJECT.title.toUpperCase()}
         tag="TIMELINE"
+        // Boots up as the page loads, or on phones as it scrolls into view.
+        boot
         // The mockup's 540/640px content width plus the panel's 18px rail.
         className="min-w-0 max-w-[658px] flex-[1_1_558px]"
         progress={{

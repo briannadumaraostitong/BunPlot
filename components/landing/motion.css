@@ -71,6 +71,80 @@
   }
 }
 
+/* Cyberpunk, crisp: the HUD panel boots up (HudPanel's boot). The frame
+   wipes in from the top (clipped on the panel's outer box, since its inner
+   layers' clip-path cuts the corners), the pink rail grows down behind it,
+   then the filled progress segments light up one after another. On load
+   from md up; on scroll below. The cursor after the title blinks four
+   times as the page loads, then stays: blinking that ran on past five
+   seconds would need a way to stop it (WCAG 2.2.2). The title is on screen
+   at every width, so it never waits. */
+@media screen and (prefers-reduced-motion: no-preference) {
+  .cyberpunk-hero-cursor {
+    animation: cyberpunk-hero-cursor 1s steps(1, end) 4;
+  }
+}
+
+@media screen and (prefers-reduced-motion: no-preference) and (min-width: 768px) {
+  .hud-boot {
+    animation: hud-boot-frame 360ms var(--ease-out) backwards;
+  }
+
+  .hud-boot-rail {
+    transform-origin: top;
+    animation: hud-boot-rail 240ms var(--ease-out) 120ms backwards;
+  }
+
+  .hud-boot-segment {
+    animation: hud-boot-segment 120ms var(--ease-out) calc(300ms + var(--segment) * 40ms) backwards;
+  }
+}
+
+@media screen and (prefers-reduced-motion: no-preference) and (max-width: 767px) {
+  html[data-reveals="on"] .hud-boot[data-revealed="in"] {
+    animation: hud-boot-frame 360ms var(--ease-out) backwards;
+  }
+
+  html[data-reveals="on"] .hud-boot[data-revealed="in"] .hud-boot-rail {
+    transform-origin: top;
+    animation: hud-boot-rail 240ms var(--ease-out) 120ms backwards;
+  }
+
+  html[data-reveals="on"] .hud-boot[data-revealed="in"] .hud-boot-segment {
+    animation: hud-boot-segment 120ms var(--ease-out) calc(300ms + var(--segment) * 40ms) backwards;
+  }
+}
+
+/* Both ends given: a clip-path doesn't animate to none. The end shows the
+   whole box, as the panel's own (unclipped) style does. */
+@keyframes hud-boot-frame {
+  from {
+    clip-path: inset(0 0 100% 0);
+  }
+  to {
+    clip-path: inset(0 0 0 0);
+  }
+}
+
+@keyframes hud-boot-rail {
+  from {
+    transform: scaleY(0);
+  }
+}
+
+@keyframes hud-boot-segment {
+  from {
+    opacity: 0;
+  }
+}
+
+/* Off for the second half of each second. It ends on, its own style. */
+@keyframes cyberpunk-hero-cursor {
+  50% {
+    opacity: 0;
+  }
+}
+
 @keyframes classic-hero-window {
   from {
     opacity: 0;

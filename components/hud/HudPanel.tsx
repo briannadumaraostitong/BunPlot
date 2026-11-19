@@ -19,14 +19,20 @@ interface HudPanelProps {
   tag?: string
   // Filled segments out of 16, with labels shown after the bar.
   progress?: { filled: number; labels?: React.ReactNode }
+  // Boots up as it appears (components/landing/motion.css): the frame wipes
+  // in from the top, the rail grows down, then the filled segments light up
+  // in turn. For the landing hero's picture only, never a panel holding a
+  // form (the auth pages'). It also marks the panel as the hero picture
+  // LandingReveals waits for on phones.
+  boot?: boolean
   className?: string
   children: React.ReactNode
 }
 
-export function HudPanel({ title, tag, progress, className, children }: HudPanelProps) {
+export function HudPanel({ title, tag, progress, boot = false, className, children }: HudPanelProps) {
   return (
-    <div className={cn('relative pl-[18px]', className)}>
-      <div aria-hidden="true" className="absolute left-0 top-10 bottom-10 w-2 bg-accent" />
+    <div data-reveal={boot ? 'hero' : undefined} className={cn('relative pl-[18px]', boot && 'hud-boot', className)}>
+      <div aria-hidden="true" className={cn('absolute left-0 top-10 bottom-10 w-2 bg-accent', boot && 'hud-boot-rail')} />
       <div className={cn(HUD_CLIP, 'bg-accent-2 p-[2px]')}>
         <div className={cn(HUD_CLIP, 'bg-(--hud-panel)')}>
           <div className="flex items-center gap-3.5 border-b-2 border-accent-2 bg-(--hud-header) py-3.5 pr-11 pl-[22px]">
@@ -43,9 +49,18 @@ export function HudPanel({ title, tag, progress, className, children }: HudPanel
             {progress && (
               <div className="mt-5 flex items-center gap-3.5 border-t border-border pt-3.5">
                 <div aria-hidden="true" className="grid flex-1 grid-cols-16 gap-[3px]">
-                  {Array.from({ length: SEGMENTS }, (_, i) => (
-                    <span key={i} className={cn('h-2', i < progress.filled ? 'bg-accent' : 'border border-(--hud-segment)')} />
-                  ))}
+                  {Array.from({ length: SEGMENTS }, (_, i) =>
+                    i < progress.filled ? (
+                      // Booting, each lights up after the one before (--segment).
+                      <span
+                        key={i}
+                        className={cn('h-2 bg-accent', boot && 'hud-boot-segment')}
+                        style={boot ? ({ '--segment': i } as React.CSSProperties) : undefined}
+                      />
+                    ) : (
+                      <span key={i} className="h-2 border border-(--hud-segment)" />
+                    )
+                  )}
                 </div>
                 {progress.labels}
               </div>
