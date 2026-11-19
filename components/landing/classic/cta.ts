@@ -8,7 +8,7 @@ const SOLID =
 
 export const CTA = {
   // Nav "Get started".
-  navPrimary: `${SOLID} px-[22px] py-3 text-[16px]`,
+  navPrimary: `${SOLID} px-4 py-3 text-[16px] md:px-[22px]`,
   // The mock dialogs' buttons ("Open in timeline", "Create project").
   small: `${SOLID} px-[18px] py-2.5 text-[15px]`,
   // Large solid button ("Start organizing", "Create account").

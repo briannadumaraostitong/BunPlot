@@ -16,7 +16,7 @@ const MARKS = Array.from({ length: PROJECT.draft.of }, (_, i) => i < PROJECT.dra
 
 export function Hero() {
   return (
-    <section className={`${CONTAINER} flex flex-wrap items-center gap-14 pt-24 pb-[88px]`}>
+    <section className={`${CONTAINER} flex flex-wrap items-center gap-14 pt-10 md:pt-24 pb-[88px]`}>
       <div className="min-w-0 flex-[1_1_420px]">
         <p className={`mb-3.5 text-[22px] ${ITALIC_EYEBROW}`}>{HERO.eyebrow}</p>
         <h1 className={`mb-[26px] text-[84px] leading-[0.95] ${HEADING}`}>

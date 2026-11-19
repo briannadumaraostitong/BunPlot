@@ -16,7 +16,7 @@ const CHAPTERS = Array.from({ length: TIMELINE.chapters }, (_, i) => `Ch. ${i + 
 
 export function Hero() {
   return (
-    <section className={`${CONTAINER} flex flex-wrap items-center gap-16 pt-24 pb-[104px]`}>
+    <section className={`${CONTAINER} flex flex-wrap items-center gap-16 pt-10 md:pt-24 pb-[104px]`}>
       <div className="min-w-0 flex-[1_1_420px]">
         <p className={`mb-[22px] ${EYEBROW}`}>{HERO.eyebrow}</p>
         <h1 className={`mb-6 text-[78px] leading-none ${HEADING}`}>

@@ -7,7 +7,7 @@ const BASE = 'inline-block uppercase transition-colors'
 
 export const CTA = {
   // Nav "Get started": the small pink button.
-  navPrimary: `${BASE} corner-cut-sm bg-accent px-[22px] py-[13px] text-[15px] font-bold tracking-[1px] text-accent-foreground hover:bg-[hsl(var(--accent-hover))]`,
+  navPrimary: `${BASE} corner-cut-sm bg-accent px-4 py-[13px] md:px-[22px] text-[15px] font-bold tracking-[1px] text-accent-foreground hover:bg-[hsl(var(--accent-hover))]`,
   // Large pink button ("Start organizing", "Create account").
   primary: `${BASE} corner-cut bg-accent px-[30px] py-4 text-[17px] font-bold tracking-[1.5px] text-accent-foreground hover:bg-[hsl(var(--accent-hover))]`,
   // Large cyan outline button ("Log in" in the sign-up band).

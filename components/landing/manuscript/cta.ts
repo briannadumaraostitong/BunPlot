@@ -8,7 +8,7 @@ const SOLID =
 
 export const CTA = {
   // Nav "Get started".
-  navPrimary: `${SOLID} px-5 py-[11px] text-[15px]`,
+  navPrimary: `${SOLID} px-4 py-[11px] text-[15px] md:px-5`,
   // The mock event card's "Open in timeline".
   small: `${SOLID} px-[18px] py-2.5 text-[15px]`,
   // Large oxblood button ("Start organizing", "Create account").
