@@ -10,13 +10,14 @@
    its <main>: --reveal-duration, --reveal-distance (how far it rises) and
    --reveal-stagger (between elements revealed together; LandingReveals
    numbers them in --reveal-step, at most 4). Only opacity and transform
-   change, so nothing shifts the layout. */
+   change, so nothing shifts the layout. Hero pictures
+   (data-reveal="hero") have their own animations, below. */
 @media screen and (prefers-reduced-motion: no-preference) {
-  html[data-reveals="on"] [data-reveal]:not([data-revealed]) {
+  html[data-reveals="on"] [data-reveal]:not([data-reveal="hero"], [data-revealed]) {
     opacity: 0;
   }
 
-  html[data-reveals="on"] [data-reveal][data-revealed="in"] {
+  html[data-reveals="on"] [data-reveal]:not([data-reveal="hero"])[data-revealed="in"] {
     animation: landing-reveal var(--reveal-duration) var(--ease-out) calc(var(--reveal-step, 0) * var(--reveal-stagger)) backwards;
   }
 }
@@ -27,5 +28,63 @@
   from {
     opacity: 0;
     transform: translateY(var(--reveal-distance));
+  }
+}
+
+/* Hero moments, on the hero's pictures only (never its text or buttons),
+   with the same guard as the reveals: none on reduced motion or in print.
+   Each fills backwards, so it waits out its delay in its start state and
+   then ends on the element's own styles.
+   - From md up, where the picture sits beside the text: CSS animations that
+     play once as the page loads, with no JavaScript.
+   - Below md the picture wraps below the text and starts off screen, so it
+     waits for LandingReveals like a section (data-reveal="hero"): hidden
+     while html[data-reveals="on"] until it scrolls into view, then it plays.
+     Without JavaScript it shows as it is. */
+@media screen and (prefers-reduced-motion: no-preference) and (max-width: 767px) {
+  html[data-reveals="on"] [data-reveal="hero"]:not([data-revealed]) {
+    opacity: 0;
+  }
+}
+
+/* Classic, gentle: the app window rises in, then its progress bar fills to
+   the draft's share (clipped from the right, keeping the bar's rounded
+   ends; the track clips the rest). On load from md up; on scroll below,
+   where the window needn't wait. */
+@media screen and (prefers-reduced-motion: no-preference) and (min-width: 768px) {
+  .classic-hero-window {
+    animation: classic-hero-window 520ms var(--ease-out) 100ms backwards;
+  }
+
+  .classic-hero-progress {
+    animation: classic-hero-progress 700ms var(--ease-out) 500ms backwards;
+  }
+}
+
+@media screen and (prefers-reduced-motion: no-preference) and (max-width: 767px) {
+  html[data-reveals="on"] .classic-hero-window[data-revealed="in"] {
+    animation: classic-hero-window 520ms var(--ease-out) backwards;
+  }
+
+  html[data-reveals="on"] .classic-hero-window[data-revealed="in"] .classic-hero-progress {
+    animation: classic-hero-progress 700ms var(--ease-out) 400ms backwards;
+  }
+}
+
+@keyframes classic-hero-window {
+  from {
+    opacity: 0;
+    transform: translateY(16px);
+  }
+}
+
+/* Both ends given: a clip-path doesn't animate to none. The end looks the
+   same as the bar's own (unclipped) style. */
+@keyframes classic-hero-progress {
+  from {
+    clip-path: inset(0 100% 0 0 round 3px);
+  }
+  to {
+    clip-path: inset(0 0 0 0 round 3px);
   }
 }

@@ -39,7 +39,10 @@ export function Hero() {
         <div
           role="img"
           aria-label={`A timeline for ${PROJECT.title}: ${TIMELINE.chapters} chapters and ${TIMELINE.lanes.length} storylines, Main, Ilsa and Letters, with events such as The flood, Bridge falls and Meets Tobin. Draft ${PROJECT.draft.done} of ${PROJECT.draft.of}, saved.`}
-          className={`overflow-hidden ${CARD}`}
+          // Rises in as the page loads, or on phones as it scrolls into view
+          // (motion.css, LandingReveals).
+          data-reveal="hero"
+          className={`classic-hero-window overflow-hidden ${CARD}`}
         >
           <div className="flex items-center gap-3 border-b border-border px-[22px] py-4">
             <span className="flex gap-1.5">
@@ -64,8 +67,9 @@ export function Hero() {
             </div>
             <div className="mt-5 flex items-center gap-3.5">
               <div className="h-1.5 flex-1 overflow-hidden rounded-[3px] bg-[hsl(var(--tag-neutral))]">
+                {/* Fills once the window is in (motion.css). */}
                 <div
-                  className="h-full rounded-[3px] bg-[hsl(var(--taupe))]"
+                  className="classic-hero-progress h-full rounded-[3px] bg-[hsl(var(--taupe))]"
                   style={{ width: `${(PROJECT.draft.done / PROJECT.draft.of) * 100}%` }}
                 />
               </div>
