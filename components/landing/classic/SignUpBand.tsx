@@ -4,6 +4,9 @@ import { CONTAINER } from '../layout'
 import { CTA } from './cta'
 import { CARD, EYEBROW, HEADING, HEADING_FACE, TAG_BLUE } from './styles'
 
+// The name in the dialog picture, typed in once the picture has revealed.
+const NAME = 'My first book'
+
 // The full-bleed band on powder blue: the call to sign up, beside a picture
 // of the New project dialog with a second card offset behind it.
 export function SignUpBand() {
@@ -39,7 +42,7 @@ export function SignUpBand() {
           />
           <div
             role="img"
-            aria-label="The New project dialog: the name My first book typed in, a blank cover, and a Create project button"
+            aria-label={`The New project dialog: the name ${NAME} typed in, a blank cover, and a Create project button`}
             className={`relative px-7 pt-[26px] pb-6 ${CARD}`}
           >
             <div className="mb-5 flex items-center justify-between">
@@ -59,10 +62,22 @@ export function SignUpBand() {
               </div>
               <div className="flex min-w-0 flex-1 flex-col gap-2">
                 <span className="text-[13px] font-bold uppercase tracking-[0.09em] text-muted-foreground">Name</span>
-                {/* 47px: the mockup's 44px plus its 1.5px borders. */}
-                <span className="flex h-[47px] items-center rounded-[8px] border-[1.5px] border-link bg-background px-3.5 text-[17px] font-semibold text-foreground">
-                  My first book
-                  <span className="ml-0.5 inline-block h-5 w-0.5 bg-foreground" />
+                {/* 47px: the mockup's 44px plus its 1.5px borders. The name
+                    types itself in once the picture has revealed (motion.css):
+                    one span per character (--char), holding their places all
+                    along, and the field's caret appears with the last one. */}
+                <span
+                  className="classic-signup-field flex h-[47px] items-center rounded-[8px] border-[1.5px] border-link bg-background px-3.5 text-[17px] font-semibold text-foreground"
+                  style={{ '--chars': NAME.length } as React.CSSProperties}
+                >
+                  <span>
+                    {[...NAME].map((char, i) => (
+                      <span key={i} className="classic-signup-char" style={{ '--char': i } as React.CSSProperties}>
+                        {char}
+                      </span>
+                    ))}
+                  </span>
+                  <span className="classic-signup-caret ml-0.5 inline-block h-5 w-0.5 bg-foreground" />
                 </span>
                 <span className="text-[13px] text-muted-foreground">You can rename it any time.</span>
               </div>

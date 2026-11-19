@@ -335,6 +335,48 @@ html:has([data-slot="landing-header"]) {
   }
 }
 
+/* The sign-up band's New project picture types its name in, once the
+   picture has revealed (its section reveal: its stagger step, plus the
+   reveal's duration), with the same per-character steps and moving caret as
+   the hero's new event. The caret here is the field's own (2px, 20px tall,
+   2px after the text), so when the last character lands the field's caret
+   simply stays: the picture ends exactly as it looks without the motion.
+   Only after a played reveal: shown at once (in view on load), without
+   JavaScript or with reduced motion, the name is there from the start. */
+.classic-signup-char {
+  position: relative;
+}
+
+.classic-signup-char::after {
+  content: "";
+  position: absolute;
+  top: 50%;
+  right: -4px;
+  width: 2px;
+  height: 20px;
+  translate: 0 -50%;
+  background: currentColor;
+  opacity: 0;
+}
+
+@media screen and (prefers-reduced-motion: no-preference) {
+  html[data-reveals="on"] [data-revealed="in"] .classic-signup-field {
+    --type-start: calc(var(--reveal-step, 0) * var(--reveal-stagger) + var(--reveal-duration));
+  }
+
+  html[data-reveals="on"] [data-revealed="in"] .classic-signup-char {
+    animation: classic-hero-appear 1ms steps(1) calc(var(--type-start) + (var(--char) + 1) * 40ms) backwards;
+  }
+
+  html[data-reveals="on"] [data-revealed="in"] .classic-signup-char:not(:last-child)::after {
+    animation: classic-hero-cursor 40ms steps(1) calc(var(--type-start) + (var(--char) + 1) * 40ms);
+  }
+
+  html[data-reveals="on"] [data-revealed="in"] .classic-signup-caret {
+    animation: classic-hero-appear 1ms steps(1) calc(var(--type-start) + var(--chars) * 40ms) backwards;
+  }
+}
+
 /* Both ends given: a clip-path doesn't animate to none. The end looks the
    same as the bar's own (unclipped) style. */
 @keyframes classic-hero-progress {
