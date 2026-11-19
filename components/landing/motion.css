@@ -27,6 +27,18 @@
   }
 }
 
+/* Smooth scrolling for the landing's in-page links (the nav's sections, the
+   logo's back to top): only while the landing is mounted, through the same
+   html[data-reveals="on"] that LandingReveals sets (and removes on leaving)
+   only without a reduced-motion preference. Sections a link scrolls past
+   reveal on the way, or at once once above the screen. Next switches it off
+   during route changes (data-scroll-behavior on <html>, app/layout.tsx). */
+@media (prefers-reduced-motion: no-preference) {
+  html[data-reveals="on"] {
+    scroll-behavior: smooth;
+  }
+}
+
 /* From its hidden state to the element's own styles, so it ends exactly as
    it would look without the animation. */
 @keyframes landing-reveal {

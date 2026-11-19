@@ -80,7 +80,10 @@ export default function RootLayout({
   return (
     // The font variables sit on <html>, where the theme's --theme-font-* tokens
     // are set: a variable defined only on <body> can't resolve up there.
-    <html lang="en" className={`${figtree.variable} ${bricolage.variable} ${geistMono.variable} ${chakraPetch.variable} ${jetbrainsMono.variable} ${literata.variable} ${courierPrime.variable} ${cormorant.variable}`} suppressHydrationWarning>
+    // data-scroll-behavior: the landing scrolls smoothly to its sections
+    // (components/landing/motion.css); this tells Next to switch that off
+    // while it scrolls for a route change, so a new page never glides.
+    <html lang="en" data-scroll-behavior="smooth" className={`${figtree.variable} ${bricolage.variable} ${geistMono.variable} ${chakraPetch.variable} ${jetbrainsMono.variable} ${literata.variable} ${courierPrime.variable} ${cormorant.variable}`} suppressHydrationWarning>
       <head>
         <ThemeScript />
       </head>

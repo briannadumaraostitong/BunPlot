@@ -18,7 +18,7 @@ export function CyberpunkLanding() {
     <>
       <LandingNav />
       {/* Section reveals (crisp): motion.css and LandingReveals. */}
-      <main id="top" className="[--reveal-distance:8px] [--reveal-duration:320ms] [--reveal-stagger:40ms]">
+      <main className="[--reveal-distance:8px] [--reveal-duration:320ms] [--reveal-stagger:40ms]">
         <Hero />
         <BannerStrip items={[...APP_PARTS]} className="mb-2" contentClassName={CONTAINER} />
         <WhySection />

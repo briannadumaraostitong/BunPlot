@@ -20,7 +20,7 @@ export function ManuscriptLanding() {
     <div className="text-secondary-foreground">
       <LandingNav />
       {/* Section reveals (soft): motion.css and LandingReveals. */}
-      <main id="top" className="[--reveal-distance:12px] [--reveal-duration:560ms] [--reveal-stagger:60ms]">
+      <main className="[--reveal-distance:12px] [--reveal-duration:560ms] [--reveal-stagger:60ms]">
         <Hero />
         <ContentsBanner />
         <WhySection />

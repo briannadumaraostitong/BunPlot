@@ -6,7 +6,8 @@ import { CTA } from './cta'
 
 export function LandingNav() {
   return (
-    <header className="border-b border-border">
+    // id="top": the logo's "back to top" link lands at the very top.
+    <header id="top" className="border-b border-border">
       <nav aria-label="Main" className={`${CONTAINER} flex flex-wrap items-center gap-x-8 gap-y-4 py-[18px]`}>
         <a href="#top" aria-label="BunPlot, back to top">
           <Logo size={34} wordmark preload className="gap-2.5" wordmarkClassName="text-[24px] leading-[normal] text-foreground" />

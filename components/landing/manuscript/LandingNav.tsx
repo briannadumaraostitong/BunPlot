@@ -6,7 +6,8 @@ import { CTA } from './cta'
 
 export function LandingNav() {
   return (
-    <header className="border-b border-border bg-background/94">
+    // id="top": the logo's "back to top" link lands at the very top.
+    <header id="top" className="border-b border-border bg-background/94">
       <nav aria-label="Main" className={`${CONTAINER} flex flex-wrap items-center gap-x-8 gap-y-4 py-[18px]`}>
         <a href="#top" aria-label="BunPlot, back to top">
           {/* The wordmark's size: the theme's rule reads --wordmark-size. */}

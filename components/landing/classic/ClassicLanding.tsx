@@ -19,7 +19,7 @@ export function ClassicLanding() {
     <div className="text-secondary-foreground">
       <LandingNav />
       {/* Section reveals (gentle): motion.css and LandingReveals. */}
-      <main id="top" className="[--reveal-distance:12px] [--reveal-duration:480ms] [--reveal-stagger:60ms]">
+      <main className="[--reveal-distance:12px] [--reveal-duration:480ms] [--reveal-stagger:60ms]">
         <Hero />
         <PartsStrip />
         <WhySection />
