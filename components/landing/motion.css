@@ -325,6 +325,40 @@ html:has([data-slot="landing-header"]) {
   }
 }
 
+/* Cyberpunk's Also cards glow on hover (pointers that hover only): the
+   card's edge turns cyan and a soft cyan neon glow appears around it, both
+   drop-shadows on its unclipped wrapper, so they follow the notched corners
+   rather than being cut off by them; the top rule brightens (and the
+   chamfer's diagonal with it, which takes the border's color); and the card
+   lifts 2px. 150ms each way. The cards aren't links: the cursor stays the
+   default, and the lift stays small. With reduced motion, the glow only. At
+   rest nothing is set, so the cards look as they always have. */
+@media (hover: hover) {
+  .cyberpunk-also {
+    transition: filter 150ms ease;
+  }
+
+  .cyberpunk-also-card {
+    transition:
+      border-top-color 150ms ease,
+      translate 150ms ease;
+  }
+
+  .cyberpunk-also:hover {
+    filter: drop-shadow(0 0 1px hsl(var(--accent-2))) drop-shadow(0 0 10px hsl(var(--accent-2) / 0.45));
+  }
+
+  .cyberpunk-also:hover .cyberpunk-also-card {
+    border-top-color: color-mix(in oklab, var(--edge) 70%, hsl(var(--foreground)));
+  }
+}
+
+@media (hover: hover) and (prefers-reduced-motion: no-preference) {
+  .cyberpunk-also:hover .cyberpunk-also-card {
+    translate: 0 -2px;
+  }
+}
+
 /* The cursor waiting at the end of the typed command, for the pause. */
 @keyframes cyberpunk-term-hold {
   from,
