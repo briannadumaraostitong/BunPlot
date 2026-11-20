@@ -30,6 +30,8 @@
   --motion-modal: 280ms;
   --motion-modal-exit: 200ms;
   --motion-scale: 0.97;
+  /* The sidebar's highlight: gentle, 300ms (the curve is Classic's). */
+  --motion-highlight: 300ms;
 }
 
 /* The landing page's and login's values no token covers, from the handoff:

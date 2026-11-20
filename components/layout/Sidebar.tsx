@@ -1,6 +1,6 @@
 'use client'
 
-import { useId, useState } from 'react'
+import { useId, useRef, useState } from 'react'
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import { LayoutDashboard, FolderOpen, Search, ChevronRight } from 'lucide-react'
@@ -9,6 +9,7 @@ import { Separator } from '@/components/ui/separator'
 import { Sheet, SheetContent, SheetTitle, SheetDescription } from '@/components/ui/sheet'
 import { Logo } from '@/components/brand/Logo'
 import { writeProjectsCollapsed } from '@/lib/sidebarState'
+import { useSlidingHighlight } from '@/hooks/useSlidingHighlight'
 
 const NAV_ITEMS = [
   { href: '/dashboard', label: 'Dashboard', icon: LayoutDashboard },
@@ -22,6 +23,24 @@ export interface SidebarProject {
   id: string
   title: string
   cover_url: string | null
+}
+
+// An item is active, landing (active, while the sliding highlight is still
+// on its way: the active text color, no highlight of its own yet; every
+// theme's active text is the foreground) or inactive. Only inactive items
+// fade their colors (the hover). The active item's highlight never fades
+// in, and while a highlight slides no item fades at all, so the old item's
+// highlight goes at once as the slide leaves it and the new one is there
+// the frame it lands.
+type ItemState = 'active' | 'landing' | 'inactive'
+function itemState(current: boolean, sliding: boolean): ItemState {
+  if (!current) return 'inactive'
+  return sliding ? 'landing' : 'active'
+}
+const ITEM_STATE_CLASS: Record<ItemState, string> = {
+  active: 'bg-primary text-primary-foreground transition-none',
+  landing: 'text-foreground transition-none',
+  inactive: 'text-muted-foreground hover:bg-secondary hover:text-foreground',
 }
 
 // Settings and Sign Out are in the top bar's profile menu.
@@ -79,6 +98,14 @@ function SidebarContent({ onNavigate, ...list }: ListProps & { onNavigate: () =>
   // The open project, when it's in the list: its entry is the active one,
   // not the Projects item (an archived project keeps Projects active).
   const currentProject = projects?.find((p) => pathname === `/projects/${p.id}` || pathname.startsWith(`/projects/${p.id}/`))
+  const isMainActive = (href: string) =>
+    (pathname === href || pathname.startsWith(href + '/')) && !(href === '/projects' && currentProject)
+  // The active item's key (its href), for the sliding highlight.
+  const activeKey = currentProject
+    ? `/projects/${currentProject.id}`
+    : NAV_ITEMS.find(({ href }) => isMainActive(href))?.href ?? null
+  const navRef = useRef<HTMLElement>(null)
+  const { ghostRef, sliding } = useSlidingHighlight(navRef, activeKey)
 
   return (
     <>
@@ -92,22 +119,36 @@ function SidebarContent({ onNavigate, ...list }: ListProps & { onNavigate: () =>
       {/* Navigation: roomier than the in-page lists that share the nav-item
           hook (40px rows, 15px text, 18px icons); each theme sets its own
           type through the sidebar-nav hook. */}
-      <nav className="flex-1 px-2 py-3 overflow-y-auto scrollbar-thin">
+      {/* relative and isolate: the sliding highlight is placed in the nav's
+          scrolling content, behind the items. */}
+      <nav ref={navRef} className="relative isolate flex-1 px-2 py-3 overflow-y-auto scrollbar-thin">
+        <span
+          ref={ghostRef}
+          hidden
+          aria-hidden="true"
+          data-slot="nav-item"
+          data-active
+          data-highlight-ghost
+          // Inline, so it beats a theme's position on active items.
+          style={{ position: 'absolute' }}
+          className="pointer-events-none -z-10 rounded-md bg-primary"
+        />
         <div data-slot="sidebar-nav" className="space-y-0.5">
           {NAV_ITEMS.map(({ href, label, icon: Icon }) => {
-            const active = (pathname === href || pathname.startsWith(href + '/')) && !(href === '/projects' && currentProject)
+            const state = itemState(href === activeKey, sliding)
             return (
               <Link
                 key={href}
                 href={href}
                 onClick={onNavigate}
                 data-slot="nav-item"
-                data-active={active || undefined}
+                data-nav-key={href}
+                data-active={state === 'active' || undefined}
+                aria-current={href === activeKey ? 'page' : undefined}
                 className={cn(
                   'flex h-10 items-center gap-3 rounded-md px-3 text-[15px] font-medium transition-colors',
-                  active
-                    ? 'bg-primary text-primary-foreground'
-                    : 'text-muted-foreground hover:bg-secondary hover:text-foreground'
+                  ITEM_STATE_CLASS[state],
+                  sliding && 'transition-none'
                 )}
               >
                 <Icon aria-hidden="true" className="size-[18px] shrink-0" />
@@ -117,7 +158,7 @@ function SidebarContent({ onNavigate, ...list }: ListProps & { onNavigate: () =>
           })}
         </div>
 
-        <ProjectList {...list} currentId={currentProject?.id} onNavigate={onNavigate} />
+        <ProjectList {...list} currentId={currentProject?.id} sliding={sliding} onNavigate={onNavigate} />
       </nav>
     </>
   )
@@ -144,9 +185,11 @@ function ProjectList({
   collapsed,
   onToggleCollapsed,
   currentId,
+  sliding,
   onNavigate,
 }: ListProps & {
   currentId: string | undefined
+  sliding: boolean
   onNavigate: () => void
 }) {
   // The desktop sidebar and the phone drawer can both be in the page.
@@ -198,20 +241,21 @@ function ProjectList({
           ) : (
             <ul className="max-h-[40vh] space-y-0.5 overflow-y-auto scrollbar-thin">
               {projects.map((project) => {
-                const active = project.id === currentId
+                const current = project.id === currentId
+                const state = itemState(current, sliding)
                 return (
                   <li key={project.id}>
                     <Link
                       href={`/projects/${project.id}`}
                       onClick={onNavigate}
                       data-slot="nav-item"
-                      data-active={active || undefined}
-                      aria-current={active ? 'page' : undefined}
+                      data-nav-key={`/projects/${project.id}`}
+                      data-active={state === 'active' || undefined}
+                      aria-current={current ? 'page' : undefined}
                       className={cn(
                         'flex h-10 items-center gap-3 rounded-md px-3 text-sm font-medium transition-colors',
-                        active
-                          ? 'bg-primary text-primary-foreground'
-                          : 'text-muted-foreground hover:bg-secondary hover:text-foreground'
+                        ITEM_STATE_CLASS[state],
+                        sliding && 'transition-none'
                       )}
                     >
                       {/* Keyed on the URL, so a fresh one (after a refresh) gets

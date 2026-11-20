@@ -311,11 +311,12 @@
 }
 
 /* The sidebar's items in Figtree 600, a step firmer than the in-page lists,
-   and the active item's marker as tall as their 18px icons. */
+   and the active item's marker as tall as their 18px icons (also on the
+   sliding highlight while it heads for one of them). */
 :is([data-theme="classic-light"], [data-theme="classic-dark"], [data-theme="classic"]) [data-slot="sidebar-nav"] [data-slot="nav-item"]:where(:not([data-slot="theme-scope"]:not([data-theme^="classic"]) *)) {
   font-weight: 600;
 }
-:is([data-theme="classic-light"], [data-theme="classic-dark"], [data-theme="classic"]) [data-slot="sidebar-nav"] [data-slot="nav-item"][data-active]:where(:not([data-slot="theme-scope"]:not([data-theme^="classic"]) *))::before {
+:is([data-theme="classic-light"], [data-theme="classic-dark"], [data-theme="classic"]) :is([data-slot="sidebar-nav"] [data-slot="nav-item"], [data-slot="nav-item"][data-highlight-ghost][data-main])[data-active]:where(:not([data-slot="theme-scope"]:not([data-theme^="classic"]) *))::before {
   height: 18px;
 }
 

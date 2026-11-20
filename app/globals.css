@@ -532,6 +532,11 @@ body {
   --motion-modal: 240ms;
   --motion-modal-exit: 170ms;
   --motion-scale: 0.96;
+  /* The sidebar's active highlight sliding to a new item
+     (hooks/useSlidingHighlight.ts): soft, on easeInOutCubic, since it
+     moves on screen. Cyberpunk is snappy, Manuscript gentle. */
+  --motion-highlight: 250ms;
+  --ease-highlight: cubic-bezier(0.645, 0.045, 0.355, 1);
 }
 :is([data-slot="dropdown-menu-content"], [data-slot="dropdown-menu-sub-content"], [data-slot="menubar-content"], [data-slot="menubar-sub-content"], [data-slot="popover-content"], [data-slot="select-content"]) {
   --tw-ease: var(--ease-out);
