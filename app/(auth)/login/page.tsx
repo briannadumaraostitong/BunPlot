@@ -12,6 +12,7 @@ import { Loader2 } from 'lucide-react'
 import { AuthShell, AUTH_LABEL, useAuthLook } from '@/components/auth/AuthShell'
 import { useTheme } from '@/components/theme/ThemeProvider'
 import { normalizeThemeSetting } from '@/lib/themes'
+import { safeRedirectPath } from '@/lib/safeRedirect'
 
 function LoginForm() {
   const router = useRouter()
@@ -45,14 +46,9 @@ function LoginForm() {
     if (row) adoptTheme(normalizeThemeSetting((row as { theme: unknown }).theme))
 
     // proxy.ts sets redirectTo when it bounces an unauthenticated request, so
-    // signing in returns you where you were headed. Only same-origin relative
-    // paths are honoured — an absolute ("https://evil.com") or protocol-relative
-    // ("//evil.com") value would otherwise make this an open redirect.
-    const requested = searchParams.get('redirectTo')
-    const target =
-      requested && requested.startsWith('/') && !requested.startsWith('//')
-        ? requested
-        : '/dashboard'
+    // signing in returns you where you were headed. Only a path on this site
+    // (lib/safeRedirect.ts), or a crafted link could send you elsewhere.
+    const target = safeRedirectPath(searchParams.get('redirectTo'))
 
     router.push(target)
     router.refresh()
