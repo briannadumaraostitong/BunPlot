@@ -58,11 +58,11 @@ export default function SignupPage() {
             We sent a confirmation link to <strong className="text-foreground">{email}</strong>.
             Click the link to activate your account.
           </p>
-          <Link href="/login">
-            <Button variant="outline" className={`mt-2 w-full ${look.button}`}>
-              Back to log in
-            </Button>
-          </Link>
+          {/* One element: a link styled as the button (asChild), not a
+              button inside a link. */}
+          <Button asChild variant="outline" className={`mt-2 w-full ${look.button}`}>
+            <Link href="/login">Back to log in</Link>
+          </Button>
         </div>
       </AuthShell>
     )
