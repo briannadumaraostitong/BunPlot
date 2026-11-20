@@ -579,3 +579,26 @@ body {
     --tw-exit-translate-y: 0;
   }
 }
+
+/* Autofill: browsers paint autofilled fields their own color (Chrome's blue-
+   grey, in Light and Dark alike), which clashes with every theme. Chrome sets
+   it with !important, which no stylesheet can override, so the change is held
+   off instead: a transition that never finishes keeps the field's own
+   background, text color and so caret (the caret follows the text) for as
+   long as the page is open. The field's other transitions (its border and
+   focus ring) keep their usual timing. Firefox tints autofilled fields with
+   a filter instead, which is turned off. Not in a layer, so it beats the
+   inputs' transition utilities; it uses no theme values of its own, so it
+   holds in every theme. */
+:is(input, textarea, select):-webkit-autofill {
+  transition:
+    background-color 600000s 0s,
+    color 600000s 0s,
+    -webkit-text-fill-color 600000s 0s,
+    border-color var(--default-transition-duration) var(--default-transition-timing-function),
+    outline-color var(--default-transition-duration) var(--default-transition-timing-function),
+    box-shadow var(--default-transition-duration) var(--default-transition-timing-function);
+}
+:is(input, textarea, select):autofill {
+  filter: none;
+}
