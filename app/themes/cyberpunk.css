@@ -178,6 +178,14 @@ html:has([data-slot="theme-scope"][data-theme="cyberpunk"]) {
   background-color: hsl(var(--accent) / 0.1);
   box-shadow: inset 3px 0 hsl(var(--accent));
 }
+/* The sidebar's items as interface labels, like the wordmark: uppercase
+   with letter spacing, at 14px, since capitals read larger than the base
+   15px. */
+[data-theme="cyberpunk"] [data-slot="sidebar-nav"] [data-slot="nav-item"]:where(:not([data-slot="theme-scope"]:not([data-theme="cyberpunk"]) *)) {
+  font-size: 0.875rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
 /* The wordmark, as on the landing page: uppercase with letter spacing, in
    the theme's sans (Chakra Petch). */
 [data-theme="cyberpunk"] [data-slot="wordmark"]:where(:not([data-slot="theme-scope"]:not([data-theme="cyberpunk"]) *)) {

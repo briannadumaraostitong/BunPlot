@@ -156,6 +156,12 @@
   box-shadow: inset 2px 0 hsl(var(--accent));
 }
 
+/* The sidebar's items in Literata at 16px, since the serif reads small at
+   15. */
+[data-theme="manuscript"] [data-slot="sidebar-nav"] [data-slot="nav-item"]:where(:not([data-slot="theme-scope"]:not([data-theme="manuscript"]) *)) {
+  font-size: 1rem;
+}
+
 /* Project cards are sheets: the 3px radius and the paper shadow. Hover
    darkens the edge rather than growing the shadow. The skeleton shares the
    slot, so nothing shifts when cards load. */

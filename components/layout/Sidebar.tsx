@@ -51,13 +51,15 @@ function SidebarContent({ onNavigate }: { onNavigate: () => void }) {
     <>
       {/* Logo */}
       <div className="h-14 flex items-center px-4 shrink-0">
-        <Logo size={28} wordmark preload />
+        <Logo size={32} wordmark preload />
       </div>
 
       <Separator />
 
-      {/* Navigation */}
-      <nav className="flex-1 px-2 py-3 space-y-0.5 overflow-y-auto scrollbar-thin">
+      {/* Navigation: roomier than the in-page lists that share the nav-item
+          hook (40px rows, 15px text, 18px icons); each theme sets its own
+          type through the sidebar-nav hook. */}
+      <nav data-slot="sidebar-nav" className="flex-1 px-2 py-3 space-y-0.5 overflow-y-auto scrollbar-thin">
         {NAV_ITEMS.map(({ href, label, icon: Icon }) => {
           const active = pathname === href || pathname.startsWith(href + '/')
           return (
@@ -68,13 +70,13 @@ function SidebarContent({ onNavigate }: { onNavigate: () => void }) {
               data-slot="nav-item"
               data-active={active || undefined}
               className={cn(
-                'flex items-center gap-2.5 rounded-md px-3 py-2 text-sm font-medium transition-colors',
+                'flex h-10 items-center gap-3 rounded-md px-3 text-[15px] font-medium transition-colors',
                 active
                   ? 'bg-primary text-primary-foreground'
                   : 'text-muted-foreground hover:bg-secondary hover:text-foreground'
               )}
             >
-              <Icon className="h-4 w-4 shrink-0" />
+              <Icon aria-hidden="true" className="size-[18px] shrink-0" />
               {label}
             </Link>
           )
