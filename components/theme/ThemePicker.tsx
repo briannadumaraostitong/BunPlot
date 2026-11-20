@@ -1,5 +1,6 @@
 'use client'
 
+import { useSyncExternalStore } from 'react'
 import { Check } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { useTheme } from './ThemeProvider'
@@ -13,10 +14,23 @@ const OPTIONS: { value: ThemeSetting; label: string }[] = [
   { value: 'manuscript', label: getTheme('manuscript').label },
 ]
 
+// For useSyncExternalStore: false on the server and while hydrating, true
+// once the browser is running.
+const noSubscribe = () => () => {}
+const isClient = () => true
+const isServer = () => false
+
 // A radio group of cards, so arrow keys move between themes like any radio
 // set; the inputs are visually hidden and the card shows their focus.
-export function ThemePicker() {
-  const { theme, setTheme } = useTheme()
+// `savedTheme` is the setting the server knows (the profile's): the server
+// can't read this device's choice (localStorage), so it renders that one
+// selected, and so does the first render in the browser, which must match
+// it. Right after hydration the live setting takes over. It's the same one
+// unless a save failed on this device and is still pending.
+export function ThemePicker({ savedTheme }: { savedTheme: ThemeSetting }) {
+  const { theme: liveTheme, setTheme } = useTheme()
+  const hydrated = useSyncExternalStore(noSubscribe, isClient, isServer)
+  const theme = hydrated ? liveTheme : savedTheme
 
   return (
     <fieldset className="space-y-2">
