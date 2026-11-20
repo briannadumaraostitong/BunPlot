@@ -30,6 +30,14 @@
    expects — without this, every Tabs active/inactive style is a no-op. */
 @custom-variant data-active (&[data-state="active"]);
 
+/* Likewise Radix's data-orientation, for the data-horizontal: and
+   data-vertical: variants (and their group- forms) that the Tabs,
+   Separator and ScrollArea primitives use. Without these, the line tabs'
+   underline was 0×0, the Tabs root never stacked, and every Separator was
+   0px and invisible. */
+@custom-variant data-horizontal (&[data-orientation="horizontal"]);
+@custom-variant data-vertical (&[data-orientation="vertical"]);
+
 /* Devices that can hover, the same condition Tailwind puts on hover: and
    group-hover:. Hover-revealed controls hide with md:can-hover:opacity-0, so
    a wide touch screen (tablet, landscape phone), where the hover that would

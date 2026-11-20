@@ -129,14 +129,8 @@
   letter-spacing: 0.1em;
   text-transform: uppercase;
 }
-/* The primitive sizes this bar with group-data-horizontal/tabs: classes,
-   which never match (see Known Issues in CLAUDE.md), so it is 0×0 in every
-   theme. Give it the size the primitive intended. */
+/* The bar is the primitive's (2px, under the tab), in oxblood. */
 [data-theme="manuscript"] [data-slot="project-tabs"] [data-slot="tabs-trigger"]:where(:not([data-slot="theme-scope"]:not([data-theme="manuscript"]) *))::after {
-  left: 0;
-  right: 0;
-  bottom: -5px;
-  height: 2px;
   background-color: hsl(var(--accent));
 }
 [data-theme="manuscript"] [data-slot="view-toggle"]:where(:not([data-slot="theme-scope"]:not([data-theme="manuscript"]) *)) {

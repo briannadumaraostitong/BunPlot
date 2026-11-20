@@ -152,14 +152,8 @@ html:has([data-slot="theme-scope"][data-theme="cyberpunk"]) {
   letter-spacing: 0.08em;
   text-transform: uppercase;
 }
-/* The primitive sizes this bar with group-data-horizontal/tabs: classes,
-   which never match (Radix sets data-orientation, not data-horizontal), so
-   it is 0×0 in every theme. Give it the size the primitive intended. */
+/* The bar is the primitive's (2px, under the tab), in pink. */
 [data-theme="cyberpunk"] [data-slot="project-tabs"] [data-slot="tabs-trigger"]:where(:not([data-slot="theme-scope"]:not([data-theme="cyberpunk"]) *))::after {
-  left: 0;
-  right: 0;
-  bottom: -5px;
-  height: 2px;
   background-color: hsl(var(--accent));
 }
 [data-theme="cyberpunk"] [data-slot="view-toggle"]:where(:not([data-slot="theme-scope"]:not([data-theme="cyberpunk"]) *)) {

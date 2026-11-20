@@ -5,7 +5,6 @@ import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import { LayoutDashboard, FolderOpen, Search, ChevronRight } from 'lucide-react'
 import { cn } from '@/lib/utils'
-import { Separator } from '@/components/ui/separator'
 import { Sheet, SheetContent, SheetTitle, SheetDescription } from '@/components/ui/sheet'
 import { Logo } from '@/components/brand/Logo'
 import { writeProjectsCollapsed } from '@/lib/sidebarState'
@@ -109,12 +108,11 @@ function SidebarContent({ onNavigate, ...list }: ListProps & { onNavigate: () =>
 
   return (
     <>
-      {/* Logo */}
-      <div className="h-14 flex items-center px-4 shrink-0">
+      {/* Logo. Its bottom border meets the top bar's: both are inside a
+          56px row. */}
+      <div className="h-14 flex items-center px-4 shrink-0 border-b border-border">
         <Logo size={32} wordmark preload />
       </div>
-
-      <Separator />
 
       {/* Navigation: roomier than the in-page lists that share the nav-item
           hook (40px rows, 15px text, 18px icons); each theme sets its own

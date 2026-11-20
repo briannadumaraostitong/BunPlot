@@ -114,7 +114,9 @@ export function ProjectView({ project, initialLayers, initialEvents, initialChap
 
       <div data-slot="project-tabs" className="border-b border-border px-3 shrink-0 bg-background flex items-center justify-between">
         <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as TabId)}>
-          <TabsList variant="line" className="h-11 md:h-8">
+          {/* 44px tap targets on phones. The height goes on the primitive's
+              own group-data-horizontal/tabs: class, which outranks a plain h-. */}
+          <TabsList variant="line" className="group-data-horizontal/tabs:h-11 md:group-data-horizontal/tabs:h-8">
             {TABS.map(({ id, label, icon: Icon }) => (
               <TabsTrigger
                 key={id}
