@@ -13,9 +13,11 @@ interface AppShellProps {
   profile: Profile | null
   // The sidebar's project list; null when it couldn't load.
   projects: SidebarProject[] | null
+  // Whether that list starts collapsed (from its cookie).
+  projectsCollapsed: boolean
 }
 
-export function AppShell({ children, profile, projects }: AppShellProps) {
+export function AppShell({ children, profile, projects, projectsCollapsed }: AppShellProps) {
   const [navOpen, setNavOpen] = useState(false)
   const [commandOpen, setCommandOpen] = useState(false)
   const { adoptTheme } = useTheme()
@@ -33,7 +35,7 @@ export function AppShell({ children, profile, projects }: AppShellProps) {
 
   return (
     <div className="flex h-screen bg-background bg-texture overflow-hidden">
-      <Sidebar open={navOpen} onOpenChange={setNavOpen} projects={projects} />
+      <Sidebar open={navOpen} onOpenChange={setNavOpen} projects={projects} projectsCollapsed={projectsCollapsed} />
       <div className="flex flex-col flex-1 min-w-0">
         <TopBar profile={profile} onMenuClick={() => setNavOpen(true)} onSearchClick={() => setCommandOpen(true)} />
         <main className="flex-1 overflow-auto scrollbar-thin">

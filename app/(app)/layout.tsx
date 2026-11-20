@@ -1,9 +1,11 @@
+import { cookies } from 'next/headers'
 import { redirect } from 'next/navigation'
 import { createClient } from '@/lib/supabase/server'
 import { isAuthOutage } from '@/lib/supabase/authOutage'
 import { AppShell } from '@/components/layout/AppShell'
 import { ThemeScript } from '@/components/theme/ThemeScript'
 import { normalizeThemeSetting } from '@/lib/themes'
+import { PROJECTS_COLLAPSED_COOKIE, PROJECTS_COLLAPSED_VALUE } from '@/lib/sidebarState'
 import type { Profile } from '@/types/database'
 import type { SidebarProject } from '@/components/layout/Sidebar'
 
@@ -32,6 +34,7 @@ export default async function AppLayout({
     user ? loadSidebarProjects(supabase, user.id) : Promise.resolve(null),
   ])
   const profile = data as Profile | null
+  const projectsCollapsed = (await cookies()).get(PROJECTS_COLLAPSED_COOKIE)?.value === PROJECTS_COLLAPSED_VALUE
 
   // The profile's theme, applied before paint on a full load (a new device,
   // or one changed on another device). Without a profile (a failed fetch, an
@@ -39,7 +42,7 @@ export default async function AppLayout({
   return (
     <>
       {profile && <ThemeScript setting={normalizeThemeSetting(profile.theme)} />}
-      <AppShell profile={profile} projects={sidebarProjects}>{children}</AppShell>
+      <AppShell profile={profile} projects={sidebarProjects} projectsCollapsed={projectsCollapsed}>{children}</AppShell>
     </>
   )
 }

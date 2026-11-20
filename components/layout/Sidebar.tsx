@@ -3,11 +3,12 @@
 import { useId, useState } from 'react'
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
-import { LayoutDashboard, FolderOpen, Search } from 'lucide-react'
+import { LayoutDashboard, FolderOpen, Search, ChevronRight } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { Separator } from '@/components/ui/separator'
 import { Sheet, SheetContent, SheetTitle, SheetDescription } from '@/components/ui/sheet'
 import { Logo } from '@/components/brand/Logo'
+import { writeProjectsCollapsed } from '@/lib/sidebarState'
 
 const NAV_ITEMS = [
   { href: '/dashboard', label: 'Dashboard', icon: LayoutDashboard },
@@ -29,14 +30,25 @@ interface SidebarProps {
   onOpenChange: (open: boolean) => void
   // null when the list couldn't load.
   projects: SidebarProject[] | null
+  // Whether the project list starts collapsed (the layout reads its cookie).
+  projectsCollapsed: boolean
 }
 
-export function Sidebar({ open, onOpenChange, projects }: SidebarProps) {
+export function Sidebar({ open, onOpenChange, projects, projectsCollapsed }: SidebarProps) {
+  // Held here so the desktop sidebar and the phone drawer agree.
+  const [collapsed, setCollapsed] = useState(projectsCollapsed)
+  function toggleCollapsed() {
+    const next = !collapsed
+    setCollapsed(next)
+    writeProjectsCollapsed(next)
+  }
+  const list = { projects, collapsed, onToggleCollapsed: toggleCollapsed }
+
   return (
     <>
       {/* Desktop: persistent, always in flow — unchanged from before */}
       <aside className="hidden md:flex w-60 flex-col h-full shrink-0 border-r border-border bg-sidebar">
-        <SidebarContent projects={projects} onNavigate={() => {}} />
+        <SidebarContent {...list} onNavigate={() => {}} />
       </aside>
 
       {/* Mobile: hamburger-triggered overlay drawer, closes on outside-tap
@@ -48,14 +60,21 @@ export function Sidebar({ open, onOpenChange, projects }: SidebarProps) {
         >
           <SheetTitle className="sr-only">Navigation</SheetTitle>
           <SheetDescription className="sr-only">Main navigation menu</SheetDescription>
-          <SidebarContent projects={projects} onNavigate={() => onOpenChange(false)} />
+          <SidebarContent {...list} onNavigate={() => onOpenChange(false)} />
         </SheetContent>
       </Sheet>
     </>
   )
 }
 
-function SidebarContent({ projects, onNavigate }: { projects: SidebarProject[] | null; onNavigate: () => void }) {
+interface ListProps {
+  projects: SidebarProject[] | null
+  collapsed: boolean
+  onToggleCollapsed: () => void
+}
+
+function SidebarContent({ onNavigate, ...list }: ListProps & { onNavigate: () => void }) {
+  const { projects } = list
   const pathname = usePathname()
   // The open project, when it's in the list: its entry is the active one,
   // not the Projects item (an archived project keeps Projects active).
@@ -98,7 +117,7 @@ function SidebarContent({ projects, onNavigate }: { projects: SidebarProject[] |
           })}
         </div>
 
-        <ProjectList projects={projects} currentId={currentProject?.id} onNavigate={onNavigate} />
+        <ProjectList {...list} currentId={currentProject?.id} onNavigate={onNavigate} />
       </nav>
     </>
   )
@@ -108,61 +127,105 @@ function SidebarContent({ projects, onNavigate }: { projects: SidebarProject[] |
 // covers are 2:3) and the title, which keeps the writer's case (it's outside
 // the sidebar-nav hook, so Cyberpunk doesn't uppercase it). The open project
 // takes the nav-item active style. Past about 40% of the screen the list
-// scrolls on its own, so the main items stay in view.
+// scrolls on its own, so the main items stay in view. The chevron collapses
+// the section to its heading; it takes its name from the heading and says
+// open or closed through aria-expanded.
+// The collapse is animated: the chevron turns between right and down while
+// the list's height eases between 0fr and 1fr grid rows with a fade, at the
+// theme's modal timing (--motion-modal to open, the shorter -exit to close;
+// Classic soft, Cyberpunk snappy, Manuscript gentle) on --ease-out. Only the
+// list below the heading changes, so nothing else in the sidebar moves.
+// Visibility flips at the end of a close, so a collapsed list drops out of
+// the tab order and the accessibility tree. Transitions only run on a
+// change, so a list rendered collapsed from the cookie doesn't animate, and
+// under reduced motion it's instant.
 function ProjectList({
   projects,
+  collapsed,
+  onToggleCollapsed,
   currentId,
   onNavigate,
-}: {
-  projects: SidebarProject[] | null
+}: ListProps & {
   currentId: string | undefined
   onNavigate: () => void
 }) {
   // The desktop sidebar and the phone drawer can both be in the page.
   const headingId = useId()
+  const contentId = useId()
 
   return (
     <section aria-labelledby={headingId} className="mt-4">
-      <h2
-        id={headingId}
-        data-slot="panel-heading"
-        className="px-3 pb-1.5 text-[11px] font-semibold uppercase tracking-wider text-muted-foreground"
+      <div className="flex items-center justify-between pb-1.5 pl-3 pr-1">
+        <h2
+          id={headingId}
+          data-slot="panel-heading"
+          className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground"
+        >
+          Your projects
+        </h2>
+        <button
+          type="button"
+          aria-labelledby={headingId}
+          aria-expanded={!collapsed}
+          aria-controls={contentId}
+          onClick={onToggleCollapsed}
+          className="relative flex h-7 w-7 items-center justify-center rounded-md text-muted-foreground outline-none transition-colors after:absolute after:-inset-1.5 hover:bg-secondary hover:text-foreground focus-visible:ring-3 focus-visible:ring-ring/50"
+        >
+          <ChevronRight
+            aria-hidden="true"
+            className={cn(
+              'size-4 transition-[rotate] ease-(--ease-out) motion-reduce:transition-none',
+              collapsed ? 'duration-(--motion-modal-exit)' : 'rotate-90 duration-(--motion-modal)'
+            )}
+          />
+        </button>
+      </div>
+      <div
+        id={contentId}
+        data-slot="sidebar-projects-body"
+        className={cn(
+          'grid transition-[grid-template-rows,opacity,visibility] ease-(--ease-out) motion-reduce:transition-none',
+          collapsed
+            ? 'invisible grid-rows-[0fr] opacity-0 duration-(--motion-modal-exit)'
+            : 'visible grid-rows-[1fr] opacity-100 duration-(--motion-modal)'
+        )}
       >
-        Your projects
-      </h2>
-      {projects === null ? (
-        <p className="px-3 py-1.5 text-xs text-muted-foreground">Couldn&apos;t load your projects.</p>
-      ) : projects.length === 0 ? (
-        <p className="px-3 py-1.5 text-xs text-muted-foreground">No projects yet</p>
-      ) : (
-        <ul className="max-h-[40vh] space-y-0.5 overflow-y-auto scrollbar-thin">
-          {projects.map((project) => {
-            const active = project.id === currentId
-            return (
-              <li key={project.id}>
-                <Link
-                  href={`/projects/${project.id}`}
-                  onClick={onNavigate}
-                  data-slot="nav-item"
-                  data-active={active || undefined}
-                  aria-current={active ? 'page' : undefined}
-                  className={cn(
-                    'flex h-10 items-center gap-3 rounded-md px-3 text-sm font-medium transition-colors',
-                    active
-                      ? 'bg-primary text-primary-foreground'
-                      : 'text-muted-foreground hover:bg-secondary hover:text-foreground'
-                  )}
-                >
-                  {/* Keyed on the URL, so a fresh one (after a refresh) gets
-                      a fresh try. */}
-                  <ProjectThumb key={project.cover_url ?? ''} title={project.title} coverUrl={project.cover_url} />
-                  <span className="truncate">{project.title}</span>
-                </Link>
-              </li>
-            )
-          })}
-        </ul>
-      )}
+        <div className="min-h-0 overflow-hidden">
+          {projects === null ? (
+            <p className="px-3 py-1.5 text-xs text-muted-foreground">Couldn&apos;t load your projects.</p>
+          ) : projects.length === 0 ? (
+            <p className="px-3 py-1.5 text-xs text-muted-foreground">No projects yet</p>
+          ) : (
+            <ul className="max-h-[40vh] space-y-0.5 overflow-y-auto scrollbar-thin">
+              {projects.map((project) => {
+                const active = project.id === currentId
+                return (
+                  <li key={project.id}>
+                    <Link
+                      href={`/projects/${project.id}`}
+                      onClick={onNavigate}
+                      data-slot="nav-item"
+                      data-active={active || undefined}
+                      aria-current={active ? 'page' : undefined}
+                      className={cn(
+                        'flex h-10 items-center gap-3 rounded-md px-3 text-sm font-medium transition-colors',
+                        active
+                          ? 'bg-primary text-primary-foreground'
+                          : 'text-muted-foreground hover:bg-secondary hover:text-foreground'
+                      )}
+                    >
+                      {/* Keyed on the URL, so a fresh one (after a refresh) gets
+                          a fresh try. */}
+                      <ProjectThumb key={project.cover_url ?? ''} title={project.title} coverUrl={project.cover_url} />
+                      <span className="truncate">{project.title}</span>
+                    </Link>
+                  </li>
+                )
+              })}
+            </ul>
+          )}
+        </div>
+      </div>
     </section>
   )
 }
