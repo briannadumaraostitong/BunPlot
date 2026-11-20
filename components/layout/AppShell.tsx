@@ -1,7 +1,7 @@
 'use client'
 
 import { useEffect, useState } from 'react'
-import { Sidebar } from './Sidebar'
+import { Sidebar, type SidebarProject } from './Sidebar'
 import { TopBar } from './TopBar'
 import { CommandMenu } from './CommandMenu'
 import { useTheme } from '@/components/theme/ThemeProvider'
@@ -11,9 +11,11 @@ import type { Profile } from '@/types/database'
 interface AppShellProps {
   children: React.ReactNode
   profile: Profile | null
+  // The sidebar's project list; null when it couldn't load.
+  projects: SidebarProject[] | null
 }
 
-export function AppShell({ children, profile }: AppShellProps) {
+export function AppShell({ children, profile, projects }: AppShellProps) {
   const [navOpen, setNavOpen] = useState(false)
   const [commandOpen, setCommandOpen] = useState(false)
   const { adoptTheme } = useTheme()
@@ -31,7 +33,7 @@ export function AppShell({ children, profile }: AppShellProps) {
 
   return (
     <div className="flex h-screen bg-background bg-texture overflow-hidden">
-      <Sidebar open={navOpen} onOpenChange={setNavOpen} />
+      <Sidebar open={navOpen} onOpenChange={setNavOpen} projects={projects} />
       <div className="flex flex-col flex-1 min-w-0">
         <TopBar profile={profile} onMenuClick={() => setNavOpen(true)} onSearchClick={() => setCommandOpen(true)} />
         <main className="flex-1 overflow-auto scrollbar-thin">
