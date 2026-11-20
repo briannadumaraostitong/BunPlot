@@ -16,7 +16,9 @@ const CHIP = {
   3: 'border-l-accent-3 bg-[color-mix(in_srgb,hsl(var(--accent-3))_14%,hsl(var(--background)))] text-[color-mix(in_srgb,hsl(var(--accent-3))_30%,white)]',
 } as const
 
-const GRID = 'grid grid-cols-[72px_repeat(4,minmax(0,1fr))] gap-2'
+// On phones the lane labels move to their own row above each lane, so the
+// four chapter columns get the panel's whole width and the chips' words fit.
+const GRID = 'grid grid-cols-[72px_repeat(4,minmax(0,1fr))] gap-2 max-sm:grid-cols-4 max-sm:gap-1'
 const MONO_LABEL = 'font-mono text-[11px] uppercase text-muted-foreground'
 
 // The progress row's labels, typed in like a terminal line after the boot-up
@@ -79,7 +81,7 @@ export function Hero() {
         {/* A picture of the timeline, not data: one description for screen readers. */}
         <div role="img" aria-label="A sample timeline: three storylines across four chapters">
           <div aria-hidden="true" className={`${GRID} mb-2.5 ${MONO_LABEL}`}>
-            <span />
+            <span className="max-sm:hidden" />
             {CHAPTERS.map((ch) => (
               <span key={ch}>{ch}</span>
             ))}
@@ -98,10 +100,10 @@ export function Hero() {
 function LaneRow({ label, chip, cells }: { label: string; chip: string; cells: readonly (string | null)[] }) {
   return (
     <>
-      <span className={`${MONO_LABEL} self-center`}>{label}</span>
+      <span className={`${MONO_LABEL} self-center max-sm:col-span-full max-sm:mt-1.5`}>{label}</span>
       {cells.map((title, i) =>
         title ? (
-          <span key={i} className={`border-l-3 px-2.5 py-[9px] text-[14px] ${chip}`}>
+          <span key={i} className={`border-l-3 px-2.5 py-[9px] text-[14px] max-sm:px-1 max-sm:py-1.5 max-sm:text-[11px] max-sm:leading-tight ${chip}`}>
             {title}
           </span>
         ) : (

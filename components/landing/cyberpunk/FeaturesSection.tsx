@@ -115,11 +115,17 @@ function OutlinePicture() {
   return (
     <div role="img" aria-label="A chapter in the outline editor, 2,481 words, saved" className={VISUAL}>
       <ThemeFrame name="primary" className="w-full">
-        <ThemeFrameSlot frame="primary" className="cyberpunk-edit flex flex-col justify-between gap-2 overflow-hidden">
-          <p className="font-mono text-[11px] text-accent-2 uppercase">{`Chapter ${sectionNumber(CHAPTER.number)} · ${CHAPTER.title}`}</p>
+        {/* On phones the slot is small (69% by 50% of the frame): the
+            sentence drops to 12px, and the chapter and word-count lines
+            never shrink, so the count always shows. Below 380px three lines
+            of the sentence don't fit, so it's cut after two, at a whole line
+            (a height of two lines rather than line-clamp, whose ellipsis
+            would show while the sentence types itself). */}
+        <ThemeFrameSlot frame="primary" className="cyberpunk-edit flex flex-col justify-between gap-2 overflow-hidden max-sm:gap-1">
+          <p className="shrink-0 font-mono text-[11px] text-accent-2 uppercase">{`Chapter ${sectionNumber(CHAPTER.number)} · ${CHAPTER.title}`}</p>
           {/* One span per word, the spaces between them left as text, so the
               letters inside each word keep their spacing. */}
-          <p className="font-serif text-[15px] leading-[1.6] text-foreground">
+          <p className="min-h-0 overflow-hidden font-serif text-[15px] leading-[1.6] text-foreground max-sm:text-[12px] max-sm:leading-normal max-[379px]:max-h-[3em]">
             {WORDS.map((word, i) => (
               <Fragment key={i}>
                 {i > 0 && ' '}
@@ -134,7 +140,7 @@ function OutlinePicture() {
           </p>
           {/* Right-aligned: the frame has a notch at the bottom left. The
               count's earlier values sit over the final one while it climbs. */}
-          <p className="text-right font-mono text-[11px] text-muted-foreground uppercase">
+          <p className="shrink-0 text-right font-mono text-[11px] text-muted-foreground uppercase">
             <span className="relative">
               <span className="cyberpunk-edit-final" style={{ '--at': ms(LAST_AT) } as React.CSSProperties}>
                 {OUTLINE.words}
