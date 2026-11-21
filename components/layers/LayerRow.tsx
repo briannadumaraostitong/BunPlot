@@ -1,11 +1,12 @@
 'use client'
 
-import { useState, useRef } from 'react'
+import { useMemo, useState, useRef } from 'react'
 import { useDroppable } from '@dnd-kit/core'
 import { SortableContext, useSortable, verticalListSortingStrategy } from '@dnd-kit/sortable'
 import { CSS } from '@dnd-kit/utilities'
 import { Eye, EyeOff, GripVertical, Trash2, Check, X, Plus } from 'lucide-react'
 import { cn } from '@/lib/utils'
+import { useReducedMotion } from '@/hooks/useReducedMotion'
 import { Button } from '@/components/ui/button'
 import {
   Dialog,
@@ -31,6 +32,17 @@ const FALLBACK_STATUS_COLOR = '#71717a'
 const HOVER_TRANSITION = ['background-color', 'border-color', 'box-shadow', 'filter']
   .map((property) => `${property} var(--motion-tooltip) ease`)
   .join(', ')
+
+// The cards moving aside while another is dragged over them, at the
+// theme's settle timing (the same as the dropped card's). dnd-kit's own
+// transition is a fixed 250ms ease; its 0ms one, which it uses for a single
+// frame while it sets a card up, is kept as it is. Under reduced motion they
+// move at once.
+const SORT_TRANSITION = 'transform var(--motion-highlight) var(--ease-highlight)'
+function sortTransition(transition: string | undefined, reduce: boolean) {
+  if (!transition || transition.startsWith('transform 0ms')) return transition
+  return reduce ? undefined : SORT_TRANSITION
+}
 
 function stripHtml(html: string) {
   return html.replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ').trim()
@@ -348,6 +360,12 @@ function ChapterCell({
 }) {
   const [hovering, setHovering] = useState(false)
   const renderedEvents = visibleEventIds ? events.filter((e) => visibleEventIds.has(e.id)) : events
+  // The same array while the ids stay the same: useSortable compares its
+  // items by identity, and a new array on every render (a hover, a drag
+  // starting) reads as changed items, for which it turns transitions off, so
+  // the cards jumped aside instead of sliding.
+  const idsKey = renderedEvents.map((e) => e.id).join('|')
+  const itemIds = useMemo(() => (idsKey ? idsKey.split('|') : []), [idsKey])
 
   const { setNodeRef } = useDroppable({
     id: cellDroppableId(layer.id, chapter.id),
@@ -364,7 +382,7 @@ function ChapterCell({
       onMouseLeave={() => setHovering(false)}
     >
       <SortableContext
-        items={renderedEvents.map((e) => e.id)}
+        items={itemIds}
         strategy={verticalListSortingStrategy}
       >
         <div className="flex flex-col gap-2 p-2 flex-1">
@@ -425,6 +443,8 @@ function EventCardStacked({
     id: event.id,
     data: { chapterId: event.chapter_id, layerId: event.layer_id },
   })
+  const reduceMotion = useReducedMotion()
+  const moving = sortTransition(transition, reduceMotion)
 
   return (
     <div
@@ -448,7 +468,7 @@ function EventCardStacked({
       )}
       style={{
         transform: CSS.Transform.toString(transform),
-        transition: transition ? `${transition}, ${HOVER_TRANSITION}` : HOVER_TRANSITION,
+        transition: moving ? `${moving}, ${HOVER_TRANSITION}` : HOVER_TRANSITION,
         opacity: isDragging ? 0.5 : 1,
         '--event-color': color,
       } as React.CSSProperties}
@@ -505,31 +525,36 @@ export function EventCardPreview({
   const description = previewText(event.description)
 
   return (
-    <div
-      data-slot="event-card"
-      data-drag-preview=""
-      className="rounded-lg pl-2.5 pr-4 py-1.5 flex flex-col gap-1 shadow-lg cursor-grabbing border border-l-3 border-(color:--event-color) bg-(--event-color)/[9.41%]"
-      style={{ width, '--event-color': color } as React.CSSProperties}
-    >
-      <span data-slot="event-card-title" className="text-[11px] font-semibold leading-tight truncate text-(--event-color)">
-        {event.icon && <span className="mr-1">{event.icon}</span>}
-        {event.title}
-      </span>
-
-      {description && (
-        <p data-slot="event-card-description" className="text-[10px] text-muted-foreground leading-relaxed line-clamp-2">
-          {description}
-        </p>
-      )}
-
-      <span
-        data-slot="event-card-status"
-        data-status-color={statusColor}
-        className="self-start px-1.5 py-0.5 rounded-full text-[9px] font-semibold uppercase tracking-wide leading-none text-foreground bg-(--status-color)/[36.08%]"
-        style={{ '--status-color': statusColor } as React.CSSProperties}
+    // The plain wrapper is what dnd-kit measures (the overlay's first
+    // child): the card inside it grows as it lifts (globals.css), and a
+    // scaled card measured directly would land off by the extra width.
+    <div>
+      <div
+        data-slot="event-card"
+        data-drag-preview=""
+        className="rounded-lg pl-2.5 pr-4 py-1.5 flex flex-col gap-1 shadow-lg cursor-grabbing border border-l-3 border-(color:--event-color) bg-(--event-color)/[9.41%]"
+        style={{ width, '--event-color': color } as React.CSSProperties}
       >
-        {status?.name ?? 'Unknown'}
-      </span>
+        <span data-slot="event-card-title" className="text-[11px] font-semibold leading-tight truncate text-(--event-color)">
+          {event.icon && <span className="mr-1">{event.icon}</span>}
+          {event.title}
+        </span>
+
+        {description && (
+          <p data-slot="event-card-description" className="text-[10px] text-muted-foreground leading-relaxed line-clamp-2">
+            {description}
+          </p>
+        )}
+
+        <span
+          data-slot="event-card-status"
+          data-status-color={statusColor}
+          className="self-start px-1.5 py-0.5 rounded-full text-[9px] font-semibold uppercase tracking-wide leading-none text-foreground bg-(--status-color)/[36.08%]"
+          style={{ '--status-color': statusColor } as React.CSSProperties}
+        >
+          {status?.name ?? 'Unknown'}
+        </span>
+      </div>
     </div>
   )
 }

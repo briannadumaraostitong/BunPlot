@@ -527,6 +527,11 @@ body {
      moves on screen. Cyberpunk is snappy, Manuscript gentle. */
   --motion-highlight: 250ms;
   --ease-highlight: cubic-bezier(0.645, 0.045, 0.355, 1);
+  /* A timeline event card picked up to drag: how much it grows and the
+     shadow it lifts on (Classic's stronger card shadow). Cyberpunk and
+     Manuscript set their own. */
+  --drag-lift-scale: 1.03;
+  --drag-lift-shadow: var(--card-shadow-hover, 0 14px 28px -14px hsl(0 0% 0% / 0.35));
 }
 :is([data-slot="dropdown-menu-content"], [data-slot="dropdown-menu-sub-content"], [data-slot="menubar-content"], [data-slot="menubar-sub-content"], [data-slot="popover-content"], [data-slot="select-content"]) {
   --tw-ease: var(--ease-out);
@@ -562,6 +567,36 @@ body {
   --tw-animation-duration: var(--motion-modal-exit);
 }
 
+/* A timeline event card being dragged (the overlay's preview, in
+   TimelineCanvas): it lifts as the drag starts, growing from the grip's
+   corner (top right, under the finger or pointer) so it doesn't slide out
+   from under it, over --motion-popup on --ease-out. The scale is on the card
+   inside the overlay, never on the overlay that dnd-kit moves every frame,
+   so following the pointer has nothing to transition. On drop, dnd-kit
+   moves the overlay into the card's new place (its dropAnimation) and marks
+   it data-dropping: the card settles back to its own size on the same
+   timing, --motion-highlight on --ease-highlight. */
+[data-drag-preview] {
+  transform-origin: top right;
+  transform: scale(var(--drag-lift-scale));
+  box-shadow: var(--drag-lift-shadow);
+  transition:
+    transform var(--motion-popup) var(--ease-out),
+    box-shadow var(--motion-popup) var(--ease-out);
+}
+@starting-style {
+  [data-drag-preview] {
+    transform: scale(1);
+    box-shadow: none;
+  }
+}
+[data-dropping] [data-drag-preview] {
+  transform: scale(1);
+  box-shadow: none;
+  transition-duration: var(--motion-highlight);
+  transition-timing-function: var(--ease-highlight);
+}
+
 /* Reduced motion: no growing or sliding, only the fade, at the same
    timing. */
 @media (prefers-reduced-motion: reduce) {
@@ -572,6 +607,13 @@ body {
     --tw-enter-translate-y: 0;
     --tw-exit-translate-x: 0;
     --tw-exit-translate-y: 0;
+  }
+  /* The dragged card keeps its lifted shadow but doesn't grow, and nothing
+     transitions (the drop animation is off too, in TimelineCanvas). */
+  [data-drag-preview],
+  [data-dropping] [data-drag-preview] {
+    transform: none;
+    transition: none;
   }
 }
 

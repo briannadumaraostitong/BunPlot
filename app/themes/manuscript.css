@@ -30,8 +30,13 @@
   --motion-modal: 280ms;
   --motion-modal-exit: 200ms;
   --motion-scale: 0.97;
-  /* The sidebar's highlight: gentle, 300ms (the curve is Classic's). */
+  /* The sidebar's highlight and a dropped event card settling: gentle,
+     300ms (the curve is Classic's). */
   --motion-highlight: 300ms;
+  /* A dragged event card: an index card lifted off the desk, on the
+     lifted-sheet shadow. */
+  --drag-lift-scale: 1.02;
+  --drag-lift-shadow: var(--paper-shadow-lifted);
 }
 
 /* The landing page's and login's values no token covers, from the handoff:

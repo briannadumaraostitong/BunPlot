@@ -5,8 +5,10 @@ import {
   DndContext,
   DragOverlay,
   closestCenter,
+  defaultDropAnimationSideEffects,
   type DragEndEvent,
   type DragStartEvent,
+  type DropAnimation,
 } from '@dnd-kit/core'
 import { Download } from 'lucide-react'
 import { LayerPanel } from '@/components/layers/LayerPanel'
@@ -30,6 +32,7 @@ import { byPosition } from '@/lib/eventOrder'
 import { useChapters } from '@/hooks/useChapters'
 import { useStatuses } from '@/hooks/useStatuses'
 import { useDndSensors } from '@/hooks/useDndSensors'
+import { useReducedMotion } from '@/hooks/useReducedMotion'
 import { useIsBelowMd } from '@/hooks/useIsBelowMd'
 import { createEvent, reorderEvents, moveEventToChapter } from '@/actions/events'
 import { getPlaces, getEventPlaceLinks } from '@/actions/places'
@@ -65,6 +68,28 @@ interface TimelineCanvasProps {
 }
 
 const TRACK_HEIGHT = 90
+
+// A dropped event card settles into its new place: dnd-kit moves the
+// overlay there (it measures the card where it now is, in another cell or
+// lane too) over the theme's --motion-highlight on --ease-highlight, while
+// data-dropping lets the lifted card shrink back on the same timing
+// (globals.css). The card itself stays hidden until the overlay lands on
+// it, as dnd-kit does by default. Read from <html>, where the app's theme
+// is, when a drag starts.
+function settleAnimation(): DropAnimation {
+  const style = getComputedStyle(document.documentElement)
+  const duration = style.getPropertyValue('--motion-highlight').trim()
+  const ms = duration.endsWith('ms') ? parseFloat(duration) : parseFloat(duration) * 1000
+  const hideCard = defaultDropAnimationSideEffects({ styles: { active: { opacity: '0' } } })
+  return {
+    duration: Number.isNaN(ms) ? 250 : ms,
+    easing: style.getPropertyValue('--ease-highlight').trim() || 'ease',
+    sideEffects: (parameters) => {
+      parameters.dragOverlay.node.setAttribute('data-dropping', '')
+      return hideCard(parameters)
+    },
+  }
+}
 
 export function TimelineCanvas({
   project,
@@ -120,6 +145,9 @@ export function TimelineCanvas({
   const labelWidth = userLabelWidth ?? (isBelowMd ? MOBILE_LABEL_WIDTH : DEFAULT_LABEL_WIDTH)
   const chapterWidth = userChapterWidth ?? (isBelowMd ? MOBILE_CHAPTER_WIDTH : DEFAULT_CHAPTER_WIDTH)
   const [activeEvent, setActiveEvent] = useState<Event | null>(null)
+  // How a dropped card settles, read from the theme when a drag starts.
+  const [dropAnimation, setDropAnimation] = useState<DropAnimation | null>(null)
+  const reduceMotion = useReducedMotion()
   const [allPlaces, setAllPlaces] = useState<PlaceWithCover[]>([])
   const [allCharacters, setAllCharacters] = useState<Character[]>([])
   const [allPlacesFailed, setAllPlacesFailed] = useState(false)
@@ -304,6 +332,7 @@ export function TimelineCanvas({
 
   function handleDragStart(e: DragStartEvent) {
     setActiveEvent(events.find((ev) => ev.id === e.active.id) ?? null)
+    setDropAnimation(reduceMotion ? null : settleAnimation())
   }
 
   async function handleDragEnd(e: DragEndEvent) {
@@ -522,7 +551,7 @@ export function TimelineCanvas({
                       />
                     ))}
 
-                    <DragOverlay>
+                    <DragOverlay dropAnimation={dropAnimation}>
                       {activeEvent && (
                         <EventCardPreview
                           event={activeEvent}

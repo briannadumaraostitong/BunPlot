@@ -26,9 +26,14 @@ html:has([data-slot="theme-scope"][data-theme="cyberpunk"]) {
   --motion-modal: 200ms;
   --motion-modal-exit: 150ms;
   --motion-scale: 0.95;
-  /* The sidebar's highlight: snappy, 150ms, out fast. */
+  /* The sidebar's highlight and a dropped event card settling: snappy,
+     150ms, out fast. */
   --motion-highlight: 150ms;
   --ease-highlight: var(--ease-out);
+  /* A dragged event card: a smaller lift on a hard pink offset shadow, no
+     blur, like the theme's flat panels. */
+  --drag-lift-scale: 1.02;
+  --drag-lift-shadow: 3px 3px 0 hsl(var(--accent) / 0.6);
 }
 
 /* Project cards: 1px pink reads too thin beside the cut diagonals. The
