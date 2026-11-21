@@ -23,6 +23,15 @@ import type { Layer, Event, Chapter, Status } from '@/types/database'
 
 const FALLBACK_STATUS_COLOR = '#71717a'
 
+// The hover's colors, shadow and brightness fade at the theme's quick timing
+// (--motion-tooltip). Inline next to dnd-kit's own transition (which moves
+// the cards aside while sorting): dnd-kit sets the card's inline transition
+// on many renders, even to a 0ms one, and an inline transition replaces any
+// list from a class, so the two are always written together.
+const HOVER_TRANSITION = ['background-color', 'border-color', 'box-shadow', 'filter']
+  .map((property) => `${property} var(--motion-tooltip) ease`)
+  .join(', ')
+
 function stripHtml(html: string) {
   return html.replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ').trim()
 }
@@ -425,7 +434,8 @@ function EventCardStacked({
       data-selected={selected || undefined}
       className={cn(
         'group relative rounded-lg pl-2.5 pr-4 py-1.5 cursor-pointer select-none',
-        'flex flex-col gap-1 shadow-sm transition-all duration-100',
+        // Transitions are inline (HOVER_TRANSITION, with dnd-kit's).
+        'flex flex-col gap-1 shadow-sm',
         // Colors come from --event-color rather than inline styles, which no
         // theme stylesheet could override. The left color goes last: cn()
         // drops a side color that comes before an all-sides one.
@@ -438,7 +448,7 @@ function EventCardStacked({
       )}
       style={{
         transform: CSS.Transform.toString(transform),
-        transition,
+        transition: transition ? `${transition}, ${HOVER_TRANSITION}` : HOVER_TRANSITION,
         opacity: isDragging ? 0.5 : 1,
         '--event-color': color,
       } as React.CSSProperties}

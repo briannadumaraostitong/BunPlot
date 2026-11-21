@@ -210,7 +210,7 @@ function FlowCard({
       data-variant="flow"
       data-selected={selected || undefined}
       className={cn(
-        'flex w-44 shrink-0 flex-col gap-1 rounded-lg border border-border border-l-3 border-l-(color:--event-color) bg-card px-3 py-2.5 text-left shadow-sm transition-all hover:shadow-md hover:brightness-105',
+        'flex w-44 shrink-0 flex-col gap-1 rounded-lg border border-border border-l-3 border-l-(color:--event-color) bg-card px-3 py-2.5 text-left shadow-sm transition-[background-color,border-color,box-shadow,filter] duration-(--motion-tooltip) ease-[ease] hover:shadow-md hover:brightness-105',
         selected && 'ring-2 ring-offset-1 shadow-lg'
       )}
       style={{ '--event-color': color } as React.CSSProperties}
