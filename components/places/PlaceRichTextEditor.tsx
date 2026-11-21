@@ -29,6 +29,7 @@ import { getEditorJson } from '@/lib/editorJson'
 import { isSigningOut, registerFlusher } from '@/lib/saveRegistry'
 import { useEditorBackup } from '@/hooks/useEditorBackup'
 import { RestoreBackupBanner } from '@/components/editor/RestoreBackupBanner'
+import { SaveStatus, type SaveState } from '@/components/editor/SaveStatus'
 import type { BackupKind } from '@/lib/editorBackup'
 import { cn } from '@/lib/utils'
 
@@ -64,7 +65,7 @@ export function PlaceRichTextEditor({
   placeId,
   projectId,
 }: PlaceRichTextEditorProps) {
-  const [saveStatus, setSaveStatus] = useState<'saved' | 'saving' | 'error'>('saved')
+  const [saveStatus, setSaveStatus] = useState<SaveState>('saved')
   // Only the first render's content matters (the editor reads it once), so
   // normalize it once.
   const [initial] = useState(() => normalizeContent(content))
@@ -333,13 +334,7 @@ export function PlaceRichTextEditor({
         </div>
 
         <div className="flex shrink-0 items-center gap-2 text-[10px]">
-          {saveStatus === 'saving' ? (
-            <span className="text-muted-foreground">Saving...</span>
-          ) : saveStatus === 'error' ? (
-            <span className="text-destructive">Not saved</span>
-          ) : (
-            <span className="text-emerald-600 dark:text-emerald-500">Saved ✓</span>
-          )}
+          <SaveStatus status={saveStatus} />
         </div>
       </div>
 

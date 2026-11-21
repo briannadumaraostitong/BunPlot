@@ -77,6 +77,7 @@ import {
 // The outline's fonts: Literata by default (font-document in globals.css),
 // and the font picker's others. Loaded only with the outline editor.
 import '@/components/outline/documentFontFaces'
+import { SaveStatus, type SaveState } from '@/components/editor/SaveStatus'
 
 const AUTOSAVE_INTERVAL_MS = 30000
 
@@ -92,8 +93,6 @@ const IMAGE_LAYOUTS = [
   { align: 'left', label: 'Wrap left', icon: PanelLeft },
   { align: 'right', label: 'Wrap right', icon: PanelRight },
 ] as const
-
-type SaveStatus = 'saved' | 'saving' | 'error'
 
 // One toast for every outline save failure, so a failing autosave interval
 // updates the same toast instead of stacking them.
@@ -431,7 +430,7 @@ function OutlineDocumentEditor({
   onDelete,
   onExport,
 }: OutlineDocumentProps) {
-  const [saveStatus, setSaveStatus] = useState<SaveStatus>('saved')
+  const [saveStatus, setSaveStatus] = useState<SaveState>('saved')
   const [wordCount, setWordCount] = useState(0)
   const initialSerialized = JSON.stringify(outline.content ?? '')
   const lastSavedJson = useRef(initialSerialized)
@@ -701,13 +700,7 @@ function OutlineDocumentEditor({
         <span className="hidden text-muted-foreground tabular-nums sm:inline">
           {wordCount} word{wordCount === 1 ? '' : 's'}
         </span>
-        {saveStatus === 'saving' ? (
-          <span className="text-muted-foreground">Saving...</span>
-        ) : saveStatus === 'error' ? (
-          <span className="text-destructive">Not saved</span>
-        ) : (
-          <span data-slot="save-status-saved" className="text-emerald-600 dark:text-emerald-500">Saved ✓</span>
-        )}
+        <SaveStatus status={saveStatus} savedSlot="save-status-saved" />
       </OutlineMenuBar>
 
       <div className="shrink-0 border-b border-border bg-background">
