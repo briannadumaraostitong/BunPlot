@@ -1,0 +1,72 @@
+/* Each UI font's metric-matched fallback (app/fonts/index.ts): the local
+   Arial or Times New Roman, resized and with line metrics overridden so text
+   in it takes about the same space as in the font itself, while the font
+   loads and for characters the font doesn't have. The values are the ones
+   next/font/google used (Next's precalculated table, calculateSizeAdjustValues
+   in next/dist/server/font-utils), so nothing moved when the fonts became
+   self-hosted; next/font/local would measure slightly different ones from the
+   files. Regenerate them from that table if a family changes. */
+@font-face {
+  font-family: 'BunPlot Figtree Fallback';
+  src: local('Arial');
+  ascent-override: 94.32%;
+  descent-override: 24.82%;
+  line-gap-override: 0.00%;
+  size-adjust: 100.72%;
+}
+@font-face {
+  font-family: 'BunPlot Bricolage Grotesque Fallback';
+  src: local('Arial');
+  ascent-override: 88.21%;
+  descent-override: 25.61%;
+  line-gap-override: 0.00%;
+  size-adjust: 105.43%;
+}
+@font-face {
+  font-family: 'BunPlot Geist Mono Fallback';
+  src: local('Arial');
+  ascent-override: 74.67%;
+  descent-override: 21.92%;
+  line-gap-override: 0.00%;
+  size-adjust: 134.59%;
+}
+@font-face {
+  font-family: 'BunPlot Chakra Petch Fallback';
+  src: local('Arial');
+  ascent-override: 96.77%;
+  descent-override: 30.05%;
+  line-gap-override: 0.00%;
+  size-adjust: 102.51%;
+}
+@font-face {
+  font-family: 'BunPlot JetBrains Mono Fallback';
+  src: local('Arial');
+  ascent-override: 75.79%;
+  descent-override: 22.29%;
+  line-gap-override: 0.00%;
+  size-adjust: 134.59%;
+}
+@font-face {
+  font-family: 'BunPlot Literata Fallback';
+  src: local('Times New Roman');
+  ascent-override: 99.62%;
+  descent-override: 26.07%;
+  line-gap-override: 0.00%;
+  size-adjust: 118.15%;
+}
+@font-face {
+  font-family: 'BunPlot Courier Prime Fallback';
+  src: local('Arial');
+  ascent-override: 58.08%;
+  descent-override: 25.41%;
+  line-gap-override: 0.00%;
+  size-adjust: 134.50%;
+}
+@font-face {
+  font-family: 'BunPlot Cormorant Garamond Fallback';
+  src: local('Times New Roman');
+  ascent-override: 95.27%;
+  descent-override: 29.59%;
+  line-gap-override: 0.00%;
+  size-adjust: 96.98%;
+}

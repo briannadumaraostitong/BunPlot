@@ -6,6 +6,7 @@ Built with: Next.js 16 (16.2.6, App Router), TypeScript, Tailwind CSS v4, shadcn
 
 ## Folder Structure
 - `app/` — Next.js App Router pages: `(app)/` (signed-in app), `(auth)/` (login, signup), `page.tsx` (landing page)
+- `app/fonts/` — the self-hosted UI fonts: `next/font/local`, one call per family and subset (the `.woff2` files Google Fonts serves, each with its unicode-range), joined into each family's CSS variable; `fallbacks.css` holds the metric-matched fallbacks with next/font/google's values. Keep files as served to next/font's user agent (Google hints them differently per platform)
 - `app/themes/` — per-theme stylesheets (`classic.css`, `cyberpunk.css`, `manuscript.css`), keyed on `[data-theme]` and `data-slot` hooks
 - `components/` — UI components (ui/, timeline/, layers/, events/, layout/, projects/, characters/, places/, outline/, panels/, editor/, settings/, theme/, hud/, landing/, brand/, auth/)
 - `hooks/` — React hooks (useLayers, useEvents, useChapters, usePanels, useStatuses, useSearch, …)
@@ -59,7 +60,7 @@ Themes are defined in `lib/themes.ts`: Classic Light, Classic Dark, Cyberpunk an
 - `shape`: `'rounded'` (corners from `--radius`) or `'cut'` (square, with chamfered corners on opted-in surfaces)
 - `radius`: the theme's `--radius` (Classic: 10px, Manuscript: 3px)
 - `texture`: `'none'`, `'grid'` (a faint grid on `body` and `.bg-texture` page backgrounds; cards stay solid) or `'ruled'` (ruled-paper lines; kept, but no theme uses it)
-- `fonts`: the `next/font` variables (`app/layout.tsx`) for sans, mono and heading
+- `fonts`: the font variables (`app/fonts/index.ts`, set on `<html>` by `app/layout.tsx`) for sans, mono and heading
 - `frames`: `'nightcity'` or `null`, the decorative frame set for a few feature spots
 
 `ThemeScript` (before paint), `applyTheme()` and `ThemeScope` put these on the element as `data-theme`, `data-shape`, `data-texture` and `data-frames` (`none` when null). Style against them in CSS, never by branching on the theme id in components: the server doesn't know the visitor's theme (it's in localStorage), so theme-dependent markup would mismatch on hydration.
@@ -237,10 +238,9 @@ When working on a new feature, always read these first:
 - Themes: Classic Light, Classic Dark, Cyberpunk and Manuscript, plus System (see Themes)
 
 ## Known Issues
-- Cyberpunk landing hero, font-swap layout shift (CLS 0.0349 on a first, uncached visit): where the hero's text column is 467–506px wide (side by side with the panel, e.g. 1280px), "PLOT EVERY" fits on one line in Chakra Petch (467px) but not in next/font's metric-matched fallback (506px). The title is three lines until the font arrives, then two, so the hero shrinks by 72px and the panel and banner strip jump up. Cyberpunk's fonts aren't preloaded (`app/layout.tsx`). Fix it with the returning-visitor landing (see Pending Features), when Cyberpunk visitors start seeing this page; the candidate is a Cyberpunk heading fallback, an `@font-face` on the local Arial Bold scaled to about 94.6% (102.51% × 467/506), so the fallback title fits on two lines too.
+- Cyberpunk landing hero, font-swap layout shift (CLS 0.0349 on a first, uncached visit): where the hero's text column is 467–506px wide (side by side with the panel, e.g. 1280px), "PLOT EVERY" fits on one line in Chakra Petch (467px) but not in next/font's metric-matched fallback (506px). The title is three lines until the font arrives, then two, so the hero shrinks by 72px and the panel and banner strip jump up. Cyberpunk's fonts aren't preloaded (`app/fonts/index.ts`). Fix it with the returning-visitor landing (see Pending Features), when Cyberpunk visitors start seeing this page; the candidate is a Cyberpunk heading fallback, an `@font-face` on the local Arial Bold scaled to about 94.6% (102.51% × 467/506), so the fallback title fits on two lines too.
 
 ## Pending Features
 - Event connections/linking
 - Returning visitors in their own theme: the landing, login and signup should follow a returning visitor's saved theme (a Manuscript user sees the Manuscript landing), while visitors without a stored theme keep today's device-following Classic (`THEME = 'classic'`). The landing picks its components on the server (`LANDINGS`), so the server has to know that theme: store the setting in a cookie as well as localStorage, and read it in `app/page.tsx` and the auth layout
 - Future themes (Dusk, Frutiger Aero), parked for a later update.
-- Self-hosted UI fonts: the eight theme fonts come from `next/font/google` (`app/layout.tsx`), which downloads them from Google Fonts at build time, and an unreachable Google Fonts has failed two Vercel builds. Move them to `next/font/local` with the font files in the repo, keeping the same CSS variables and options (weights, styles, subsets, `display`, metric-matched fallbacks), and list them in `ASSETS.md`. `public/fonts/` already holds the PDF export's files (Literata and Courier Prime among them), which may be the static TTFs the PDF needs rather than the variable WOFF2s the web wants

@@ -33,20 +33,20 @@ Embedded in the PDF exports (`lib/export/pdfFonts.ts`); the Word exports only na
 | Lora | `lora/` | The Lora Project Authors | https://github.com/cyrealtype/Lora-Cyrillic |
 | Noto Sans | `noto-sans/` | The Noto Project Authors | https://github.com/notofonts/latin-greek-cyrillic |
 
-### UI fonts (next/font)
+### UI fonts (`app/fonts/`)
 
-Downloaded from Google Fonts at build time by `next/font/google` (`app/layout.tsx`) and served from BunPlot's own domain.
+Self-hosted with `next/font/local` (`app/fonts/index.ts`) and served from BunPlot's own domain. The files are the `.woff2` subsets Google Fonts serves (latin, latin-ext and each family's other scripts), unchanged, as fetched with next/font's own user agent; each folder holds the family's `OFL.txt`.
 
-| Family | Author | Source | Where it's used |
-|---|---|---|---|
-| Figtree | Erik Kennedy | https://github.com/erikdkennedy/figtree | Classic themes (text and UI) |
-| Bricolage Grotesque | Mathieu Triay | https://github.com/ateliertriay/bricolage | Classic themes (headings) |
-| Geist Mono | Vercel | https://github.com/vercel/geist-font | Classic themes (mono) |
-| Chakra Petch | Cadson Demak | https://github.com/cadsondemak/Chakra-Petch | Cyberpunk theme |
-| JetBrains Mono | JetBrains | https://github.com/JetBrains/JetBrainsMono | Cyberpunk theme |
-| Literata | The Literata Project Authors | https://github.com/googlefonts/literata | Manuscript theme (text and UI) |
-| Courier Prime | The Courier Prime Project Authors | https://github.com/quoteunquoteapps/CourierPrime | Manuscript theme (labels) |
-| Cormorant Garamond | Christian Thalmann | https://github.com/CatharsisFonts/Cormorant | Manuscript theme (headings) |
+| Family | Folder | Author | Source | Where it's used |
+|---|---|---|---|---|
+| Figtree | `figtree/` | Erik Kennedy | https://github.com/erikdkennedy/figtree | Classic themes (text and UI) |
+| Bricolage Grotesque | `bricolage-grotesque/` | Mathieu Triay | https://github.com/ateliertriay/bricolage | Classic themes (headings) |
+| Geist Mono | `geist-mono/` | Vercel | https://github.com/vercel/geist-font | Classic themes (mono) |
+| Chakra Petch | `chakra-petch/` | Cadson Demak | https://github.com/cadsondemak/Chakra-Petch | Cyberpunk theme |
+| JetBrains Mono | `jetbrains-mono/` | JetBrains | https://github.com/JetBrains/JetBrainsMono | Cyberpunk theme |
+| Literata | `literata/` | The Literata Project Authors | https://github.com/googlefonts/literata | Manuscript theme (text and UI) |
+| Courier Prime | `courier-prime/` | The Courier Prime Project Authors | https://github.com/quoteunquoteapps/CourierPrime | Manuscript theme (labels) |
+| Cormorant Garamond | `cormorant-garamond/` | Christian Thalmann | https://github.com/CatharsisFonts/Cormorant | Manuscript theme (headings) |
 
 ### Outline editor fonts (Fontsource)
 
