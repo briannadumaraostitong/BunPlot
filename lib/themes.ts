@@ -264,6 +264,25 @@ export const DEFAULT_THEME_SETTING: ThemeSetting = 'sync'
 export const THEME_STORAGE_KEY = 'plottr-theme'
 export const THEME_UNSYNCED_KEY = 'plottr-theme-unsynced'
 
+// The same setting as a cookie, so the server knows it too: the proxy shows
+// a returning visitor's landing, login and signup in their theme, signed out
+// as well (it outlives sign-out, like localStorage). Written wherever the
+// stored setting is (ThemeScript before paint, ThemeProvider); a device with
+// no stored setting has none. A year, refreshed with every write. The server
+// treats its value as untrusted (proxy.ts).
+export const THEME_COOKIE = 'bunplot-theme'
+export const THEME_COOKIE_MAX_AGE = 60 * 60 * 24 * 365
+
+// The cookie string for a setting (also built inline by ThemeScript).
+export function themeCookie(setting: ThemeSetting, secure: boolean) {
+  return `${THEME_COOKIE}=${setting}; path=/; max-age=${THEME_COOKIE_MAX_AGE}; samesite=lax${secure ? '; secure' : ''}`
+}
+
+// Writes the cookie in the browser.
+export function writeThemeCookie(setting: ThemeSetting) {
+  document.cookie = themeCookie(setting, location.protocol === 'https:')
+}
+
 export const THEME_SETTINGS: ThemeSetting[] = ['sync', ...THEMES.map((t) => t.id)]
 
 // Themes that have been removed, mapped to the current theme closest to them

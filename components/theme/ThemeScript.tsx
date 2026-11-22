@@ -5,6 +5,8 @@ import {
   LEGACY_THEME_MAP,
   THEME_STORAGE_KEY,
   THEME_UNSYNCED_KEY,
+  THEME_COOKIE,
+  THEME_COOKIE_MAX_AGE,
   type ThemeSetting,
 } from '@/lib/themes'
 import { InitialHtmlScript } from '@/components/theme/InitialHtmlScript'
@@ -32,6 +34,16 @@ export function ThemeScript({ setting }: { setting?: ThemeSetting } = {}) {
     var setting = Object.prototype.hasOwnProperty.call(legacy, stored) ? legacy[stored]
       : settings.indexOf(stored) >= 0 ? stored : ${JSON.stringify(DEFAULT_THEME_SETTING)};
     if (stored !== null && stored !== setting) localStorage.setItem(storageKey, setting);
+    // The cookie copy of a stored setting (themeCookie() in lib/themes.ts),
+    // so the server can show the landing and login in it; written only when
+    // it differs. None while nothing is stored.
+    if (stored !== null) {
+      var cookieName = ${JSON.stringify(THEME_COOKIE)};
+      var current = ('; ' + document.cookie).split('; ' + cookieName + '=')[1];
+      if (!current || current.split(';')[0] !== setting) {
+        document.cookie = cookieName + '=' + setting + '; path=/; max-age=' + ${THEME_COOKIE_MAX_AGE} + '; samesite=lax' + (location.protocol === 'https:' ? '; secure' : '');
+      }
+    }
     var themes = ${JSON.stringify(THEMES)};
     var root = document.documentElement;
     var prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;

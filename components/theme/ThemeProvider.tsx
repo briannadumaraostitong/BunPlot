@@ -10,6 +10,7 @@ import {
   DEFAULT_THEME_SETTING,
   THEME_STORAGE_KEY,
   THEME_UNSYNCED_KEY,
+  writeThemeCookie,
 } from '@/lib/themes'
 import { createClient } from '@/lib/supabase/client'
 import { isAuthSessionMissingError } from '@supabase/supabase-js'
@@ -117,12 +118,14 @@ export function ThemeProvider({
   const setTheme = useCallback(async (newTheme: ThemeSetting) => {
     setThemeState(newTheme)
     localStorage.setItem(THEME_STORAGE_KEY, newTheme)
+    writeThemeCookie(newTheme)
     await saveToProfile(newTheme)
   }, [saveToProfile])
 
   const adoptTheme = useCallback((next: ThemeSetting) => {
     if (localStorage.getItem(THEME_UNSYNCED_KEY) !== null) return
     localStorage.setItem(THEME_STORAGE_KEY, next)
+    writeThemeCookie(next)
     setThemeState(next)
   }, [])
 
