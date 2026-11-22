@@ -13,7 +13,7 @@ import { SignUpBand } from './SignUpBand'
 import { LandingFooter } from './LandingFooter'
 
 // The landing page in Cyberpunk, built to design/landing/. Rendered inside a
-// Cyberpunk ThemeScope (app/page.tsx).
+// Cyberpunk ThemeScope (LandingPage).
 export function CyberpunkLanding() {
   return (
     <>

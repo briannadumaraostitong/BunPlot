@@ -17,8 +17,9 @@ export type AuthShellProps = {
 }
 
 // Each theme's frame around the sign-in and sign-up forms, in the look of
-// its landing page. The theme comes from the server (app/(auth)/layout.tsx)
-// through AuthThemeProvider, as the landing page picks its own.
+// its landing page. The look comes from the server
+// (app/(auth)/look/[look]/layout.tsx) through AuthThemeProvider, as the
+// landing page picks its own.
 const SHELLS: Record<AuthTheme, (props: AuthShellProps) => React.ReactNode> = {
   // One shell for Classic, device-following or a fixed mode: the modes
   // differ only in colors.

@@ -2,12 +2,17 @@ import { createServerClient } from '@supabase/ssr'
 import { NextResponse, type NextRequest } from 'next/server'
 import { isAuthOutage } from '@/lib/supabase/authOutage'
 import { THEME_COOKIE } from '@/lib/themes'
-import { lookFromCookie } from '@/lib/looks'
+import { lookFromCookie, type Look } from '@/lib/looks'
 
-// The signed-out pages shown in the look of the visitor's saved theme: each
-// is rewritten to its prebuilt copy for that look (LOOK_PREFIX + look + path).
-const LOOK_PAGES = ['/login', '/signup']
-const LOOK_PREFIX = '/look/'
+// The signed-out pages shown in the look of the visitor's saved theme, each
+// rewritten to its prebuilt copy for that look: the landing page to
+// /landing/<look> (app/landing/), login and signup to /look/<look>/login and
+// /look/<look>/signup (app/(auth)/look/[look]/).
+const LOOK_PAGES = ['/', '/login', '/signup']
+const LOOK_PREFIXES = ['/landing/', '/look/']
+function lookPath(pathname: string, look: Look) {
+  return pathname === '/' ? `/landing/${look}` : `/look/${look}${pathname}`
+}
 
 export async function proxy(request: NextRequest) {
   let supabaseResponse = NextResponse.next({ request })
@@ -48,7 +53,7 @@ export async function proxy(request: NextRequest) {
 
   // The prebuilt copies are only reached by the rewrite below; a request for
   // one directly goes to its own address instead.
-  if (request.nextUrl.pathname.startsWith(LOOK_PREFIX)) {
+  if (LOOK_PREFIXES.some((prefix) => request.nextUrl.pathname.startsWith(prefix))) {
     const page = '/' + request.nextUrl.pathname.split('/').slice(3).join('/')
     const url = request.nextUrl.clone()
     url.pathname = LOOK_PAGES.includes(page) ? page : '/'
@@ -81,7 +86,7 @@ export async function proxy(request: NextRequest) {
   if (LOOK_PAGES.includes(request.nextUrl.pathname)) {
     const look = lookFromCookie(request.cookies.get(THEME_COOKIE)?.value)
     const url = request.nextUrl.clone()
-    url.pathname = `${LOOK_PREFIX}${look}${request.nextUrl.pathname}`
+    url.pathname = lookPath(request.nextUrl.pathname, look)
     const response = NextResponse.rewrite(url, { request })
     supabaseResponse.cookies.getAll().forEach((cookie) => response.cookies.set(cookie))
     return response

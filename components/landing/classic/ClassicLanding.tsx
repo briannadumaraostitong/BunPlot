@@ -12,7 +12,7 @@ import { LandingFooter } from './LandingFooter'
 
 // The landing page in Classic Light and Classic Dark, built to
 // design/landing-classic/. Rendered inside a Classic ThemeScope
-// (app/page.tsx); both modes share this markup and differ only in the
+// (LandingPage); both modes share this markup and differ only in the
 // theme's colors. Body text is the handoff's body color; headings and strong
 // text set their own.
 export function ClassicLanding() {
