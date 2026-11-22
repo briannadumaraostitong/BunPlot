@@ -1,11 +1,13 @@
 'use client'
 
 import { createContext, useContext } from 'react'
+import type { Look } from '@/lib/looks'
 
-// The theme the sign-in and sign-up pages are shown in, set on the server by
-// app/(auth)/layout.tsx (as the landing page sets its own) and read by the
-// client pages to pick their shell and the few classes that differ by theme.
-export type AuthTheme = 'classic' | 'classic-light' | 'classic-dark' | 'cyberpunk' | 'manuscript'
+// The look the sign-in and sign-up pages are shown in, set on the server by
+// their layout (app/(auth)/look/[look]/layout.tsx, from the visitor's saved
+// theme) and read by the client pages to pick their shell and the few
+// classes that differ by theme.
+export type AuthTheme = Look
 
 const AuthThemeContext = createContext<AuthTheme>('cyberpunk')
 

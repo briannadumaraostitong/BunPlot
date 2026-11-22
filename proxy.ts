@@ -1,6 +1,13 @@
 import { createServerClient } from '@supabase/ssr'
 import { NextResponse, type NextRequest } from 'next/server'
 import { isAuthOutage } from '@/lib/supabase/authOutage'
+import { THEME_COOKIE } from '@/lib/themes'
+import { lookFromCookie } from '@/lib/looks'
+
+// The signed-out pages shown in the look of the visitor's saved theme: each
+// is rewritten to its prebuilt copy for that look (LOOK_PREFIX + look + path).
+const LOOK_PAGES = ['/login', '/signup']
+const LOOK_PREFIX = '/look/'
 
 export async function proxy(request: NextRequest) {
   let supabaseResponse = NextResponse.next({ request })
@@ -39,6 +46,15 @@ export async function proxy(request: NextRequest) {
     return response
   }
 
+  // The prebuilt copies are only reached by the rewrite below; a request for
+  // one directly goes to its own address instead.
+  if (request.nextUrl.pathname.startsWith(LOOK_PREFIX)) {
+    const page = '/' + request.nextUrl.pathname.split('/').slice(3).join('/')
+    const url = request.nextUrl.clone()
+    url.pathname = LOOK_PAGES.includes(page) ? page : '/'
+    return redirectTo(url)
+  }
+
   const isProtected =
     request.nextUrl.pathname.startsWith('/dashboard') ||
     request.nextUrl.pathname.startsWith('/projects')
@@ -56,6 +72,19 @@ export async function proxy(request: NextRequest) {
   const isSignedOutPage = ['/', '/login', '/signup'].includes(request.nextUrl.pathname)
   if (isSignedOutPage && user) {
     return redirectTo(new URL('/dashboard', request.url))
+  }
+
+  // Signed out: the look of the visitor's saved theme. The cookie is
+  // untrusted, so lookFromCookie() only ever returns one of the known looks
+  // (anything else is Classic following the device), and only that goes into
+  // the path. The address stays as it was, query string included.
+  if (LOOK_PAGES.includes(request.nextUrl.pathname)) {
+    const look = lookFromCookie(request.cookies.get(THEME_COOKIE)?.value)
+    const url = request.nextUrl.clone()
+    url.pathname = `${LOOK_PREFIX}${look}${request.nextUrl.pathname}`
+    const response = NextResponse.rewrite(url, { request })
+    supabaseResponse.cookies.getAll().forEach((cookie) => response.cookies.set(cookie))
+    return response
   }
 
   return supabaseResponse
