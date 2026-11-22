@@ -30,11 +30,13 @@ const LANDINGS: Record<Look, () => React.ReactNode> = {
 // visitor's saved theme, Classic following the device without one. The
 // ThemeScope applies the look to this page only, its tokens, shape and
 // frames, and leaves the visitor's setting alone.
-export function LandingPage({ look }: { look: Look }) {
+// `fontVariables` replaces font variables for this page (the Cyberpunk
+// landing's preloaded fonts, app/fonts/cyberpunk-landing.ts).
+export function LandingPage({ look, fontVariables }: { look: Look; fontVariables?: React.CSSProperties }) {
   const Landing = LANDINGS[look]
   return (
     // leading-[normal]: the design sets line heights only where it needs them.
-    <ThemeScope theme={look} className="min-h-dvh overflow-x-clip leading-[normal]">
+    <ThemeScope theme={look} style={fontVariables} className="min-h-dvh overflow-x-clip leading-[normal]">
       {/* Before the hero in the HTML, so it runs before the hero's first
           paint. */}
       <LandingRevealScript />

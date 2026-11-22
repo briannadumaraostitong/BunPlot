@@ -378,9 +378,8 @@ function stack(...fonts: LocalFont[]) {
   return [primary, ...rest.map((font) => font.style.fontFamily.split(', ')[0]), ...fallback].join(', ')
 }
 
-// Set on <html> (app/layout.tsx), where the themes' --theme-font-* tokens
-// read them.
-export const FONT_VARIABLES = {
+// Each family's font-family list, by its CSS variable.
+export const FONT_STACKS = {
   '--font-figtree': stack(figtreeLatin, figtreeLatinExt),
   '--font-bricolage': stack(bricolageLatin, bricolageLatinExt, bricolageVietnamese),
   '--font-geist-mono': stack(geistMonoLatin, geistMonoLatinExt, geistMonoVietnamese, geistMonoSymbols2, geistMonoCyrillic, geistMonoCyrillicExt),
@@ -389,4 +388,8 @@ export const FONT_VARIABLES = {
   '--font-literata': stack(literataLatin, literataLatinExt, literataVietnamese, literataGreek, literataGreekExt, literataCyrillic, literataCyrillicExt),
   '--font-courier-prime': stack(courierPrimeLatin, courierPrimeLatinExt),
   '--font-cormorant': stack(cormorantLatin, cormorantLatinExt, cormorantVietnamese, cormorantCyrillic, cormorantCyrillicExt),
-} as React.CSSProperties
+}
+
+// Set on <html> (app/layout.tsx), where the themes' --theme-font-* tokens
+// read them.
+export const FONT_VARIABLES = FONT_STACKS as React.CSSProperties

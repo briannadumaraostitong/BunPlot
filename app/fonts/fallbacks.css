@@ -38,6 +38,33 @@
   line-gap-override: 0.00%;
   size-adjust: 102.51%;
 }
+/* Chakra Petch's SemiBold and Bold, on Arial Bold rather than a synthesized
+   bold of Arial: they run narrower against it than the Regular does, and the
+   Cyberpunk theme sets most of its bold text in capitals (headings, labels,
+   buttons). Sized to Chakra Petch's measured width in capitals against Arial
+   Bold, the mean of two samples ("PLOT EVERY STORYLINE" and a capitals
+   pangram), so the landing's hero title wraps in the fallback as it does in
+   the font: Bold 94.64% (93.66% and 95.62%), SemiBold 93.22% (92.22% and
+   94.21%). Line metrics from the same table, recomputed for these sizes.
+   Where Arial Bold isn't installed, the weight falls back as before. */
+@font-face {
+  font-family: 'BunPlot Chakra Petch Fallback';
+  font-weight: 700;
+  src: local('Arial Bold'), local('Arial-BoldMT');
+  ascent-override: 104.82%;
+  descent-override: 32.54%;
+  line-gap-override: 0.00%;
+  size-adjust: 94.64%;
+}
+@font-face {
+  font-family: 'BunPlot Chakra Petch Fallback';
+  font-weight: 600;
+  src: local('Arial Bold'), local('Arial-BoldMT');
+  ascent-override: 106.41%;
+  descent-override: 33.04%;
+  line-gap-override: 0.00%;
+  size-adjust: 93.22%;
+}
 @font-face {
   font-family: 'BunPlot JetBrains Mono Fallback';
   src: local('Arial');

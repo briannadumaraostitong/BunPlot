@@ -14,7 +14,19 @@ import { DEVICE_THEMES, getTheme, isDeviceTheme, type DeviceThemeId, type ScopeT
 // color-scheme come from a stylesheet that switches on prefers-color-scheme.
 // The stylesheet also gives the page behind the scope (<html>, seen when
 // overscrolling) that mode's background.
-export function ThemeScope({ theme: id, className, children }: { theme: ScopeThemeId; className?: string; children: React.ReactNode }) {
+export function ThemeScope({
+  theme: id,
+  className,
+  style: extraStyle,
+  children,
+}: {
+  theme: ScopeThemeId
+  className?: string
+  // More variables for the scope (the Cyberpunk landing's preloaded fonts),
+  // after its own.
+  style?: React.CSSProperties
+  children: React.ReactNode
+}) {
   const device = isDeviceTheme(id)
   const theme = getTheme(device ? DEVICE_THEMES[id].light : id)
   const style = {
@@ -34,7 +46,7 @@ export function ThemeScope({ theme: id, className, children }: { theme: ScopeThe
       data-shape={theme.shape}
       data-texture={theme.texture}
       data-frames={theme.frames ?? 'none'}
-      style={style}
+      style={extraStyle ? { ...style, ...extraStyle } : style}
       // bg-texture goes after cn(): tailwind-merge reads it as a background
       // color and would drop bg-background in its favor. A device theme's
       // dark mode comes from the dark: variant's media rule (globals.css),
