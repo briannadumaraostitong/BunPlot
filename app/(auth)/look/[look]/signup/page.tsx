@@ -10,6 +10,7 @@ import { Label } from '@/components/ui/label'
 import { Loader2, CheckCircle2 } from 'lucide-react'
 import { AuthShell, AUTH_LABEL, useAuthLook } from '@/components/auth/AuthShell'
 import { emailLinkReturn } from '@/lib/emailLinks'
+import { PASSWORD_HINT, passwordProblem } from '@/lib/passwords'
 
 export default function SignupPage() {
   const supabase = createClient()
@@ -24,8 +25,9 @@ export default function SignupPage() {
 
   async function handleSignup(e: React.FormEvent) {
     e.preventDefault()
-    if (password.length < 8) {
-      setError('Password must be at least 8 characters')
+    const problem = passwordProblem(password)
+    if (problem) {
+      setError(problem)
       return
     }
     setLoading(true)
@@ -121,7 +123,7 @@ export default function SignupPage() {
           </Label>
           <PasswordInput
             id="password"
-            placeholder="Min. 8 characters"
+            placeholder={PASSWORD_HINT}
             value={password}
             onChange={(e) => setPassword(e.target.value)}
             required

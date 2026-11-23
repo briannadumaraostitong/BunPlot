@@ -6,12 +6,13 @@ import { lookFromCookie, type Look } from '@/lib/looks'
 
 // The signed-out pages shown in the look of the visitor's saved theme, each
 // rewritten to its prebuilt copy for that look: the landing page to
-// /landing/<look> (app/landing/), login, signup, forgot password and the
+// /landing/<look> (app/landing/), login, signup, the password pages and the
 // email-link page to /look/<look>/login and so on (app/(auth)/look/[look]/).
-// /confirm and /forgot-password stay open to signed-in visitors too:
-// confirming a new email address happens while signed in, and someone who
-// has forgotten their password can't change it from Settings.
-const LOOK_PAGES = ['/', '/login', '/signup', '/forgot-password', '/confirm']
+// /confirm, /forgot-password and /reset-password stay open to signed-in
+// visitors too: confirming a new email address happens while signed in,
+// someone who has forgotten their password can't change it from Settings,
+// and a reset link signs its reader in before /reset-password.
+const LOOK_PAGES = ['/', '/login', '/signup', '/forgot-password', '/reset-password', '/confirm']
 const LOOK_PREFIXES = ['/landing/', '/look/']
 function lookPath(pathname: string, look: Look) {
   return pathname === '/' ? `/landing/${look}` : `/look/${look}${pathname}`
