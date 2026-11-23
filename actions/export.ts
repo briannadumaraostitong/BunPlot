@@ -8,7 +8,7 @@ import type { BookDetails } from '@/lib/export/manuscriptLayout'
 import { DEFAULT_MANUSCRIPT_OPTIONS, type ManuscriptOptions } from '@/lib/export/manuscriptOptions'
 import { COVER_SIZE, PLACE_COVER_SIZE, prepareImage } from '@/lib/export/prepareImage'
 import { prepareBlockImages } from '@/lib/export/prepareBlockImages'
-import { cardTextWidth } from '@/lib/export/storyBibleMeasure'
+import { ENTRY_INDENT } from '@/lib/export/printTypography'
 import { buildStoryBible, STORY_BIBLE_SECTIONS, type StoryBibleSection } from '@/lib/export/storyBible'
 import { renderStoryBibleToDocx } from '@/lib/export/storyBibleToDocx'
 import { renderStoryBibleToPdf } from '@/lib/export/storyBibleToPdf'
@@ -293,7 +293,8 @@ export async function exportStoryBible(
   if (built.places) {
     const documents = await prepareBlockImages(
       built.places.flatMap((p) => [p.description, p.notes]),
-      cardTextWidth(layoutFor('standard', 'a4').textWidth)
+      // Laid out indented to the place's name (storyBibleToPdf, storyBibleToDocx).
+      layoutFor('standard', 'a4').textWidth - ENTRY_INDENT
     )
     bible = {
       ...built,

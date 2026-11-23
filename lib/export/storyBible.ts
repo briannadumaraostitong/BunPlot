@@ -6,7 +6,6 @@ import { tiptapToBlocks, type BlockNode } from './outlineIR'
 import { htmlToParagraphs } from './htmlToText'
 import { PLACE_TYPE_LABELS } from '@/lib/places.config'
 import { byPosition } from '@/lib/eventOrder'
-import type { CardLabel } from './printColors'
 import type {
   Chapter,
   Character,
@@ -68,12 +67,12 @@ export function placeHasDetails(p: PlaceEntry): boolean {
   return p.cover !== null || p.description.length > 0 || p.notes.length > 0
 }
 
-// color: the event's own, else its layer's (as on the grid). labels: its
-// status, then its layer, each in its own colour.
+// color: the event's own, else its layer's (as on the grid). labels: the
+// names of its status, then its layer.
 export interface EventEntry {
   title: string
   color: string | null
-  labels: CardLabel[]
+  labels: string[]
   dates: string | null
   characters: string[]
   places: string[]
@@ -95,7 +94,7 @@ export function eventWithAt(e: EventEntry): string | null {
 // it and where ("Final · Main plot · With Ilsa, Tobin · At Merrow"), or null
 // when it has none of those.
 export function eventMeta(e: EventEntry): string | null {
-  const parts = [...e.labels.map((l) => l.text), eventWithAt(e)].filter((p): p is string => !!p)
+  const parts = [...e.labels, eventWithAt(e)].filter((p): p is string => !!p)
   return parts.length > 0 ? parts.join(' · ') : null
 }
 
@@ -339,7 +338,7 @@ export function buildStoryBible(input: StoryBibleInput): StoryBible {
       return {
         title: e.title,
         color: e.color ?? layer?.color ?? null,
-        labels: [status, layer].flatMap((l) => (l ? [{ text: l.name, color: l.color }] : [])),
+        labels: [status, layer].flatMap((l) => (l ? [l.name] : [])),
         dates:
           e.start_date && e.end_date && e.end_date !== e.start_date
             ? `${e.start_date} – ${e.end_date}`

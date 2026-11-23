@@ -1,6 +1,6 @@
 import sharp from 'sharp'
 import { fetchImageBytes, type FetchedImage } from './fetchImageBytes'
-import { PLACE_CARD } from './printTypography'
+import { PLACE_ENTRY } from './printTypography'
 
 // An image ready for react-pdf, which only takes PNG and JPEG. WebP and GIF
 // uploads (both allowed) are converted, and any image bigger than its size's
@@ -24,7 +24,7 @@ export interface ImageSize {
 export const COVER_SIZE: ImageSize = { maxWidth: 1800, maxHeight: 2700, photo: true }
 // A place's cover in the story bible: 16:9 like the app's aspect-video
 // frames, about 260 dpi across a card on an A4 page.
-export const PLACE_COVER_SIZE: ImageSize = { maxWidth: 1600, maxHeight: 900, aspect: PLACE_CARD.coverAspect, photo: true }
+export const PLACE_COVER_SIZE: ImageSize = { maxWidth: 1600, maxHeight: 900, aspect: PLACE_ENTRY.coverAspect, photo: true }
 
 // Images in rich text are printed at this resolution, at most.
 const PRINT_DPI = 300

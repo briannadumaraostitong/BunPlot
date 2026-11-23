@@ -1,5 +1,5 @@
-// Estimated heights of story bible cards, so the PDF and DOCX keep the same
-// cards together (CARD.keepTogetherShare). Measured with react-pdf's
+// Estimated heights of story bible entries, so the PDF and DOCX keep the same
+// ones together (BIBLE_ENTRY.keepTogetherShare). Measured with react-pdf's
 // registered fonts (pdfTextMeasure; registerPdfFonts must have run), using
 // the sizes storyBiblePdfParts and storyBibleToPdf set. Close, not exact:
 // Word lays out on its own, and only the share of the page matters.
@@ -8,41 +8,19 @@ import { countLines, textWidth } from './pdfTextMeasure'
 import {
   BIBLE_BODY,
   BIBLE_ENTRY,
-  CARD,
-  CARD_PADDING_BOTTOM,
-  CHARACTER_CARD,
   ENTRY_INDENT,
   ENTRY_NAME,
-  EVENT_CARD,
   EVENT_ENTRY,
   FIELD_LABEL,
   HEADINGS,
-  LABEL,
-  PLACE_CARD,
   PLACE_ENTRY,
   RELATIONS,
   SWATCH,
 } from './printTypography'
-import { eventMeta, eventWithAt, type CharacterEntry, type EventEntry, type PlaceEntry } from './storyBible'
-import type { CardLabel } from './printColors'
+import { eventMeta, type CharacterEntry, type EventEntry, type PlaceEntry } from './storyBible'
 import type { BlockNode, InlineRun } from './outlineIR'
 
-// The width text has inside a card on a page with this text width.
-export function cardTextWidth(textWidth: number): number {
-  return textWidth - CARD.accentWidth - 2 * CARD.paddingX
-}
-
-// Relationship rows: the name column, and the gap before the relation.
-export function relationColumns(cardWidth: number): { name: number; relation: number; gap: number } {
-  const gap = 8
-  const name = cardWidth * CHARACTER_CARD.rowNameShare
-  return { name: name - gap, relation: cardWidth - name, gap }
-}
-
 export const FIELD_LABEL_HEIGHT = FIELD_LABEL.before + FIELD_LABEL.size * FIELD_LABEL.lineHeight + FIELD_LABEL.after
-
-// A row of labels: a pill (storyBiblePdfParts' Labels) and the gap below it.
-export const LABEL_ROW_HEIGHT = LABEL.size * 1.2 + 2 * LABEL.paddingY + LABEL.gap
 
 // Literata's own line height, for text that doesn't set one (headings).
 const NATURAL_LINE_HEIGHT = 1.485
@@ -65,30 +43,6 @@ async function paragraphsHeight(paragraphs: string[], width: number) {
   let height = 0
   for (const p of paragraphs) {
     height += (await textHeight(p, width, BIBLE_BODY.fontSize, BIBLE_BODY.lineHeight)) + BIBLE_BODY.paragraphGap
-  }
-  return height
-}
-
-// A character card with details (a slim card is one line, always kept
-// together), as storyBibleToPdf lays it out.
-export async function characterCardHeight(c: CharacterEntry, pageTextWidth: number): Promise<number> {
-  const width = cardTextWidth(pageTextWidth)
-  const { nameSize, nameLineHeight, nameGap, roleSize, roleLineHeight, rowSize, rowLineHeight, rowGap } = CHARACTER_CARD
-  let height = CARD.paddingY + CARD_PADDING_BOTTOM
-  height += (await textHeight(c.name, width, nameSize, nameLineHeight, true)) + (c.role ? nameGap : BIBLE_BODY.paragraphGap)
-  if (c.role) height += (await textHeight(c.role, width, roleSize, roleLineHeight)) + BIBLE_BODY.paragraphGap
-  height += await paragraphsHeight(c.description, width)
-  if (c.notes.length > 0) height += FIELD_LABEL_HEIGHT + (await paragraphsHeight(c.notes, width))
-  if (c.relationships.length > 0) {
-    const columns = relationColumns(width)
-    height += FIELD_LABEL_HEIGHT + BIBLE_BODY.paragraphGap - rowGap
-    for (const r of c.relationships) {
-      const lines = Math.max(
-        await countLines(run(r.name), columns.name, rowSize),
-        await countLines(run(r.relation), columns.relation, rowSize)
-      )
-      height += lines * rowSize * rowLineHeight + rowGap
-    }
   }
   return height
 }
@@ -141,70 +95,8 @@ async function blocksHeight(blocks: BlockNode[], width: number, body: BodyStyle 
   return height
 }
 
-// A place card with details (a slim card is one line, always kept
-// together), as storyBibleToPdf lays it out. Infinite when its rich text has
-// an image, so the card is allowed to split.
-export async function placeCardHeight(p: PlaceEntry, pageTextWidth: number): Promise<number> {
-  const width = cardTextWidth(pageTextWidth)
-  const { nameSize, nameLineHeight } = CHARACTER_CARD
-  let height = CARD.paddingY + CARD_PADDING_BOTTOM
-  if (p.cover) height += width / PLACE_CARD.coverAspect + PLACE_CARD.coverGap
-  height += (await textHeight(p.name, width, nameSize, nameLineHeight, true)) + LABEL.gap
-  height += LABEL_ROW_HEIGHT + BIBLE_BODY.paragraphGap - LABEL.gap
-  for (const blocks of [p.description, p.notes]) {
-    if (blocks.length === 0) continue
-    const rich = await blocksHeight(blocks, width)
-    if (rich === null) return Infinity
-    height += FIELD_LABEL_HEIGHT + rich
-  }
-  return height
-}
-
-// An event's dates column: the dates' width on one line, plus a point so
-// rounding can't wrap them (storyBibleToPdf gives the column this width).
-export async function datesWidth(dates: string): Promise<number> {
-  return (await textWidth(run(dates), EVENT_CARD.datesSize)) + 1
-}
-
-// Labels as storyBiblePdfParts' Labels lays them out: pills in rows,
-// wrapping when the next one doesn't fit.
-async function labelsHeight(labels: CardLabel[], width: number): Promise<number> {
-  if (labels.length === 0) return 0
-  let rows = 1
-  let x = 0
-  for (const label of labels) {
-    const w = (await textWidth(run(label.text), LABEL.size)) + 2 * LABEL.paddingX + LABEL.gap
-    if (x > 0 && x + w > width) {
-      rows++
-      x = 0
-    }
-    x += w
-  }
-  return rows * LABEL_ROW_HEIGHT
-}
-
-// An event card, as storyBibleToPdf lays it out.
-export async function eventCardHeight(e: EventEntry, pageTextWidth: number): Promise<number> {
-  const width = cardTextWidth(pageTextWidth)
-  const { titleSize, titleLineHeight, titleGap, datesGap, metaSize, metaLineHeight } = EVENT_CARD
-  let height = CARD.paddingY + CARD_PADDING_BOTTOM
-  const titleWidth = e.dates ? width - (await datesWidth(e.dates)) - datesGap : width
-  height += (await textHeight(e.title, titleWidth, titleSize, titleLineHeight, true)) + titleGap
-  if (e.labels.length > 0) height += (await labelsHeight(e.labels, width)) + BIBLE_BODY.paragraphGap - LABEL.gap
-  const withAt = eventWithAt(e)
-  if (withAt) height += (await textHeight(withAt, width, metaSize, metaLineHeight)) + BIBLE_BODY.paragraphGap
-  height += await paragraphsHeight(e.description, width)
-  if (e.notes.length > 0) height += FIELD_LABEL_HEIGHT + (await paragraphsHeight(e.notes, width))
-  return height
-}
-
-// Whether a card this tall stays in one piece on a page this tall.
-export function keepCardTogether(height: number, pageTextHeight: number): boolean {
-  return height <= pageTextHeight * CARD.keepTogetherShare
-}
-
-// The story bible's entries as an appendix (no cards): heights as
-// storyBibleToPdf lays them out, at the page's full text width.
+// The entries' heights as storyBibleToPdf lays them out, at the page's full
+// text width.
 
 // A place's caption text (PLACE_ENTRY), as rich text's paragraph style.
 export const PLACE_TEXT: BodyStyle = {

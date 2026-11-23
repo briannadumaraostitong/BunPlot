@@ -1,5 +1,7 @@
 import {
+  AlignmentType,
   Document,
+  Footer,
   Packer,
   Paragraph,
   TextRun,
@@ -11,6 +13,7 @@ import {
   Tab,
   TabStopType,
   type FileChild,
+  type IParagraphOptions,
   type ISectionOptions,
   type IStylesOptions,
 } from 'docx'
@@ -22,7 +25,6 @@ import {
   printHeadingStyles,
   printPage,
   runningHeader,
-  titlePageParagraphs,
   twips,
   type DocxLayout,
 } from './outlineToDocx'
@@ -32,23 +34,36 @@ import { DEFAULT_DOCUMENT_FONT } from '../documentFonts'
 import { MANUSCRIPT_PAGES } from './manuscriptLayout'
 import {
   BIBLE_BODY,
-  CHARACTER_CARD,
+  BIBLE_COVER,
+  BIBLE_ENTRY,
   CONTENTS,
-  EVENT_CARD,
+  ENTRY_INDENT,
+  ENTRY_NAME,
+  EVENT_ENTRY,
   EVENT_GROUP,
-  LABEL,
   MUTED_COLOR,
+  PLACE_ENTRY,
+  RELATIONS,
   SECTION_TITLE,
 } from './printTypography'
-import { cardColors } from './printColors'
-import { card, coverParagraph, fieldLabel, labelRuns } from './storyBibleDocxParts'
 import {
-  cardTextWidth,
-  characterCardHeight,
-  eventCardHeight,
-  keepCardTogether,
-  placeCardHeight,
-  relationColumns,
+  ENTRY_TEXT_INDENT,
+  coverOptions,
+  entryParagraphs,
+  fieldLabel,
+  hangingName,
+  rightTab,
+  ruleParagraph,
+  smallCapsRuns,
+  swatchRuns,
+} from './storyBibleDocxParts'
+import {
+  PLACE_TEXT,
+  characterEntryHeight,
+  eventEntryHeight,
+  keepEntryTogether,
+  placeEntryHeight,
+  relationColumnsAt,
 } from './storyBibleMeasure'
 import {
   CONTENTS_TITLE,
@@ -57,8 +72,9 @@ import {
   SECTION_EMPTY_TEXT,
   SECTION_TITLES,
   contentsEntries,
+  coverSummary,
   eventCount,
-  eventWithAt,
+  eventMeta,
   hasDetails,
   placeHasDetails,
   sectionAnchor,
@@ -71,27 +87,46 @@ import {
   type StoryBibleSection,
 } from './storyBible'
 
-// Heading scheme: a centred title page, the contents, then each section as
-// its own Word section (so it gets its own running header), opening with its
-// title (Heading 1) and count line; card names, the family trees' heading
-// and timeline chapters = H2, family trees and event titles = H3. Rich-text
-// headings were
-// already shifted by buildStoryBible to sit one level below their container
-// (H3+ in places).
+// Set as storyBibleToPdf sets the PDF: a cover, the contents, then each
+// section as its own Word section (so it gets its own running header),
+// opening with its title (Heading 1) and count line. Entries have no boxes: a
+// square swatch before the name, labels in small capitals, characters and
+// places divided by hairline rules, events as lines under each chapter.
+// Character and place names, the family trees' heading and timeline chapters
+// are Heading 2, family trees and event titles Heading 3, so they're in
+// Word's navigation pane. Rich-text headings were already shifted by
+// buildStoryBible to sit one level below their container (H3+ in places).
 
 // The PDF's A4 page, the header and page number centred in its margins.
 const PAGE = printPage('a4')
 const EDGE = marginLineTwips(MANUSCRIPT_PAGES.a4.marginY)
 const PAGE_PROPS = { size: PAGE.size, margin: { ...PAGE.margin, header: EDGE, footer: EDGE } }
-// The text width in points, for the card estimates (storyBibleMeasure).
+// The cover's counts line sits in its footer, as far up from the page's
+// edge as the PDF's.
+const COVER_PAGE_PROPS = {
+  ...PAGE_PROPS,
+  margin: { ...PAGE_PROPS.margin, footer: twips(MANUSCRIPT_PAGES.a4.marginY + BIBLE_COVER.countsBottom - BIBLE_COVER.countsSize) },
+}
+// The text width in points, for the entry estimates (storyBibleMeasure).
 const TEXT_WIDTH_PT = PAGE.textWidthTwips / twips(1)
-// The text width inside a card, and rich text laid out at it (in px).
-const CARD_WIDTH_PT = cardTextWidth(TEXT_WIDTH_PT)
-const CARD_LAYOUT: DocxLayout = { textWidth: Math.floor((CARD_WIDTH_PT * 96) / 72), book: false }
+// The width of what follows a name, indented past its swatch.
+const INNER_WIDTH_PT = TEXT_WIDTH_PT - ENTRY_INDENT
+
+// A place's description and notes: the place text style, indented, laid out
+// at the indented width (in px).
+const PLACE_TEXT_STYLE = 'PlaceText'
+const PLACE_LAYOUT: DocxLayout = {
+  textWidth: Math.floor((INNER_WIDTH_PT * 96) / 72),
+  book: false,
+  style: PLACE_TEXT_STYLE,
+  indentLeft: twips(ENTRY_INDENT),
+}
+
+const GAP = twips(BIBLE_BODY.paragraphGap)
 
 // Literata at the story bible's body size, lines at least BIBLE_BODY's
-// height (as in the Book DOCX, so nothing is clipped), black headings, and
-// section titles over a hairline rule.
+// height (as in the Book DOCX, so nothing is clipped), black headings,
+// section titles over a hairline rule, and the places' caption text.
 const STYLES: IStylesOptions = {
   default: {
     document: {
@@ -100,7 +135,7 @@ const STYLES: IStylesOptions = {
         spacing: {
           line: twips(BIBLE_BODY.fontSize * BIBLE_BODY.lineHeight),
           lineRule: LineRuleType.AT_LEAST,
-          after: twips(BIBLE_BODY.paragraphGap),
+          after: GAP,
         },
       },
     },
@@ -121,6 +156,22 @@ const STYLES: IStylesOptions = {
     },
     ...printHeadingStyles(),
   },
+  paragraphStyles: [
+    {
+      id: PLACE_TEXT_STYLE,
+      name: 'Place text',
+      basedOn: 'Normal',
+      next: PLACE_TEXT_STYLE,
+      run: { size: PLACE_TEXT.fontSize * 2, color: docxColor(PLACE_ENTRY.textColor) },
+      paragraph: {
+        spacing: {
+          line: twips(PLACE_TEXT.fontSize * PLACE_TEXT.lineHeight),
+          lineRule: LineRuleType.AT_LEAST,
+          after: twips(PLACE_TEXT.paragraphGap),
+        },
+      },
+    },
+  ],
 }
 
 // anchor: a bookmark around the heading's text, for the contents to link to.
@@ -129,16 +180,121 @@ function heading(text: string, level: (typeof HeadingLevel)[keyof typeof Heading
   return new Paragraph({ heading: level, children: [anchor ? new Bookmark({ id: anchor, children: [run] }) : run] })
 }
 
-function plain(text: string) {
-  return new Paragraph({ children: [new TextRun({ text })] })
+// Body text after a name, indented to it.
+const indented = (text: string): IParagraphOptions => ({ indent: ENTRY_TEXT_INDENT, children: [new TextRun({ text })] })
+
+// A centred hairline BIBLE_COVER.ruleLength wide: an empty, tiny line with a
+// rule under it.
+function coverRule(before: number): Paragraph {
+  const side = twips((TEXT_WIDTH_PT - BIBLE_COVER.ruleLength) / 2)
+  return new Paragraph({
+    indent: { left: side, right: side },
+    spacing: { before: twips(before), after: 0, line: 20, lineRule: LineRuleType.EXACT },
+    border: {
+      bottom: { style: BorderStyle.SINGLE, size: BIBLE_COVER.ruleWidth * 8, color: docxColor(BIBLE_COVER.ruleColor), space: 0 },
+    },
+    children: [new TextRun({ text: '', size: 2 })],
+  })
 }
 
-function bullets(items: string[]) {
-  return items.map((text) => new Paragraph({ bullet: { level: 0 }, children: [new TextRun({ text })] }))
+// The cover, as in the PDF: the title between two short rules, STORY BIBLE,
+// the project's description in italic and the author; the counts go in the
+// section's footer (coverSection).
+function coverParagraphs(bible: StoryBible): Paragraph[] {
+  const descriptionSide = twips((TEXT_WIDTH_PT * (1 - BIBLE_COVER.descriptionWidthShare)) / 2)
+  return [
+    coverRule(PAGE.textHeightPt * BIBLE_COVER.top),
+    new Paragraph({
+      alignment: AlignmentType.CENTER,
+      spacing: {
+        before: twips(BIBLE_COVER.ruleGap),
+        after: twips(BIBLE_COVER.ruleGap),
+        line: twips(BIBLE_COVER.titleSize * BIBLE_COVER.titleLineHeight),
+        lineRule: LineRuleType.AT_LEAST,
+      },
+      children: [new TextRun({ text: bible.title, size: BIBLE_COVER.titleSize * 2 })],
+    }),
+    coverRule(0),
+    new Paragraph({
+      alignment: AlignmentType.CENTER,
+      spacing: { before: twips(BIBLE_COVER.ruleGap), after: 0 },
+      children: [
+        new TextRun({
+          text: 'Story Bible',
+          allCaps: true,
+          size: BIBLE_COVER.labelSize * 2,
+          characterSpacing: twips(BIBLE_COVER.labelTracking),
+          color: docxColor(BIBLE_COVER.labelColor),
+        }),
+      ],
+    }),
+    ...(bible.description
+      ? [
+          new Paragraph({
+            alignment: AlignmentType.CENTER,
+            indent: { left: descriptionSide, right: descriptionSide },
+            spacing: {
+              before: twips(BIBLE_COVER.descriptionGap),
+              after: 0,
+              line: twips(BIBLE_COVER.descriptionSize * BIBLE_COVER.descriptionLineHeight),
+              lineRule: LineRuleType.AT_LEAST,
+            },
+            children: [
+              new TextRun({
+                text: bible.description,
+                italics: true,
+                size: BIBLE_COVER.descriptionSize * 2,
+                color: docxColor(BIBLE_COVER.descriptionColor),
+              }),
+            ],
+          }),
+        ]
+      : []),
+    ...(bible.author
+      ? [
+          new Paragraph({
+            alignment: AlignmentType.CENTER,
+            spacing: { before: twips(BIBLE_COVER.authorGap), after: 0 },
+            children: [
+              new TextRun({ text: bible.author, size: BIBLE_COVER.authorSize * 2, color: docxColor(BIBLE_COVER.authorColor) }),
+            ],
+          }),
+        ]
+      : []),
+  ]
 }
 
-// A section's opening: its title over the rule, then its count line, or the
-// empty note when the project has nothing for it (empty: true).
+function coverSection(bible: StoryBible): ISectionOptions {
+  const counts = coverSummary(bible)
+  return {
+    properties: { page: COVER_PAGE_PROPS },
+    footers: {
+      default: new Footer({
+        children: [
+          new Paragraph({
+            alignment: AlignmentType.CENTER,
+            children: counts
+              ? [
+                  new TextRun({
+                    text: counts,
+                    allCaps: true,
+                    size: BIBLE_COVER.countsSize * 2,
+                    characterSpacing: twips(BIBLE_COVER.countsTracking),
+                    color: docxColor(BIBLE_COVER.countsColor),
+                  }),
+                ]
+              : [],
+          }),
+        ],
+      }),
+    },
+    children: coverParagraphs(bible),
+  }
+}
+
+// A section's opening: its title over the rule, then its count line in small
+// capitals, or the empty note when the project has nothing for it (empty:
+// true).
 function sectionOpening(bible: StoryBible, section: StoryBibleSection): { paragraphs: Paragraph[]; empty: boolean } {
   const summary = sectionSummary(bible, section)
   const title = heading(SECTION_TITLES[section], HeadingLevel.HEADING_1, sectionAnchor(section))
@@ -159,120 +315,143 @@ function sectionOpening(bible: StoryBible, section: StoryBibleSection): { paragr
       title,
       new Paragraph({
         spacing: { before: twips(SECTION_TITLE.countGap), after: twips(SECTION_TITLE.after) },
-        children: [new TextRun({ text: summary, size: SECTION_TITLE.countSize * 2, color: docxColor(MUTED_COLOR) })],
+        children: [...smallCapsRuns(summary)],
       }),
     ],
     empty: false,
   }
 }
 
-// A slim one-line card, as in the PDF (storyBibleToPdf's SlimCard). The name
-// is a Heading 2, as on a full card.
-function slimCard(color: string | null, name: string, detail: string | null): FileChild[] {
-  const { text } = cardColors(color)
-  const paragraph = new Paragraph({
-    heading: HeadingLevel.HEADING_2,
-    spacing: { before: 0, after: twips(BIBLE_BODY.paragraphGap) },
-    children: [
-      new TextRun({ text: name, size: CHARACTER_CARD.slimNameSize * 2 }),
-      ...(detail
-        ? [new TextRun({ text: `  ·  ${detail}`, size: CHARACTER_CARD.roleSize * 2, bold: false, color: docxColor(text) })]
-        : []),
-    ],
-  })
-  return card(color, [paragraph], { textWidthTwips: PAGE.textWidthTwips, keepTogether: true })
+// An entry's paragraphs, after the rule (ruleParagraph) unless it's the
+// section's first.
+function ruled(first: boolean, options: IParagraphOptions[]): IParagraphOptions[] {
+  return first ? options : [ruleParagraph(), ...options]
 }
 
-// A character's card, as in the PDF (storyBibleToPdf's CharacterCard). The
-// name stays a Heading 2, so characters are in Word's navigation pane.
-async function characterCard(c: CharacterEntry): Promise<FileChild[]> {
-  if (!hasDetails(c)) return slimCard(c.color, c.name, c.role)
-  const { text } = cardColors(c.color)
-  const gap = twips(BIBLE_BODY.paragraphGap)
-  const columns = relationColumns(cardTextWidth(TEXT_WIDTH_PT))
-  const rowSize = CHARACTER_CARD.rowSize * 2
-  const children: Paragraph[] = [
-    new Paragraph({
-      heading: HeadingLevel.HEADING_2,
-      spacing: { before: 0, after: c.role ? twips(CHARACTER_CARD.nameGap) : gap },
-      children: [new TextRun({ text: c.name })],
-    }),
-    ...(c.role
-      ? [new Paragraph({ children: [new TextRun({ text: c.role, size: CHARACTER_CARD.roleSize * 2, color: docxColor(text) })] })]
-      : []),
-    ...c.description.map(plain),
-    ...(c.notes.length > 0 ? [fieldLabel('Notes'), ...c.notes.map(plain)] : []),
-    ...(c.relationships.length > 0 ? [fieldLabel('Relationships')] : []),
-    // The other character's name, then at the tab stop what they are to this
-    // one.
-    ...c.relationships.map(
-      (r, i) =>
-        new Paragraph({
-          tabStops: [{ type: TabStopType.LEFT, position: twips(columns.name + columns.gap) }],
-          spacing: { after: i === c.relationships.length - 1 ? gap : twips(CHARACTER_CARD.rowGap) },
-          children: [
-            new TextRun({ text: r.name, size: rowSize }),
-            new TextRun({ children: [new Tab()], size: rowSize }),
-            new TextRun({ text: r.relation, size: rowSize, color: docxColor(CHARACTER_CARD.relationColor) }),
-          ],
-        })
-    ),
-  ]
-  const keepTogether = keepCardTogether(await characterCardHeight(c, TEXT_WIDTH_PT), PAGE.textHeightPt)
-  return card(c.color, children, { textWidthTwips: PAGE.textWidthTwips, keepTogether })
+// A name: a Heading 2 with the swatch hanging before it and the role or type
+// after it in small capitals. below: space between it and a rule above it.
+// slim: an entry with no details, set a little smaller.
+function nameOptions(
+  color: string | null,
+  name: string,
+  detail: string | null,
+  { below, slim = false }: { below: number; slim?: boolean }
+): IParagraphOptions {
+  return {
+    heading: HeadingLevel.HEADING_2,
+    indent: hangingName,
+    spacing: { before: twips(below), after: slim ? 0 : twips(ENTRY_NAME.gap) },
+    children: [
+      ...swatchRuns(color),
+      new TextRun({ text: name, size: (slim ? ENTRY_NAME.slimSize : ENTRY_NAME.size) * 2 }),
+      ...(detail ? [new TextRun({ text: '   ' }), ...smallCapsRuns(detail)] : []),
+    ],
+  }
+}
+
+// A character, as in the PDF: the name line, then indented to the name the
+// description, notes and relationships (the other character, then at a tab
+// what they are, in italic).
+async function characterEntry(c: CharacterEntry, first: boolean): Promise<Paragraph[]> {
+  const below = first ? 0 : BIBLE_ENTRY.gap
+  if (!hasDetails(c)) {
+    return entryParagraphs(ruled(first, [nameOptions(c.color, c.name, c.role, { below, slim: true })]), true)
+  }
+  const columns = relationColumnsAt(INNER_WIDTH_PT)
+  const size = RELATIONS.size * 2
+  const options = ruled(first, [nameOptions(c.color, c.name, c.role, { below }), ...c.description.map(indented)])
+  const labelled: Paragraph[] = []
+  if (c.notes.length > 0) labelled.push(fieldLabel('Notes'), ...c.notes.map((n) => new Paragraph(indented(n))))
+  if (c.relationships.length > 0) {
+    labelled.push(
+      fieldLabel('Relationships'),
+      ...c.relationships.map(
+        (r, i) =>
+          new Paragraph({
+            indent: ENTRY_TEXT_INDENT,
+            keepLines: true,
+            keepNext: i < c.relationships.length - 1,
+            tabStops: [{ type: TabStopType.LEFT, position: twips(ENTRY_INDENT + columns.name + columns.gap) }],
+            spacing: { after: i === c.relationships.length - 1 ? GAP : twips(RELATIONS.rowGap) },
+            children: [
+              new TextRun({ text: r.name, size }),
+              new TextRun({ children: [new Tab()], size }),
+              new TextRun({ text: r.relation, size, italics: true, color: docxColor(RELATIONS.relationColor) }),
+            ],
+          })
+      )
+    )
+  }
+  const keepTogether = keepEntryTogether(await characterEntryHeight(c, TEXT_WIDTH_PT), PAGE.textHeightPt)
+  return entryParagraphs(options, keepTogether, labelled)
 }
 
 async function charactersBody(characters: NonNullable<StoryBible['characters']>): Promise<FileChild[]> {
   const out: FileChild[] = []
-  for (const c of characters.entries) out.push(...(await characterCard(c)))
+  for (const [i, c] of characters.entries.entries()) out.push(...(await characterEntry(c, i === 0)))
   if (characters.familyTrees.length > 0) {
     out.push(heading(FAMILY_TREES_TITLE, HeadingLevel.HEADING_2, FAMILY_TREES_ANCHOR))
     for (const tree of characters.familyTrees) {
       out.push(
         heading(tree.name, HeadingLevel.HEADING_3),
-        fieldLabel('Members'),
-        plain(tree.members.length > 0 ? tree.members.join(', ') : 'None'),
-        ...(tree.relationships.length > 0 ? [fieldLabel('Relationships'), ...bullets(tree.relationships)] : [])
+        fieldLabel('Members', false),
+        new Paragraph({ children: [new TextRun({ text: tree.members.length > 0 ? tree.members.join(', ') : 'None' })] }),
+        ...(tree.relationships.length > 0
+          ? [
+              fieldLabel('Relationships', false),
+              ...tree.relationships.map(
+                (text, i) =>
+                  new Paragraph({
+                    spacing: { after: i === tree.relationships.length - 1 ? GAP : 0 },
+                    children: [new TextRun({ text })],
+                  })
+              ),
+            ]
+          : [])
       )
     }
   }
   return out
 }
 
-// A place's card, as in the PDF (storyBibleToPdf's placeCard).
-async function placeCard(p: PlaceEntry): Promise<FileChild[]> {
-  if (!placeHasDetails(p)) return slimCard(p.color, p.name, p.type)
-  const cover = p.cover ? await coverParagraph(p.cover, CARD_WIDTH_PT) : null
-  const rich = async (label: string, blocks: PlaceEntry['description']) =>
-    blocks.length > 0 ? [fieldLabel(label), ...(await blocksToParagraphs(blocks, CARD_LAYOUT))] : []
-  const children: Paragraph[] = [
-    ...(cover ? [cover] : []),
-    new Paragraph({
-      heading: HeadingLevel.HEADING_2,
-      spacing: { before: 0, after: twips(LABEL.gap) },
-      children: [new TextRun({ text: p.name })],
-    }),
-    new Paragraph({ children: labelRuns([{ text: p.type, color: p.color }]) }),
-    ...(await rich('Description', p.description)),
-    ...(await rich('Notes', p.notes)),
-  ]
-  const keepTogether = keepCardTogether(await placeCardHeight(p, TEXT_WIDTH_PT), PAGE.textHeightPt)
-  return card(p.color, children, { textWidthTwips: PAGE.textWidthTwips, keepTogether })
+// A place, as in the PDF: its image across the page (with more room after
+// the rule above it than other entries get), the name line as its caption,
+// then the description and notes as indented caption text.
+async function placeEntry(p: PlaceEntry, first: boolean): Promise<Paragraph[]> {
+  const below = first ? 0 : BIBLE_ENTRY.gap
+  if (!placeHasDetails(p)) {
+    return entryParagraphs(ruled(first, [nameOptions(p.color, p.name, p.type, { below, slim: true })]), true)
+  }
+  const cover = p.cover ? await coverOptions(p.cover, TEXT_WIDTH_PT) : null
+  const entry: IParagraphOptions[] = cover
+    ? [
+        // More room between the rule and an image than other entries get.
+        { ...cover, spacing: { ...cover.spacing, before: twips(first ? 0 : below + PLACE_ENTRY.coverSpaceAbove) } },
+        nameOptions(p.color, p.name, p.type, { below: 0 }),
+      ]
+    : [nameOptions(p.color, p.name, p.type, { below })]
+  const options = ruled(first, entry)
+  const rest: Paragraph[] = []
+  if (p.description.length > 0) rest.push(...(await blocksToParagraphs(p.description, PLACE_LAYOUT)))
+  if (p.notes.length > 0) rest.push(fieldLabel('Notes'), ...(await blocksToParagraphs(p.notes, PLACE_LAYOUT)))
+  const keepTogether = keepEntryTogether(await placeEntryHeight(p, TEXT_WIDTH_PT), PAGE.textHeightPt)
+  return entryParagraphs(options, keepTogether, rest)
 }
 
 async function placesBody(places: NonNullable<StoryBible['places']>): Promise<FileChild[]> {
   const out: FileChild[] = []
-  for (const p of places) out.push(...(await placeCard(p)))
+  for (const [i, p] of places.entries()) out.push(...(await placeEntry(p, i === 0)))
   return out
 }
 
 // A timeline chapter's heading, as in the PDF: a Heading 2 (bookmarked for
-// the contents) over a hairline rule, the event count at the right.
+// the contents) over a hairline rule, the event count at the right in small
+// capitals.
 function groupHeading(text: string, count: string, anchor: string, first: boolean): Paragraph {
   return new Paragraph({
     heading: HeadingLevel.HEADING_2,
     spacing: { before: first ? 0 : twips(EVENT_GROUP.before), after: twips(EVENT_GROUP.after) },
-    tabStops: [{ type: TabStopType.RIGHT, position: PAGE.textWidthTwips }],
+    tabStops: [rightTab(PAGE.textWidthTwips)],
     border: {
       bottom: {
         style: BorderStyle.SINGLE,
@@ -283,45 +462,60 @@ function groupHeading(text: string, count: string, anchor: string, first: boolea
     },
     children: [
       new Bookmark({ id: anchor, children: [new TextRun({ text, size: EVENT_GROUP.size * 2 })] }),
-      new TextRun({ children: [new Tab(), count], size: EVENT_GROUP.countSize * 2, bold: false, color: docxColor(MUTED_COLOR) }),
+      new TextRun({ children: [new Tab()] }),
+      ...smallCapsRuns(count),
     ],
   })
 }
 
-// An event's card, as in the PDF (storyBibleToPdf's EventCard). The title is
-// a Heading 3 with the dates at a right tab stop; a title too long for the
-// line pushes them onto the next.
-async function eventCard(e: EventEntry): Promise<FileChild[]> {
-  const secondary = docxColor(EVENT_CARD.secondaryColor)
-  const withAt = eventWithAt(e)
-  const children: Paragraph[] = [
-    new Paragraph({
+// An event, as in the PDF: a Heading 3 with the swatch hanging before the
+// title and the dates at a right tab stop (a title too long for the line
+// pushes them onto the next), then indented to the title the plain line of
+// its status, layer, who and where, and the description and notes.
+async function eventEntry(e: EventEntry, first: boolean): Promise<Paragraph[]> {
+  const metaColor = docxColor(EVENT_ENTRY.metaColor)
+  const meta = eventMeta(e)
+  const hasText = e.description.length > 0 || e.notes.length > 0
+  const options: IParagraphOptions[] = [
+    {
       heading: HeadingLevel.HEADING_3,
-      spacing: { before: 0, after: twips(EVENT_CARD.titleGap) },
-      tabStops: [{ type: TabStopType.RIGHT, position: twips(CARD_WIDTH_PT) }],
+      indent: hangingName,
+      spacing: { before: first ? 0 : twips(EVENT_ENTRY.gap), after: meta ? 0 : GAP },
+      tabStops: [rightTab(PAGE.textWidthTwips)],
       children: [
-        new TextRun({ text: e.title, size: EVENT_CARD.titleSize * 2 }),
+        ...swatchRuns(e.color),
+        new TextRun({ text: e.title, size: EVENT_ENTRY.titleSize * 2 }),
         ...(e.dates
-          ? [new TextRun({ children: [new Tab(), e.dates], size: EVENT_CARD.datesSize * 2, bold: false, color: secondary })]
+          ? [new TextRun({ children: [new Tab(), e.dates], size: EVENT_ENTRY.datesSize * 2, bold: false, color: metaColor })]
           : []),
       ],
-    }),
-    ...(e.labels.length > 0 ? [new Paragraph({ children: labelRuns(e.labels) })] : []),
-    ...(withAt
-      ? [new Paragraph({ children: [new TextRun({ text: withAt, size: EVENT_CARD.metaSize * 2, color: secondary })] })]
+    },
+    ...(meta
+      ? [
+          {
+            indent: ENTRY_TEXT_INDENT,
+            spacing: {
+              before: twips(EVENT_ENTRY.metaGap),
+              after: hasText ? GAP : 0,
+              line: twips(EVENT_ENTRY.metaSize * EVENT_ENTRY.metaLineHeight),
+              lineRule: LineRuleType.AT_LEAST,
+            },
+            children: [new TextRun({ text: meta, size: EVENT_ENTRY.metaSize * 2, color: metaColor })],
+          },
+        ]
       : []),
-    ...e.description.map(plain),
-    ...(e.notes.length > 0 ? [fieldLabel('Notes'), ...e.notes.map(plain)] : []),
+    ...e.description.map(indented),
   ]
-  const keepTogether = keepCardTogether(await eventCardHeight(e, TEXT_WIDTH_PT), PAGE.textHeightPt)
-  return card(e.color, children, { textWidthTwips: PAGE.textWidthTwips, keepTogether })
+  const rest = e.notes.length > 0 ? [fieldLabel('Notes'), ...e.notes.map((n) => new Paragraph(indented(n)))] : []
+  const keepTogether = keepEntryTogether(await eventEntryHeight(e, TEXT_WIDTH_PT), PAGE.textHeightPt)
+  return entryParagraphs(options, keepTogether, rest)
 }
 
 async function timelineBody(timeline: NonNullable<StoryBible['timeline']>): Promise<FileChild[]> {
   const out: FileChild[] = []
   for (const [i, group] of timeline.entries()) {
     out.push(groupHeading(group.heading, eventCount(group), timelineGroupAnchor(i), i === 0))
-    for (const e of group.events) out.push(...(await eventCard(e)))
+    for (const [j, e] of group.events.entries()) out.push(...(await eventEntry(e, j === 0)))
   }
   return out
 }
@@ -360,12 +554,10 @@ function contentsParagraphs(bible: StoryBible): Paragraph[] {
 }
 
 export async function renderStoryBibleToDocx(bible: StoryBible): Promise<Buffer> {
-  // The card estimates measure text with the PDF's fonts, so both formats
-  // keep the same cards together.
+  // The entry estimates measure text with the PDF's fonts, so both formats
+  // keep the same entries together.
   registerPdfFonts(SERVER_FONTS_DIR)
-  const sections: ISectionOptions[] = [
-    { properties: { page: PAGE_PROPS }, children: titlePageParagraphs(bible.title, 'Story Bible', PAGE.textHeightPt, bible.author) },
-  ]
+  const sections: ISectionOptions[] = [coverSection(bible)]
 
   const bodies: [StoryBibleSection, () => FileChild[] | Promise<FileChild[]>][] = []
   if (bible.characters) bodies.push(['characters', () => charactersBody(bible.characters!)])

@@ -123,9 +123,14 @@ function pageFor(style: ManuscriptStyle, pageSize: ManuscriptPageSize): DocxPage
 
 // Where the blocks are laid out: the page's text width (px), and whether the
 // Book style's body text applies.
+// style: a paragraph style for body paragraphs and images (the story bible's
+// place text); indentLeft: twips added to every block's left indent (the story
+// bible's entries, indented past their swatch). Both unset for manuscripts.
 export interface DocxLayout {
   textWidth: number
   book: boolean
+  style?: string
+  indentLeft?: number
 }
 
 // The story bible (and anything else not choosing) lays out Standard A4.
@@ -245,7 +250,8 @@ function paragraphAlignment(block: Extract<BlockNode, { type: 'paragraph' }>, bo
 
 async function blockToParagraphs(block: BlockNode, ctx: DocxContext): Promise<Paragraph[]> {
   const { layout } = ctx
-  const indent = ctx.indentLevel > 0 ? { left: 360 * ctx.indentLevel } : undefined
+  const left = 360 * ctx.indentLevel + (layout.indentLeft ?? 0)
+  const indent = left > 0 ? { left } : undefined
 
   switch (block.type) {
     case 'heading':
@@ -264,6 +270,7 @@ async function blockToParagraphs(block: BlockNode, ctx: DocxContext): Promise<Pa
       const firstLine = layout.book && !isBlank(block) && hasBookIndent(block, ctx.prev) ? BOOK_INDENT : undefined
       return [
         new Paragraph({
+          style: layout.style,
           alignment: paragraphAlignment(block, layout.book),
           indent: firstLine ? { ...indent, firstLine } : indent,
           spacing: layout.book ? BOOK_SPACING : undefined,
@@ -309,7 +316,9 @@ async function blockToParagraphs(block: BlockNode, ctx: DocxContext): Promise<Pa
       const height = Math.round(width * (image.height / image.width))
       return [
         new Paragraph({
+          style: layout.style,
           alignment: block.align ? ALIGN_MAP[block.align] : AlignmentType.CENTER,
+          indent,
           children: [
             new ImageRun({
               type: image.type,
@@ -350,7 +359,13 @@ export async function blocksToParagraphs(blocks: BlockNode[], layout: DocxLayout
         out.push(...(await blockToParagraphs(next, { layout, indentLevel: 0, leadingImage: run, prev: blocks[j - 1] })))
         i = j
       } else {
-        out.push(new Paragraph({ children: [run] }))
+        out.push(
+          new Paragraph({
+            style: layout.style,
+            indent: layout.indentLeft ? { left: layout.indentLeft } : undefined,
+            children: [run],
+          })
+        )
       }
       continue
     }
