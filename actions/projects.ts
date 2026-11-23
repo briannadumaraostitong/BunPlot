@@ -3,7 +3,7 @@
 import { createClient } from '@/lib/supabase/server'
 import { revalidatePath } from 'next/cache'
 import { attachmentPathFromSignedUrl, listFilesRecursive, removeInBatches } from '@/lib/storage/attachments'
-import { EXPORTS_FOLDER } from '@/lib/storage/exports'
+import { EXPORTS_BUCKET, EXPORTS_FOLDER } from '@/lib/storage/exports'
 import { forEachWithConcurrency } from '@/lib/export/concurrency'
 import type { AppMode, Project } from '@/types/database'
 
@@ -438,9 +438,9 @@ async function unshareDuplicatedPanelImages(
 }
 
 // Every top-level attachments folder that holds a project's files, each laid
-// out as {folder}/{projectId}/…. exports holds finished files only until
-// they're downloaded (lib/storage/exports).
-const PROJECT_FILE_FOLDERS = ['projects', 'places', 'outlines', 'panels', 'chapters', EXPORTS_FOLDER] as const
+// out as {folder}/{projectId}/…. Finished exports are in their own bucket
+// (lib/storage/exports), cleared separately.
+const PROJECT_FILE_FOLDERS = ['projects', 'places', 'outlines', 'panels', 'chapters'] as const
 
 // Attachment paths the caller's *other* projects still use: covers, place
 // covers and outline images. Old duplicates and failed copies can still
@@ -478,10 +478,19 @@ async function pathsUsedByOtherProjects(
 }
 
 // Removes a project's files from every folder, except any another project
-// still uses. Must run while the project row still exists: the attachments
-// policies only allow listing and deleting a project's files then. Storage
-// errors are logged, never returned.
+// still uses, and any exports not yet downloaded. Must run while the project
+// row still exists: the storage policies only allow listing and deleting a
+// project's files then. Storage errors are logged, never returned.
 async function removeProjectFiles(supabase: Awaited<ReturnType<typeof createClient>>, projectId: string) {
+  // Exports belong to this project alone, so no reference check.
+  const exportsPrefix = `${EXPORTS_FOLDER}/${projectId}`
+  try {
+    const exportPaths = await listFilesRecursive(supabase, exportsPrefix, EXPORTS_BUCKET)
+    await removeInBatches(supabase, exportPaths, 'Project export', EXPORTS_BUCKET)
+  } catch (err) {
+    console.error('Project file listing error:', `${EXPORTS_BUCKET}/${exportsPrefix}`, err)
+  }
+
   const paths: string[] = []
   for (const folder of PROJECT_FILE_FOLDERS) {
     const prefix = `${folder}/${projectId}`

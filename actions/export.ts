@@ -13,7 +13,7 @@ import { buildStoryBible, STORY_BIBLE_SECTIONS, type StoryBibleSection } from '@
 import { renderStoryBibleToDocx } from '@/lib/export/storyBibleToDocx'
 import { renderStoryBibleToPdf } from '@/lib/export/storyBibleToPdf'
 import { DOWNLOAD_CONCURRENCY, forEachWithConcurrency } from '@/lib/export/concurrency'
-import { isExportPath, storeExport } from '@/lib/storage/exports'
+import { EXPORTS_BUCKET, isExportPath, storeExport } from '@/lib/storage/exports'
 import type {
   Chapter,
   Character,
@@ -314,7 +314,7 @@ export async function exportStoryBible(
 export async function discardExport(projectId: string, path: string) {
   if (!isExportPath(projectId, path)) return { error: 'Not an export' }
   const supabase = await createClient()
-  const { error } = await supabase.storage.from('attachments').remove([path])
+  const { error } = await supabase.storage.from(EXPORTS_BUCKET).remove([path])
   if (error) return { error: error.message }
   return { success: true }
 }

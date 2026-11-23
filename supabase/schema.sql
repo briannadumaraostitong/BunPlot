@@ -977,9 +977,9 @@ GRANT  EXECUTE ON FUNCTION search_entities(text, uuid) TO authenticated;
 -- The private 'attachments' bucket itself is created and configured in the
 -- Supabase dashboard; only its policies on storage.objects are recorded here.
 -- Every path is <folder>/<project_id>/... (projects/, places/, outlines/,
--- panels/, exports/ for finished export files until they're downloaded, and
--- chapters/, which nothing uploads to any more but chapter deletes still
--- clean up), so access is scoped to projects the caller owns. The
+-- panels/, and chapters/, which nothing uploads to any more but chapter
+-- deletes still clean up), so access is scoped to projects the caller owns.
+-- Finished exports have their own bucket, below. The
 -- project id is compared as text, so a malformed path just doesn't match
 -- (storage.foldername returns NULL for a missing segment) rather than making
 -- a ::uuid cast throw.
@@ -1019,6 +1019,52 @@ CREATE POLICY "Project owners can delete attachments"
   ON storage.objects FOR DELETE TO authenticated
   USING (
     bucket_id = 'attachments'
+    AND EXISTS (
+      SELECT 1 FROM public.projects p
+      WHERE p.id::text = (storage.foldername(objects.name))[2]
+        AND p.owner_id = (SELECT auth.uid())
+    )
+  );
+
+-- EXPORTS BUCKET
+-- Finished story bibles and manuscripts, kept only until the browser has
+-- downloaded them (lib/storage/exports). Private, and limited to PDF and DOCX
+-- at 50 MB (the free plan's maximum; Storage → Settings' global limit must be
+-- at least that), so the attachments bucket can be limited to images. Created
+-- here rather than in the dashboard so this file records it. The export
+-- actions write as the signed-in user, so these policies mirror the
+-- attachments ones, on the same exports/<project_id>/<file> layout; still no
+-- UPDATE policy.
+INSERT INTO storage.buckets (id, name, public, file_size_limit, allowed_mime_types)
+VALUES ('exports', 'exports', false, 52428800,
+  ARRAY['application/pdf', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document']);
+
+CREATE POLICY "Project owners can read exports"
+  ON storage.objects FOR SELECT TO authenticated
+  USING (
+    bucket_id = 'exports'
+    AND EXISTS (
+      SELECT 1 FROM public.projects p
+      WHERE p.id::text = (storage.foldername(objects.name))[2]
+        AND p.owner_id = (SELECT auth.uid())
+    )
+  );
+
+CREATE POLICY "Project owners can upload exports"
+  ON storage.objects FOR INSERT TO authenticated
+  WITH CHECK (
+    bucket_id = 'exports'
+    AND EXISTS (
+      SELECT 1 FROM public.projects p
+      WHERE p.id::text = (storage.foldername(objects.name))[2]
+        AND p.owner_id = (SELECT auth.uid())
+    )
+  );
+
+CREATE POLICY "Project owners can delete exports"
+  ON storage.objects FOR DELETE TO authenticated
+  USING (
+    bucket_id = 'exports'
     AND EXISTS (
       SELECT 1 FROM public.projects p
       WHERE p.id::text = (storage.foldername(objects.name))[2]
