@@ -1,0 +1,53 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="color-scheme" content="light">
+    <meta name="supported-color-schemes" content="light">
+    <title>Your BunPlot login link</title>
+  </head>
+  <body style="margin:0;padding:0;background:#FCF7DF;">
+    <div style="display:none;max-height:0;overflow:hidden;opacity:0;">Your link to log in to BunPlot.</div>
+    <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="background:#FCF7DF;">
+      <tr>
+        <td align="center" style="padding:40px 16px;">
+          <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="max-width:520px;">
+            <tr>
+              <td style="padding:0 4px 24px;">
+                <table role="presentation" cellpadding="0" cellspacing="0" border="0">
+                  <tr>
+                    <td style="vertical-align:middle;padding-right:10px;">
+                      <img src="{{ .SiteURL }}/brand/bunplot-email-logo.png" width="36" height="36" alt="" style="display:block;border:0;">
+                    </td>
+                    <td style="vertical-align:middle;font-family:Figtree, -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif;font-size:20px;font-weight:800;letter-spacing:-0.5px;color:#3E3630;">BunPlot</td>
+                  </tr>
+                </table>
+              </td>
+            </tr>
+            <tr>
+              <td style="background:#FFFDF3;border:1px solid #E6DCC4;border-radius:10px;padding:32px;">
+                <h1 style="margin:0 0 12px;font-family:Figtree, -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif;font-size:24px;font-weight:800;line-height:1.25;letter-spacing:-0.5px;color:#3E3630;">Log in to BunPlot</h1>
+              <p style="margin:0 0 16px;font-family:Figtree, -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif;font-size:15px;line-height:1.6;color:#5A4F46;">Use the button below to log in as <strong style="color:#3E3630;">{{ .Email }}</strong>. The link works once and expires in an hour.</p>
+              <table role="presentation" cellpadding="0" cellspacing="0" border="0" style="margin:8px 0 24px;">
+                <tr>
+                  <td style="border-radius:8px;background:#3E3630;">
+                    <a href="{{ .RedirectTo }}?token_hash={{ .TokenHash }}&amp;type=email&amp;next=/dashboard" style="display:inline-block;padding:13px 24px;font-family:Figtree, -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif;font-size:15px;font-weight:700;line-height:1;color:#FCF7DF;text-decoration:none;border-radius:8px;">Log in</a>
+                  </td>
+                </tr>
+              </table>
+              <p style="margin:0 0 0px;font-family:Figtree, -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif;font-size:13px;line-height:1.6;color:#6E6255;">If the button doesn't work, paste this link into your browser:<br><a href="{{ .RedirectTo }}?token_hash={{ .TokenHash }}&amp;type=email&amp;next=/dashboard" style="color:#4A6478;text-decoration:underline;word-break:break-all;">{{ .RedirectTo }}?token_hash={{ .TokenHash }}&amp;type=email&amp;next=/dashboard</a></p>
+              </td>
+            </tr>
+            <tr>
+              <td style="padding:20px 4px 0;">
+                <p style="margin:0 0 8px;font-family:Figtree, -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif;font-size:13px;line-height:1.6;color:#6E6255;">If you didn't ask for this, you can ignore this email.</p>
+                <p style="margin:0 0 0px;font-family:Figtree, -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif;font-size:13px;line-height:1.6;color:#6E6255;">BunPlot, a planning workspace for novelists.</p>
+              </td>
+            </tr>
+          </table>
+        </td>
+      </tr>
+    </table>
+  </body>
+</html>

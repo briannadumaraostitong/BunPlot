@@ -9,6 +9,7 @@ import { PasswordInput } from '@/components/ui/password-input'
 import { Label } from '@/components/ui/label'
 import { Loader2, CheckCircle2 } from 'lucide-react'
 import { AuthShell, AUTH_LABEL, useAuthLook } from '@/components/auth/AuthShell'
+import { emailLinkReturn } from '@/lib/emailLinks'
 
 export default function SignupPage() {
   const supabase = createClient()
@@ -35,7 +36,8 @@ export default function SignupPage() {
       password,
       options: {
         data: { full_name: displayName },
-        emailRedirectTo: `${location.origin}/api/auth/callback`,
+        // The confirmation email's link is built on this (lib/emailLinks.ts).
+        emailRedirectTo: emailLinkReturn(location.origin),
       },
     })
 
