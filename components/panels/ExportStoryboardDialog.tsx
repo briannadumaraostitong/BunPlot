@@ -111,7 +111,12 @@ export function ExportStoryboardDialog({ projectId, chapters, onClose }: ExportS
   }
 
   // Shared by Export and Preview.
-  async function buildPdf(projectTitle: string, storyboard: StoryboardChapter[]): Promise<PdfBuild> {
+  // cover: the project's description and the author, for the PDF's cover.
+  async function buildPdf(
+    projectTitle: string,
+    cover: { projectDescription: string | null; author: string | null },
+    storyboard: StoryboardChapter[]
+  ): Promise<PdfBuild> {
     const total = storyboard.reduce((sum, ch) => sum + ch.panels.length, 0)
     if (total === 0) return { notice: 'None of the selected chapters have any panels yet.' }
 
@@ -125,12 +130,22 @@ export function ExportStoryboardDialog({ projectId, chapters, onClose }: ExportS
     await new Promise((resolve) => requestAnimationFrame(() => setTimeout(resolve, 0)))
     // Loaded only now, so react-pdf never lands in the Panels tab bundle.
     const { renderStoryboardPdf } = await import('@/lib/export/storyboardToPdf')
-    const blob = await renderStoryboardPdf({ projectTitle, chapters: storyboard, images })
+    const blob = await renderStoryboardPdf({
+      projectTitle,
+      projectDescription: cover.projectDescription,
+      author: cover.author,
+      chapters: storyboard,
+      images,
+    })
     return { blob, filename: `${fileBase(projectTitle)}.pdf`, problems: imageProblems(failed, unsupported) }
   }
 
-  async function exportPdf(projectTitle: string, storyboard: StoryboardChapter[]) {
-    const built = await buildPdf(projectTitle, storyboard)
+  async function exportPdf(
+    projectTitle: string,
+    cover: { projectDescription: string | null; author: string | null },
+    storyboard: StoryboardChapter[]
+  ) {
+    const built = await buildPdf(projectTitle, cover, storyboard)
     if ('notice' in built) {
       setNotice(built.notice)
       return
@@ -148,7 +163,7 @@ export function ExportStoryboardDialog({ projectId, chapters, onClose }: ExportS
     const previewError = await preview.build(async () => {
       const result = await settle(getStoryboardPanels(projectId, [...selected]))
       if ('error' in result) return result
-      const built = await buildPdf(result.projectTitle, result.chapters)
+      const built = await buildPdf(result.projectTitle, result, result.chapters)
       if ('notice' in built) {
         setNotice(built.notice)
         return null
@@ -182,7 +197,7 @@ export function ExportStoryboardDialog({ projectId, chapters, onClose }: ExportS
         return
       }
       if (format === 'zip') await exportZip(result.projectTitle, result.chapters)
-      else await exportPdf(result.projectTitle, result.chapters)
+      else await exportPdf(result.projectTitle, result, result.chapters)
     } catch (err) {
       console.error('Storyboard export error:', err)
       setError(`Failed to build the ${format.toUpperCase()}`)

@@ -343,7 +343,11 @@ export interface StoryboardChapter {
   panels: StoryboardPanel[]
 }
 
-export type StoryboardResult = { projectTitle: string; chapters: StoryboardChapter[] } | { error: string }
+// projectDescription and author (profileAuthor): for the PDF's cover, as on
+// the story bible's, when there are any.
+export type StoryboardResult =
+  | { projectTitle: string; projectDescription: string | null; author: string | null; chapters: StoryboardChapter[] }
+  | { error: string }
 
 // Data only — both files are built in the browser (lib/export/storyboardZip.ts
 // and storyboardToPdf.tsx), which fetch each image straight from Storage. Routing the image bytes
@@ -353,8 +357,9 @@ export async function getStoryboardPanels(projectId: string, chapterIds: string[
   if (chapterIds.length === 0) return { error: 'No chapters selected' }
 
   const supabase = await createClient()
-  const [projectRes, chaptersRes, panelsRes] = await Promise.all([
-    supabase.from('projects').select('title').eq('id', projectId).single(),
+  const [author, projectRes, chaptersRes, panelsRes] = await Promise.all([
+    profileAuthor(supabase),
+    supabase.from('projects').select('title, description').eq('id', projectId).single(),
     supabase
       .from('chapters')
       .select('id, title, position')
@@ -388,8 +393,11 @@ export async function getStoryboardPanels(projectId: string, chapterIds: string[
     )
   }
 
+  const project = projectRes.data as { title: string; description: string | null } | null
   return {
-    projectTitle: (projectRes.data as { title: string } | null)?.title ?? 'Untitled',
+    projectTitle: project?.title ?? 'Untitled',
+    projectDescription: project?.description?.trim() || null,
+    author,
     chapters: chapters.map((ch) => ({
       id: ch.id,
       title: ch.title,
