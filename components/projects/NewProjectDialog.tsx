@@ -19,7 +19,7 @@ import { createClient } from '@/lib/supabase/client'
 import { createProject, updateProject } from '@/actions/projects'
 import { notifyError, reportResult, settle } from '@/lib/notify'
 import { cn } from '@/lib/utils'
-import { ACCEPTED_IMAGE_ACCEPT, isAcceptedImage } from '@/lib/imageTypes'
+import { ACCEPTED_IMAGE_ACCEPT, checkImageUpload, imageFileName } from '@/lib/imageTypes'
 import { pickExampleTitle } from '@/lib/exampleProjectTitles'
 import { useTypeIn } from '@/hooks/useTypeIn'
 
@@ -88,8 +88,9 @@ export function NewProjectDialog({ trigger }: NewProjectDialogProps) {
   }, [coverPreviewUrl])
 
   function handleCoverPick(file: File) {
-    if (!isAcceptedImage(file)) {
-      notifyError("Couldn't add that file. Use a JPG, PNG, GIF or WebP image.")
+    const problem = checkImageUpload(file)
+    if (problem) {
+      notifyError(`Couldn't add that file. ${problem}`)
       return
     }
     setCoverFile(file)
@@ -119,8 +120,7 @@ export function NewProjectDialog({ trigger }: NewProjectDialogProps) {
     // it; a cover can always be added later from the project card.
     if (coverFile) {
       const supabase = createClient()
-      const safeName = coverFile.name.replace(/\s+/g, '-')
-      const path = `projects/${result.id}/${Date.now()}-${safeName}`
+      const path = `projects/${result.id}/${imageFileName(coverFile.type)}`
       try {
         const { error: uploadErr } = await supabase.storage.from('attachments').upload(path, coverFile)
         if (uploadErr) throw uploadErr

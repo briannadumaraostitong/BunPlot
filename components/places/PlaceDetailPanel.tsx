@@ -18,7 +18,7 @@ import { updatePlace } from '@/actions/places'
 import { savePlaceFields } from './pendingPlaceSaves'
 import { dismissError, reportResult, settle } from '@/lib/notify'
 import { PLACE_TYPES } from '@/lib/places.config'
-import { ACCEPTED_IMAGE_ACCEPT, isAcceptedImage } from '@/lib/imageTypes'
+import { ACCEPTED_IMAGE_ACCEPT, checkImageUpload, imageFileName } from '@/lib/imageTypes'
 import { PlaceRichTextEditor } from './PlaceRichTextEditor'
 import { PhoneSheet, blurFocused } from '@/components/ui/phone-sheet'
 import { usePhoneSurface } from '@/hooks/usePhoneSurface'
@@ -312,15 +312,15 @@ function CoverImageField({
 
   async function uploadFile(file: File) {
     setError(null)
-    if (!isAcceptedImage(file)) {
-      setError('Use a JPG, PNG, GIF or WebP image.')
+    const problem = checkImageUpload(file)
+    if (problem) {
+      setError(problem)
       return
     }
     setUploading(true)
     try {
       const supabase = createClient()
-      const safeName = file.name.replace(/\s+/g, '-')
-      const path = `places/${place.project_id}/${place.id}/${Date.now()}-${safeName}`
+      const path = `places/${place.project_id}/${place.id}/${imageFileName(file.type)}`
 
       const { error: uploadErr } = await supabase.storage.from('attachments').upload(path, file)
       if (uploadErr) throw uploadErr

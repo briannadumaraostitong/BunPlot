@@ -974,8 +974,17 @@ REVOKE EXECUTE ON FUNCTION search_entities(text, uuid) FROM PUBLIC, anon;
 GRANT  EXECUTE ON FUNCTION search_entities(text, uuid) TO authenticated;
 
 -- STORAGE POLICIES
--- The private 'attachments' bucket itself is created and configured in the
--- Supabase dashboard; only its policies on storage.objects are recorded here.
+-- The private 'attachments' bucket itself was created in the Supabase
+-- dashboard; its limits and its policies on storage.objects are recorded
+-- here. It holds images only (covers, place and outline images, storyboard
+-- panels and sketches), at most 10 MB each, matching the app's own check
+-- (lib/imageTypes.ts). Uploads get random file names (<uuid>.<ext>), so no
+-- user-chosen file name ends up in a path.
+UPDATE storage.buckets
+SET file_size_limit = 10485760,
+    allowed_mime_types = ARRAY['image/jpeg', 'image/png', 'image/gif', 'image/webp']
+WHERE id = 'attachments';
+
 -- Every path is <folder>/<project_id>/... (projects/, places/, outlines/,
 -- panels/, and chapters/, which nothing uploads to any more but chapter
 -- deletes still clean up), so access is scoped to projects the caller owns.

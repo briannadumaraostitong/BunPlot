@@ -32,7 +32,7 @@ import { Button } from '@/components/ui/button'
 import { Textarea } from '@/components/ui/textarea'
 import { createClient } from '@/lib/supabase/client'
 import { reportResult, settle } from '@/lib/notify'
-import { ACCEPTED_IMAGE_ACCEPT, isAcceptedImage } from '@/lib/imageTypes'
+import { ACCEPTED_IMAGE_ACCEPT, checkImageUpload, imageFileName } from '@/lib/imageTypes'
 import {
   deleteProject,
   archiveProject,
@@ -390,15 +390,15 @@ function ProjectCoverImage({
 
   async function uploadFile(file: File) {
     setError(null)
-    if (!isAcceptedImage(file)) {
-      setError('Use a JPG, PNG, GIF or WebP image.')
+    const problem = checkImageUpload(file)
+    if (problem) {
+      setError(problem)
       return
     }
     setUploading(true)
     try {
       const supabase = createClient()
-      const safeName = file.name.replace(/\s+/g, '-')
-      const path = `projects/${projectId}/${Date.now()}-${safeName}`
+      const path = `projects/${projectId}/${imageFileName(file.type)}`
 
       const { error: uploadErr } = await supabase.storage.from('attachments').upload(path, file)
       if (uploadErr) throw uploadErr

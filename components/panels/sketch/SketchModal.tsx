@@ -5,6 +5,7 @@ import { Loader2 } from 'lucide-react'
 import { Dialog, DialogContent, DialogTitle, DialogDescription } from '@/components/ui/dialog'
 import { Button } from '@/components/ui/button'
 import { createClient } from '@/lib/supabase/client'
+import { checkImageUpload, imageFileName } from '@/lib/imageTypes'
 import { useIsBelowMd } from '@/hooks/useIsBelowMd'
 import { SketchToolbar } from './SketchToolbar'
 import { SketchCanvas, BASE_DISPLAY_WIDTH, type SketchCanvasHandle } from './SketchCanvas'
@@ -268,9 +269,14 @@ export function SketchModal({ panel, projectId, chapterId, open, onClose, onSave
     try {
       const blob = await canvasRef.current?.exportBlob()
       if (!blob) throw new Error('Nothing to export')
+      // A PNG from the canvas, so only the size can fail the check.
+      if (checkImageUpload(blob)) {
+        setError('This sketch is over 10 MB, too large to save.')
+        return
+      }
 
       const supabase = createClient()
-      const path = `panels/${projectId}/${chapterId}/${panel.id}/${Date.now()}-sketch.png`
+      const path = `panels/${projectId}/${chapterId}/${panel.id}/${imageFileName(blob.type)}`
 
       const { error: uploadErr } = await supabase.storage.from('attachments').upload(path, blob)
       if (uploadErr) throw uploadErr

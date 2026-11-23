@@ -7,6 +7,7 @@ import { GripVertical, Trash2, Upload, Pencil, Loader2 } from 'lucide-react'
 import { createClient } from '@/lib/supabase/client'
 import { cn } from '@/lib/utils'
 import { EDITABLE_TEXT_CLASS } from '@/lib/editableText'
+import { ACCEPTED_IMAGE_ACCEPT, checkImageUpload, imageFileName } from '@/lib/imageTypes'
 import type { PanelWithCover, ActionResult } from '@/actions/panels'
 
 // Matches SketchModal's own TTL. COVER_SIGNED_URL_TTL can't be imported from
@@ -60,11 +61,15 @@ export function PanelCard({
 
   async function uploadFile(file: File) {
     setError(null)
+    const problem = checkImageUpload(file)
+    if (problem) {
+      setError(problem)
+      return
+    }
     setUploading(true)
     try {
       const supabase = createClient()
-      const safeName = file.name.replace(/\s+/g, '-')
-      const path = `panels/${panel.project_id}/${panel.chapter_id}/${panel.id}/${Date.now()}-${safeName}`
+      const path = `panels/${panel.project_id}/${panel.chapter_id}/${panel.id}/${imageFileName(file.type)}`
 
       const { error: uploadErr } = await supabase.storage.from('attachments').upload(path, file)
       if (uploadErr) throw uploadErr
@@ -165,7 +170,7 @@ export function PanelCard({
         <input
           ref={fileInputRef}
           type="file"
-          accept="image/*"
+          accept={ACCEPTED_IMAGE_ACCEPT}
           className="hidden"
           onChange={(e) => {
             const file = e.target.files?.[0]

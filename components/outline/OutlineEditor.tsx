@@ -50,7 +50,7 @@ import { LoadError } from '@/components/ui/load-error'
 import { createClient } from '@/lib/supabase/client'
 import { getEditorJson } from '@/lib/editorJson'
 import { dismissError, notifyError, reportResult, settle } from '@/lib/notify'
-import { ACCEPTED_IMAGE_ACCEPT, isAcceptedImage } from '@/lib/imageTypes'
+import { ACCEPTED_IMAGE_ACCEPT, checkImageUpload, imageFileName } from '@/lib/imageTypes'
 import { clearBackup, pruneBackups } from '@/lib/editorBackup'
 import { isSigningOut, registerFlusher, trackSave } from '@/lib/saveRegistry'
 import { useEditorBackup } from '@/hooks/useEditorBackup'
@@ -601,16 +601,16 @@ function OutlineDocumentEditor({
     if (!file || !editor) return
 
     setImageError(null)
-    if (!isAcceptedImage(file)) {
-      notifyError("Couldn't add that file. Use a JPG, PNG, GIF or WebP image.")
+    const problem = checkImageUpload(file)
+    if (problem) {
+      notifyError(`Couldn't add that file. ${problem}`)
       return
     }
     setUploadingImage(true)
 
     try {
       const supabase = createClient()
-      const safeName = file.name.replace(/\s+/g, '-')
-      const path = `outlines/${outline.project_id}/${Date.now()}-${safeName}`
+      const path = `outlines/${outline.project_id}/${imageFileName(file.type)}`
 
       const { error: uploadErr } = await supabase.storage.from('attachments').upload(path, file)
       if (uploadErr) throw uploadErr
