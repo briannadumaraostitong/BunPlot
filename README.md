@@ -84,3 +84,10 @@ You'll need Node.js 20.9 or later, [pnpm](https://pnpm.io), and a Supabase proje
 ## Credits
 
 The fonts and the Cyberpunk theme's frame art are third-party assets used under their licenses; [`ASSETS.md`](ASSETS.md) lists each one with its author and license.
+
+## License
+
+The code is released under the [MIT License](LICENSE), with two exceptions:
+
+- **The BunPlot name and logo** (the bunny in sunglasses, in `public/brand/`, `app/icon.*`, `app/apple-icon.tsx` and `design/logo-final/`) are not covered by the MIT License. All rights reserved.
+- **Third-party assets** keep their own licenses, listed in [`ASSETS.md`](ASSETS.md).
