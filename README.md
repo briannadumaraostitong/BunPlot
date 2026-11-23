@@ -71,7 +71,10 @@ You'll need Node.js 20.9 or later, [pnpm](https://pnpm.io), and a Supabase proje
    ```bash
    NEXT_PUBLIC_SUPABASE_URL=
    NEXT_PUBLIC_SUPABASE_ANON_KEY=
+   NEXT_PUBLIC_TURNSTILE_SITE_KEY=
    ```
+
+   The Turnstile key is optional. Leave it empty unless you turn on CAPTCHA protection in Supabase (Authentication → Attack Protection, with Cloudflare Turnstile); once that's on, the forms need the matching site key.
 
 3. Set up the database: create a private Storage bucket named `attachments`, then run [`supabase/schema.sql`](supabase/schema.sql) in the Supabase SQL editor. It creates the tables, row-level security, functions, the `exports` bucket and the storage policies.
 

@@ -8,7 +8,8 @@ import { Input } from '@/components/ui/input'
 import { PasswordInput } from '@/components/ui/password-input'
 import { Label } from '@/components/ui/label'
 import { Loader2, CheckCircle2 } from 'lucide-react'
-import { AuthShell, AUTH_LABEL, useAuthLook } from '@/components/auth/AuthShell'
+import { AuthShell, AUTH_LABEL, useAuthLook, useAuthTurnstileTheme } from '@/components/auth/AuthShell'
+import { isCaptchaError, TURNSTILE_FAILED, TURNSTILE_WAITING, useTurnstile } from '@/components/auth/Turnstile'
 import { emailLinkReturn } from '@/lib/emailLinks'
 import { PASSWORD_HINT, passwordProblem } from '@/lib/passwords'
 
@@ -22,12 +23,17 @@ export default function SignupPage() {
   const [error, setError] = useState<string | null>(null)
   const [loading, setLoading] = useState(false)
   const [done, setDone] = useState(false)
+  const turnstile = useTurnstile({ theme: useAuthTurnstileTheme(), action: 'signup' })
 
   async function handleSignup(e: React.FormEvent) {
     e.preventDefault()
     const problem = passwordProblem(password)
     if (problem) {
       setError(problem)
+      return
+    }
+    if (!turnstile.ready) {
+      setError(TURNSTILE_WAITING)
       return
     }
     setLoading(true)
@@ -40,11 +46,14 @@ export default function SignupPage() {
         data: { full_name: displayName },
         // The confirmation email's link is built on this (lib/emailLinks.ts).
         emailRedirectTo: emailLinkReturn(location.origin),
+        captchaToken: turnstile.token,
       },
     })
+    // A token works once: get a fresh one for the next attempt.
+    turnstile.reset()
 
     if (error) {
-      setError(error.message)
+      setError(isCaptchaError(error) ? TURNSTILE_FAILED : error.message)
       setLoading(false)
       return
     }
@@ -131,6 +140,8 @@ export default function SignupPage() {
             className="bg-background dark:bg-background"
           />
         </div>
+
+        {turnstile.widget}
 
         {error && (
           <p className="text-sm text-destructive">{error}</p>

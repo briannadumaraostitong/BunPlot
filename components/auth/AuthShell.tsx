@@ -4,6 +4,7 @@ import { useAuthTheme, type AuthTheme } from './AuthTheme'
 import { ClassicAuthShell } from './ClassicAuthShell'
 import { CyberpunkAuthShell } from './CyberpunkAuthShell'
 import { ManuscriptAuthShell } from './ManuscriptAuthShell'
+import type { TurnstileTheme } from './Turnstile'
 
 export type AuthShellProps = {
   eyebrow: string
@@ -65,3 +66,15 @@ const LOOKS: Record<AuthTheme, { link: string; button: string; submit: string }>
 }
 
 export const useAuthLook = () => LOOKS[useAuthTheme()]
+
+// The Turnstile widget's theme for the look (components/auth/Turnstile.tsx):
+// the device-following Classic follows the device too.
+const TURNSTILE_THEMES: Record<AuthTheme, TurnstileTheme> = {
+  classic: 'auto',
+  'classic-light': 'light',
+  'classic-dark': 'dark',
+  cyberpunk: 'dark',
+  manuscript: 'light',
+}
+
+export const useAuthTurnstileTheme = () => TURNSTILE_THEMES[useAuthTheme()]

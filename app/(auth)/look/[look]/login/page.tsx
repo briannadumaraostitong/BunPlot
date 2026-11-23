@@ -9,7 +9,8 @@ import { Input } from '@/components/ui/input'
 import { PasswordInput } from '@/components/ui/password-input'
 import { Label } from '@/components/ui/label'
 import { Loader2 } from 'lucide-react'
-import { AuthShell, AUTH_LABEL, useAuthLook } from '@/components/auth/AuthShell'
+import { AuthShell, AUTH_LABEL, useAuthLook, useAuthTurnstileTheme } from '@/components/auth/AuthShell'
+import { isCaptchaError, TURNSTILE_FAILED, TURNSTILE_WAITING, useTurnstile } from '@/components/auth/Turnstile'
 import { useTheme } from '@/components/theme/ThemeProvider'
 import { normalizeThemeSetting } from '@/lib/themes'
 import { safeRedirectPath } from '@/lib/safeRedirect'
@@ -25,16 +26,27 @@ function LoginForm() {
   const [password, setPassword] = useState('')
   const [error, setError] = useState<string | null>(null)
   const [loading, setLoading] = useState(false)
+  const turnstile = useTurnstile({ theme: useAuthTurnstileTheme(), action: 'login' })
 
   async function handleLogin(e: React.FormEvent) {
     e.preventDefault()
+    if (!turnstile.ready) {
+      setError(TURNSTILE_WAITING)
+      return
+    }
     setLoading(true)
     setError(null)
 
-    const { data, error } = await supabase.auth.signInWithPassword({ email, password })
+    const { data, error } = await supabase.auth.signInWithPassword({
+      email,
+      password,
+      options: { captchaToken: turnstile.token },
+    })
+    // A token works once: get a fresh one for the next attempt.
+    turnstile.reset()
 
     if (error) {
-      setError(error.message)
+      setError(isCaptchaError(error) ? TURNSTILE_FAILED : error.message)
       setLoading(false)
       return
     }
@@ -91,6 +103,8 @@ function LoginForm() {
           className="bg-background dark:bg-background"
         />
       </div>
+
+      {turnstile.widget}
 
       {error && <p className="text-sm text-destructive">{error}</p>}
 

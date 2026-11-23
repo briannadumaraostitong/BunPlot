@@ -7,7 +7,8 @@ import { createClient } from '@/lib/supabase/client'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
-import { AuthShell, AUTH_LABEL, useAuthLook } from '@/components/auth/AuthShell'
+import { AuthShell, AUTH_LABEL, useAuthLook, useAuthTurnstileTheme } from '@/components/auth/AuthShell'
+import { isCaptchaError, TURNSTILE_FAILED, TURNSTILE_WAITING, useTurnstile } from '@/components/auth/Turnstile'
 import { emailLinkReturn } from '@/lib/emailLinks'
 
 // Asks Supabase to email a password reset link (supabase/email-templates/
@@ -30,6 +31,8 @@ export default function ForgotPasswordPage() {
   const [error, setError] = useState<string | null>(null)
   const [loading, setLoading] = useState(false)
   const [wait, setWait] = useState(0)
+  // One hook for both views: the widget moves from the form to "Send again".
+  const turnstile = useTurnstile({ theme: useAuthTurnstileTheme(), action: 'reset' })
 
   useEffect(() => {
     if (wait <= 0) return
@@ -38,19 +41,29 @@ export default function ForgotPasswordPage() {
   }, [wait])
 
   async function send(address: string) {
+    if (!turnstile.ready) {
+      setError(TURNSTILE_WAITING)
+      return
+    }
     setLoading(true)
     setError(null)
     const { error } = await supabase.auth.resetPasswordForEmail(address, {
       redirectTo: emailLinkReturn(location.origin),
+      captchaToken: turnstile.token,
     })
+    // A token works once: get a fresh one for the next attempt.
+    turnstile.reset()
     setLoading(false)
     if (error) {
       // Supabase's own limit (another request for this address too soon, or
-      // too many emails overall): the one error worth telling apart.
+      // too many emails overall) and the browser check are the errors worth
+      // telling apart.
       setError(
-        error.status === 429
-          ? 'Too many requests. Wait a minute, then try again.'
-          : "Couldn't send the email. Try again in a minute."
+        isCaptchaError(error)
+          ? TURNSTILE_FAILED
+          : error.status === 429
+            ? 'Too many requests. Wait a minute, then try again.'
+            : "Couldn't send the email. Try again in a minute."
       )
       return
     }
@@ -81,6 +94,7 @@ export default function ForgotPasswordPage() {
             link to reset the password. The link works once and expires in an hour. If it hasn&apos;t arrived in a few
             minutes, check your spam folder.
           </p>
+          {turnstile.widget}
           {error && (
             <p role="alert" className="text-sm text-destructive">
               {error}
@@ -121,6 +135,8 @@ export default function ForgotPasswordPage() {
             className="bg-background dark:bg-background"
           />
         </div>
+
+        {turnstile.widget}
 
         {error && (
           <p role="alert" className="text-sm text-destructive">

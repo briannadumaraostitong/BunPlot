@@ -10,6 +10,7 @@ import { PasswordInput } from '@/components/ui/password-input'
 import { Label } from '@/components/ui/label'
 import { Switch } from '@/components/ui/switch'
 import { PASSWORD_HINT, passwordErrorMessage, passwordProblem } from '@/lib/passwords'
+import { TURNSTILE_FAILED, TURNSTILE_WAITING, useTurnstile } from '@/components/auth/Turnstile'
 
 // Change password in Settings: the current password is checked first, by a
 // separate sign-in that leaves this session alone (lib/supabase/
@@ -21,6 +22,7 @@ const LABEL = 'text-[10px] font-semibold uppercase tracking-wider text-muted-for
 const CHECK_MESSAGES = {
   wrong: "That isn't your current password.",
   limited: 'Too many attempts. Wait a few minutes, then try again.',
+  captcha: TURNSTILE_FAILED,
   failed: "Couldn't check your current password. Try again.",
 } as const
 
@@ -33,6 +35,9 @@ export function PasswordForm({ email }: { email: string }) {
   const [saving, setSaving] = useState(false)
   // What the last save did, until the fields are edited again.
   const [saved, setSaved] = useState<string | null>(null)
+  // The current-password check is a password sign-in, which Supabase's
+  // CAPTCHA covers.
+  const turnstile = useTurnstile({ theme: 'page', action: 'password_check' })
 
   const edit = (set: (value: string) => void) => (e: React.ChangeEvent<HTMLInputElement>) => {
     set(e.target.value)
@@ -46,11 +51,17 @@ export function PasswordForm({ email }: { email: string }) {
       setError(problem)
       return
     }
+    if (!turnstile.ready) {
+      setError(TURNSTILE_WAITING)
+      return
+    }
     setSaving(true)
     setError(null)
     setSaved(null)
 
-    const check = await checkCurrentPassword(email, current)
+    const check = await checkCurrentPassword(email, current, turnstile.token)
+    // A token works once: get a fresh one for the next attempt.
+    turnstile.reset()
     if (check !== 'ok') {
       setError(CHECK_MESSAGES[check])
       setSaving(false)
@@ -131,6 +142,8 @@ export function PasswordForm({ email }: { email: string }) {
           Sign out on other devices
         </Label>
       </div>
+
+      {turnstile.widget}
 
       {error && (
         <p role="alert" className="text-sm text-destructive">
