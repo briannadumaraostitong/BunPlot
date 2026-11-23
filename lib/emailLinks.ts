@@ -6,8 +6,9 @@ import type { EmailOtpType } from '@supabase/supabase-js'
 // posts to /api/auth/confirm to verify the token there. Verifying on the
 // button rather than on opening the link means an email security scanner,
 // which opens every link in a message before its reader does, can't use the
-// one-time token up. It also works in any browser, unlike the code exchange
-// in /api/auth/callback, which needs the one the request came from.
+// one-time token up. It also works in any browser: verifying a token hash
+// doesn't need the browser the request came from, as a PKCE code exchange
+// would.
 
 // The kinds of link this accepts, each with the page's wording (the panel
 // title in capitals, as Cyberpunk shows it) and where it goes once verified
