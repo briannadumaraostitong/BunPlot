@@ -32,13 +32,16 @@ function ConfirmForm() {
   const { type, tokenHash, next, error } = useLink()
 
   if (error || !type || !tokenHash) {
+    // A reset link can be requested again from here; anything else goes back
+    // to log in.
+    const retry = type === 'recovery' ? { href: '/forgot-password', label: 'Request a new link' } : { href: '/login', label: 'Back to log in' }
     return (
       <div className="space-y-4">
         <p role="alert" className="text-sm text-destructive">
           {EMAIL_LINK_ERRORS[error ?? 'invalid']}
         </p>
         <Button asChild className={`w-full ${look.submit} ${look.button}`}>
-          <Link href="/login">Back to log in</Link>
+          <Link href={retry.href}>{retry.label}</Link>
         </Button>
       </div>
     )

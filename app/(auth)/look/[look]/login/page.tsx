@@ -73,9 +73,14 @@ function LoginForm() {
       </div>
 
       <div className="space-y-2">
-        <Label htmlFor="password" data-slot="field-label" className={AUTH_LABEL}>
-          Password
-        </Label>
+        <div className="flex items-baseline justify-between gap-3">
+          <Label htmlFor="password" data-slot="field-label" className={AUTH_LABEL}>
+            Password
+          </Label>
+          <Link href="/forgot-password" className={`text-xs ${look.link}`}>
+            Forgot password?
+          </Link>
+        </div>
         <PasswordInput
           id="password"
           placeholder="••••••••"
