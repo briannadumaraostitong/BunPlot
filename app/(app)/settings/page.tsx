@@ -3,6 +3,7 @@ import { createClient } from '@/lib/supabase/server'
 import { requireUser } from '@/lib/supabase/requireUser'
 import { ProfileForm } from '@/components/settings/ProfileForm'
 import { SoundSettings } from '@/components/settings/SoundSettings'
+import { PasswordForm } from '@/components/settings/PasswordForm'
 import { ThemePicker } from '@/components/theme/ThemePicker'
 import { AssetCredit } from '@/components/brand/AssetCredit'
 import { normalizeThemeSetting } from '@/lib/themes'
@@ -39,6 +40,11 @@ export default async function SettingsPage() {
       <section className="rounded-xl corner-cut border border-border bg-card p-4 space-y-4">
         <h2 className="text-lg font-semibold">Profile</h2>
         <ProfileForm profile={profile} email={user.email ?? ''} />
+      </section>
+
+      <section className="rounded-xl corner-cut border border-border bg-card p-4 space-y-4">
+        <h2 className="text-lg font-semibold">Password</h2>
+        <PasswordForm email={user.email ?? ''} />
       </section>
 
       <section className="rounded-xl corner-cut border border-border bg-card p-4 space-y-4">
