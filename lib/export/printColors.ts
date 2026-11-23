@@ -91,6 +91,20 @@ export function cardColors(value: string | null | undefined): CardColors {
   return { accent: toHex(accent), tint: toHex(tint), text: toHex(readableOn(color, tint)) }
 }
 
+export interface SwatchColors {
+  // The square's fill: the colour as stored (or the app's default).
+  fill: string
+  // Whether it needs an outline to show on the white page (a very pale
+  // colour: white, pale yellow). Every colour in the app's palette is fine.
+  outlined: boolean
+}
+
+// The swatch before a name in the story bible.
+export function swatchColors(value: string | null | undefined): SwatchColors {
+  const color = parseHex(accentColor(value))!
+  return { fill: toHex(color), outlined: contrast(color, WHITE) < MIN_BAR_CONTRAST }
+}
+
 export interface LabelColors {
   background: string
   text: string

@@ -91,6 +91,14 @@ export function eventWithAt(e: EventEntry): string | null {
   return parts.length > 0 ? parts.join(' · ') : null
 }
 
+// The plain line under an event's title: its status and layer, then who's in
+// it and where ("Final · Main plot · With Ilsa, Tobin · At Merrow"), or null
+// when it has none of those.
+export function eventMeta(e: EventEntry): string | null {
+  const parts = [...e.labels.map((l) => l.text), eventWithAt(e)].filter((p): p is string => !!p)
+  return parts.length > 0 ? parts.join(' · ') : null
+}
+
 // A timeline group's count, for the right of its heading ("4 events").
 export function eventCount(group: TimelineGroup): string {
   return count(group.events.length, 'event')
@@ -106,9 +114,11 @@ export interface TimelineGroup {
 // A null section means it was deselected in the export dialog (omitted
 // entirely); an empty array means it was selected but the project has none.
 // author: the title page's byline (the profile's name), when there is one.
+// description: the project's own, for the cover, when it has one.
 export interface StoryBible {
   title: string
   author: string | null
+  description: string | null
   characters: { entries: CharacterEntry[]; familyTrees: FamilyTreeEntry[] } | null
   places: PlaceEntry[] | null
   timeline: TimelineGroup[] | null
@@ -116,6 +126,7 @@ export interface StoryBible {
 
 export interface StoryBibleInput {
   projectTitle: string
+  projectDescription: string | null
   author: string | null
   sections: Set<StoryBibleSection>
   characters: Character[]
@@ -361,7 +372,14 @@ export function buildStoryBible(input: StoryBibleInput): StoryBible {
     }
   }
 
-  return { title: input.projectTitle, author: input.author, characters, places, timeline }
+  return {
+    title: input.projectTitle,
+    author: input.author,
+    description: input.projectDescription?.trim() || null,
+    characters,
+    places,
+    timeline,
+  }
 }
 
 // Each section's opening: its title, and what it says when the project has
@@ -417,6 +435,22 @@ export function contentsEntries(bible: StoryBible): ContentsEntry[] {
 
 function count(n: number, singular: string, plural = `${singular}s`) {
   return `${n} ${n === 1 ? singular : plural}`
+}
+
+// The cover's counts line ("5 characters · 3 places · 6 events"), for the
+// selected sections that have anything, or null when none do.
+export function coverSummary(bible: StoryBible): string | null {
+  const parts = [
+    bible.characters && bible.characters.entries.length > 0 ? count(bible.characters.entries.length, 'character') : null,
+    bible.places && bible.places.length > 0 ? count(bible.places.length, 'place') : null,
+    bible.timeline
+      ? (() => {
+          const events = bible.timeline.reduce((sum, g) => sum + g.events.length, 0)
+          return events > 0 ? count(events, 'event') : null
+        })()
+      : null,
+  ].filter((p): p is string => p !== null)
+  return parts.length > 0 ? parts.join(' · ') : null
 }
 
 // The count line under a section's title ("12 characters · 2 family trees"),

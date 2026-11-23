@@ -5,33 +5,33 @@ import {
   renderBlocks,
   SERVER_FONTS_DIR,
   styles as outlineStyles,
-  TitlePageContent,
   type PdfLayout,
 } from './outlineToPdf'
 import { registerPdfFonts } from './pdfFonts'
 import { MANUSCRIPT_PAGES } from './manuscriptLayout'
 import {
   BIBLE_BODY,
-  CHARACTER_CARD,
+  BIBLE_COVER,
   CONTENTS,
-  EVENT_CARD,
+  ENTRY_INDENT,
+  ENTRY_NAME,
+  EVENT_ENTRY,
   EVENT_GROUP,
-  LABEL,
   MUTED_COLOR,
-  PLACE_CARD,
+  PLACE_ENTRY,
+  RELATIONS,
   SECTION_TITLE,
   marginLineOffset,
 } from './printTypography'
-import { cardColors } from './printColors'
-import { Card, FieldLabel, Labels } from './storyBiblePdfParts'
+import { Entry, FieldLabel, NameLine, SMALL_CAPS, Swatch } from './storyBiblePdfParts'
 import {
-  cardTextWidth,
-  characterCardHeight,
-  datesWidth,
-  eventCardHeight,
-  keepCardTogether,
-  placeCardHeight,
-  relationColumns,
+  PLACE_TEXT,
+  characterEntryHeight,
+  eventDatesWidth,
+  eventEntryHeight,
+  keepEntryTogether,
+  placeEntryHeight,
+  relationColumnsAt,
 } from './storyBibleMeasure'
 import {
   CONTENTS_TITLE,
@@ -40,8 +40,9 @@ import {
   SECTION_EMPTY_TEXT,
   SECTION_TITLES,
   contentsEntries,
+  coverSummary,
   eventCount,
-  eventWithAt,
+  eventMeta,
   hasDetails,
   placeHasDetails,
   sectionAnchor,
@@ -54,10 +55,12 @@ import {
   type StoryBibleSection,
 } from './storyBible'
 
-// Heading scheme mirrors storyBibleToDocx: a centred title page, the
-// contents, then each section on its own pages, opening with its title and
-// count line; character, place and event cards, with the family trees'
-// heading at heading2 and each tree's at heading3. Rich-text
+// Set as a printed book's appendix: a cover, the contents, then each section
+// on its own pages, opening with its title over a hairline rule and its count
+// line. Entries have no boxes: a small square swatch of their colour before
+// the name, labels in small capitals, characters and places divided by
+// hairline rules, timeline events as lines under each chapter. The family
+// trees' heading is at heading2 and each tree's at heading3. Rich-text
 // headings were already shifted by buildStoryBible (level 3+ in places), and
 // the outline renderer styles every level past 3 as heading3.
 
@@ -65,20 +68,39 @@ import {
 // and the rich text it lays out with renderBlocks.
 const BODY = { fontSize: BIBLE_BODY.fontSize, lineHeight: BIBLE_BODY.lineHeight, marginBottom: BIBLE_BODY.paragraphGap }
 const LAYOUT: PdfLayout = { ...layoutFor('standard', 'a4'), body: BODY }
+// The width of what follows an entry's name, indented past its swatch.
+const INNER_WIDTH = LAYOUT.textWidth - ENTRY_INDENT
+// A place's description and notes: caption text, a little smaller, indented.
+const PLACE_LAYOUT: PdfLayout = {
+  ...LAYOUT,
+  textWidth: INNER_WIDTH,
+  body: { fontSize: PLACE_TEXT.fontSize, lineHeight: PLACE_TEXT.lineHeight, marginBottom: PLACE_TEXT.paragraphGap },
+}
 
 const PAGE = MANUSCRIPT_PAGES.a4
 // Header and page number sit centred in the top and bottom margins, as in
 // the Book style.
 const HEADER_TOP = { top: marginLineOffset(PAGE.marginY) }
 const NUMBER_BOTTOM = { bottom: marginLineOffset(PAGE.marginY) }
-// Pages before the contents (the title page), so the contents is page 1.
+// Pages before the contents (the cover), so the contents is page 1.
 const FRONT_PAGES = 1
 
+// Relationship rows' columns, at the indented width, and a place's image,
+// across the full text width.
+const RELATION_COLUMNS = relationColumnsAt(INNER_WIDTH)
+const COVER_IMAGE = {
+  width: LAYOUT.textWidth,
+  height: LAYOUT.textWidth / PLACE_ENTRY.coverAspect,
+  marginBottom: PLACE_ENTRY.coverGap,
+}
+
+// Text with a unitless lineHeight also sets its fontSize: react-pdf turns
+// the lineHeight into points with the style's own size, before inheriting.
 const styles = StyleSheet.create({
   // Text without a size of its own inherits the body size.
   page: { fontSize: BIBLE_BODY.fontSize },
   body: BODY,
-  // A line of body text with no gap after it (list items).
+  // A line of body text with no gap after it (family tree relationships).
   bodyLine: { fontSize: BIBLE_BODY.fontSize, lineHeight: BIBLE_BODY.lineHeight },
   sectionOpening: { marginBottom: SECTION_TITLE.after },
   sectionTitle: {
@@ -88,9 +110,9 @@ const styles = StyleSheet.create({
     borderBottomWidth: SECTION_TITLE.ruleWidth,
     borderBottomColor: SECTION_TITLE.ruleColor,
   },
-  sectionCount: { fontSize: SECTION_TITLE.countSize, marginTop: SECTION_TITLE.countGap, color: MUTED_COLOR },
+  sectionCount: { ...SMALL_CAPS, marginTop: SECTION_TITLE.countGap },
   empty: { fontStyle: 'italic', color: MUTED_COLOR },
-  entry: { marginBottom: 10 },
+  familyTree: { marginBottom: 10 },
   // Contents rows are links, which react-pdf would otherwise colour and
   // underline.
   contentsLink: { color: '#000000', textDecoration: 'none' },
@@ -104,28 +126,65 @@ const styles = StyleSheet.create({
   },
   contentsTitle: { flex: 1 },
   contentsNumber: { width: CONTENTS.numberWidth, textAlign: 'right' },
-  // Character and place cards (CHARACTER_CARD, PLACE_CARD).
-  cardName: { fontSize: CHARACTER_CARD.nameSize, lineHeight: CHARACTER_CARD.nameLineHeight, fontWeight: 700 },
-  characterRole: {
-    fontSize: CHARACTER_CARD.roleSize,
-    lineHeight: CHARACTER_CARD.roleLineHeight,
-    marginBottom: BIBLE_BODY.paragraphGap,
+  // The cover (BIBLE_COVER).
+  coverBlock: { alignItems: 'center' },
+  coverRule: { width: BIBLE_COVER.ruleLength, borderTopWidth: BIBLE_COVER.ruleWidth, borderTopColor: BIBLE_COVER.ruleColor },
+  coverTitle: {
+    fontSize: BIBLE_COVER.titleSize,
+    lineHeight: BIBLE_COVER.titleLineHeight,
+    textAlign: 'center',
+    marginVertical: BIBLE_COVER.ruleGap,
   },
-  slimName: {
-    fontSize: CHARACTER_CARD.slimNameSize,
-    lineHeight: CHARACTER_CARD.roleLineHeight,
-    fontWeight: 700,
-    marginBottom: BIBLE_BODY.paragraphGap,
+  coverLabel: {
+    fontSize: BIBLE_COVER.labelSize,
+    letterSpacing: BIBLE_COVER.labelTracking,
+    textTransform: 'uppercase',
+    color: BIBLE_COVER.labelColor,
+    marginTop: BIBLE_COVER.ruleGap,
   },
-  slimDetail: { fontSize: CHARACTER_CARD.roleSize, fontWeight: 400 },
-  // The rows' last gap, plus this, makes a paragraph's gap.
-  relations: { marginBottom: BIBLE_BODY.paragraphGap - CHARACTER_CARD.rowGap },
-  relationRow: { flexDirection: 'row', marginBottom: CHARACTER_CARD.rowGap },
-  relationText: { fontSize: CHARACTER_CARD.rowSize, lineHeight: CHARACTER_CARD.rowLineHeight },
-  relation: { flex: 1, color: CHARACTER_CARD.relationColor },
-  // The labels' last gap, plus this, makes a paragraph's gap.
-  cardLabels: { marginBottom: BIBLE_BODY.paragraphGap - LABEL.gap },
-  // Timeline chapter headings and event cards (EVENT_GROUP, EVENT_CARD).
+  coverDescription: {
+    fontSize: BIBLE_COVER.descriptionSize,
+    lineHeight: BIBLE_COVER.descriptionLineHeight,
+    fontStyle: 'italic',
+    textAlign: 'center',
+    color: BIBLE_COVER.descriptionColor,
+    width: LAYOUT.textWidth * BIBLE_COVER.descriptionWidthShare,
+    marginTop: BIBLE_COVER.descriptionGap,
+  },
+  coverAuthor: { fontSize: BIBLE_COVER.authorSize, color: BIBLE_COVER.authorColor, marginTop: BIBLE_COVER.authorGap },
+  coverCounts: {
+    position: 'absolute',
+    left: 0,
+    right: 0,
+    bottom: PAGE.marginY + BIBLE_COVER.countsBottom,
+    textAlign: 'center',
+    fontSize: BIBLE_COVER.countsSize,
+    letterSpacing: BIBLE_COVER.countsTracking,
+    textTransform: 'uppercase',
+    color: BIBLE_COVER.countsColor,
+  },
+  // A character's relationships (RELATIONS).
+  relationRow: { flexDirection: 'row', marginBottom: RELATIONS.rowGap },
+  relationName: {
+    fontSize: RELATIONS.size,
+    lineHeight: RELATIONS.lineHeight,
+    width: RELATION_COLUMNS.name,
+    marginRight: RELATION_COLUMNS.gap,
+  },
+  relation: {
+    flex: 1,
+    fontSize: RELATIONS.size,
+    lineHeight: RELATIONS.lineHeight,
+    fontStyle: 'italic',
+    color: RELATIONS.relationColor,
+  },
+  // What follows a character's or place's name, indented to the name.
+  entryBody: { paddingLeft: ENTRY_INDENT },
+  // A place's description and notes, as caption text (PLACE_ENTRY).
+  placeText: { paddingLeft: ENTRY_INDENT, color: PLACE_ENTRY.textColor },
+  // An image after the rule above it gets more room than other entries.
+  coverSpaced: { marginTop: PLACE_ENTRY.coverSpaceAbove },
+  // Timeline chapter headings (EVENT_GROUP) and events (EVENT_ENTRY).
   groupHeading: {
     flexDirection: 'row',
     alignItems: 'flex-end',
@@ -135,32 +194,28 @@ const styles = StyleSheet.create({
     marginBottom: EVENT_GROUP.after,
   },
   groupTitle: { flex: 1, fontSize: EVENT_GROUP.size, fontWeight: 700 },
-  groupCount: { fontSize: EVENT_GROUP.countSize, color: MUTED_COLOR, marginLeft: EVENT_CARD.datesGap },
-  eventTitleRow: { flexDirection: 'row', alignItems: 'flex-start', marginBottom: EVENT_CARD.titleGap },
-  eventTitle: { flex: 1, fontSize: EVENT_CARD.titleSize, lineHeight: EVENT_CARD.titleLineHeight, fontWeight: 700 },
+  groupCount: { ...SMALL_CAPS, marginLeft: EVENT_ENTRY.datesGap, marginBottom: 1.5 },
+  event: { marginBottom: EVENT_ENTRY.gap },
+  eventTitleRow: { flexDirection: 'row', alignItems: 'flex-start' },
+  eventTitle: { flex: 1, fontSize: EVENT_ENTRY.titleSize, lineHeight: EVENT_ENTRY.titleLineHeight, fontWeight: 700 },
   // On the title's line height, so the two sit on one line.
   eventDates: {
-    fontSize: EVENT_CARD.datesSize,
-    lineHeight: (EVENT_CARD.titleSize * EVENT_CARD.titleLineHeight) / EVENT_CARD.datesSize,
-    marginLeft: EVENT_CARD.datesGap,
+    fontSize: EVENT_ENTRY.datesSize,
+    lineHeight: (EVENT_ENTRY.titleSize * EVENT_ENTRY.titleLineHeight) / EVENT_ENTRY.datesSize,
+    marginLeft: EVENT_ENTRY.datesGap,
     textAlign: 'right',
-    color: EVENT_CARD.secondaryColor,
+    color: EVENT_ENTRY.metaColor,
   },
-  eventWithAt: {
-    fontSize: EVENT_CARD.metaSize,
-    lineHeight: EVENT_CARD.metaLineHeight,
-    marginBottom: BIBLE_BODY.paragraphGap,
-    color: EVENT_CARD.secondaryColor,
+  // Everything under an event's title, indented to the title's start.
+  eventBody: { paddingLeft: ENTRY_INDENT },
+  eventMeta: {
+    fontSize: EVENT_ENTRY.metaSize,
+    lineHeight: EVENT_ENTRY.metaLineHeight,
+    marginTop: EVENT_ENTRY.metaGap,
+    color: EVENT_ENTRY.metaColor,
   },
+  eventText: { marginTop: BIBLE_BODY.paragraphGap },
 })
-
-// The text width inside a card, and rich text laid out at it.
-const CARD_WIDTH = cardTextWidth(LAYOUT.textWidth)
-const CARD_LAYOUT: PdfLayout = { ...LAYOUT, textWidth: CARD_WIDTH }
-// Relationship rows' name column, inside a card on this page.
-const RELATION_COLUMNS = relationColumns(CARD_WIDTH)
-// A place's cover, across the card.
-const COVER = { width: CARD_WIDTH, height: CARD_WIDTH / PLACE_CARD.coverAspect, marginBottom: PLACE_CARD.coverGap }
 
 const pageStyle = [outlineStyles.page, styles.page]
 
@@ -210,19 +265,6 @@ function Paragraphs({ items }: { items: string[] }) {
   )
 }
 
-function Bullets({ items }: { items: string[] }) {
-  return (
-    <>
-      {items.map((text, i) => (
-        <View key={i} style={outlineStyles.listRow}>
-          <Text style={[outlineStyles.listMarker, styles.bodyLine]}>{'•'}</Text>
-          <Text style={[outlineStyles.listContent, styles.bodyLine]}>{text}</Text>
-        </View>
-      ))}
-    </>
-  )
-}
-
 // A page run with the story bible's furniture: the running header (project ·
 // header), hidden on the opening page, and a page number on every page.
 function BiblePage({ bible, header, bookmark, children }: {
@@ -244,6 +286,25 @@ function BiblePage({ bible, header, bookmark, children }: {
         style={[printStyles.pageNumber, NUMBER_BOTTOM]}
         render={({ pageNumber }) => String(pageNumber - FRONT_PAGES)}
       />
+    </Page>
+  )
+}
+
+// The cover: STORY BIBLE, the title between two short rules, the project's
+// description in italic and the author, with the counts at the foot.
+function CoverPage({ bible }: { bible: StoryBible }) {
+  const counts = coverSummary(bible)
+  return (
+    <Page size="A4" style={pageStyle}>
+      <View style={[styles.coverBlock, { marginTop: LAYOUT.textHeight * BIBLE_COVER.top }]}>
+        <View style={styles.coverRule} />
+        <Text style={styles.coverTitle}>{bible.title}</Text>
+        <View style={styles.coverRule} />
+        <Text style={styles.coverLabel}>Story Bible</Text>
+        {bible.description && <Text style={styles.coverDescription}>{bible.description}</Text>}
+        {bible.author && <Text style={styles.coverAuthor}>{bible.author}</Text>}
+      </View>
+      {counts && <Text style={styles.coverCounts}>{counts}</Text>}
     </Page>
   )
 }
@@ -293,108 +354,103 @@ function Section({ bible, section, pages, children }: {
   )
 }
 
-// A slim one-line card, for an entry with no details: the name, and beside
-// it a detail (a character's role, a place's type) in the colour.
-function SlimCard({ color, name, detail }: { color: string | null; name: string; detail: string | null }) {
-  const { text } = cardColors(color)
-  return (
-    <Card color={color} keepTogether>
-      <Text style={styles.slimName}>
-        {name}
-        {detail && <Text style={[styles.slimDetail, { color: text }]}>{`  ·  ${detail}`}</Text>}
-      </Text>
-    </Card>
-  )
-}
-
-// A character's card: their colour's accent, name and role (in the colour),
-// then the description, notes and relationships. A character with none of
-// those gets a slim card.
-function CharacterCard({ c, keepTogether }: { c: CharacterEntry; keepTogether: boolean }) {
-  if (!hasDetails(c)) return <SlimCard color={c.color} name={c.name} detail={c.role} />
-  const { text } = cardColors(c.color)
-  return (
-    <Card color={c.color} keepTogether={keepTogether}>
-      <Text style={[styles.cardName, { marginBottom: c.role ? CHARACTER_CARD.nameGap : BIBLE_BODY.paragraphGap }]}>
-        {c.name}
-      </Text>
-      {c.role && <Text style={[styles.characterRole, { color: text }]}>{c.role}</Text>}
-      <Paragraphs items={c.description} />
-      {c.notes.length > 0 && (
-        <>
-          <FieldLabel>Notes</FieldLabel>
-          <Paragraphs items={c.notes} />
-        </>
-      )}
-      {c.relationships.length > 0 && (
-        <View style={styles.relations}>
-          <FieldLabel>Relationships</FieldLabel>
-          {c.relationships.map((r, i) => (
-            <View key={i} style={styles.relationRow} wrap={false}>
-              <Text style={[styles.relationText, { width: RELATION_COLUMNS.name, marginRight: RELATION_COLUMNS.gap }]}>
-                {r.name}
-              </Text>
-              <Text style={[styles.relationText, styles.relation]}>{r.relation}</Text>
-            </View>
-          ))}
-        </View>
-      )}
-    </Card>
-  )
-}
-
-// A place's card: the cover, the name, the type as a label in the place's
-// colour, then the description and notes. A place with none of those gets a
-// slim card.
-async function placeCard(p: PlaceEntry, keepTogether: boolean, key: number) {
-  if (!placeHasDetails(p)) return <SlimCard key={key} color={p.color} name={p.name} detail={p.type} />
-  const rich = async (label: string, blocks: PlaceEntry['description']) =>
-    blocks.length > 0 && (
-      <>
-        <FieldLabel>{label}</FieldLabel>
-        {await renderBlocks(blocks, { layout: CARD_LAYOUT })}
-      </>
+// A character: the swatch, name and role, then, indented to the name, the
+// description, notes and relationships (two columns: who, and what they
+// are). One with none of those is a single, smaller line.
+function CharacterEntryView({ c, first, keepTogether }: { c: CharacterEntry; first: boolean; keepTogether: boolean }) {
+  if (!hasDetails(c)) {
+    return (
+      <Entry first={first} keepTogether>
+        <NameLine color={c.color} name={c.name} detail={c.role} slim />
+      </Entry>
     )
+  }
   return (
-    <Card key={key} color={p.color} keepTogether={keepTogether}>
+    <Entry first={first} keepTogether={keepTogether}>
+      <NameLine color={c.color} name={c.name} detail={c.role} marginBottom={ENTRY_NAME.gap} />
+      <View style={styles.entryBody}>
+        <Paragraphs items={c.description} />
+        {c.notes.length > 0 && (
+          <>
+            <FieldLabel>Notes</FieldLabel>
+            <Paragraphs items={c.notes} />
+          </>
+        )}
+        {c.relationships.length > 0 && (
+          <View>
+            <FieldLabel>Relationships</FieldLabel>
+            {c.relationships.map((r, i) => (
+              <View key={i} style={styles.relationRow} wrap={false}>
+                <Text style={styles.relationName}>{r.name}</Text>
+                <Text style={styles.relation}>{r.relation}</Text>
+              </View>
+            ))}
+          </View>
+        )}
+      </View>
+    </Entry>
+  )
+}
+
+// A place: its image across the page (with more room above it than other
+// entries get, after a rule), then as a caption the swatch, name and type,
+// and the description and notes as caption text, indented to the name. One
+// with none of those is a single, smaller line.
+async function placeEntry(p: PlaceEntry, first: boolean, keepTogether: boolean, key: number) {
+  if (!placeHasDetails(p)) {
+    return (
+      <Entry key={key} first={first} keepTogether>
+        <NameLine color={p.color} name={p.name} detail={p.type} slim />
+      </Entry>
+    )
+  }
+  return (
+    <Entry key={key} first={first} keepTogether={keepTogether}>
       {/* react-pdf's Image (a PDF primitive), which has no alt. */}
       {/* eslint-disable-next-line jsx-a11y/alt-text */}
-      {p.cover && <Image src={p.cover} style={COVER} />}
-      <Text style={[styles.cardName, { marginBottom: LABEL.gap }]}>{p.name}</Text>
-      <View style={styles.cardLabels}>
-        <Labels labels={[{ text: p.type, color: p.color }]} />
+      {p.cover && <Image src={p.cover} style={first ? COVER_IMAGE : [COVER_IMAGE, styles.coverSpaced]} />}
+      <NameLine color={p.color} name={p.name} detail={p.type} marginBottom={ENTRY_NAME.gap} />
+      <View style={styles.placeText}>
+        {p.description.length > 0 && (await renderBlocks(p.description, { layout: PLACE_LAYOUT }))}
+        {p.notes.length > 0 && (
+          <>
+            <FieldLabel>Notes</FieldLabel>
+            {await renderBlocks(p.notes, { layout: PLACE_LAYOUT })}
+          </>
+        )}
       </View>
-      {await rich('Description', p.description)}
-      {await rich('Notes', p.notes)}
-    </Card>
+    </Entry>
   )
 }
 
-// An event's card: its colour (else its layer's), the title with the dates
-// at the right (in a column datesWidth wide), the status and layer labels,
-// who's in it and where, then the description and notes.
-function EventCard({ e, keepTogether, datesWidth }: { e: EventEntry; keepTogether: boolean; datesWidth: number }) {
-  const withAt = eventWithAt(e)
+// An event: the swatch (its colour, else its layer's) and title, with the
+// dates at the right in a column datesWidth wide; under it, indented to the
+// title, a plain line of its status, layer, who and where, then the
+// description and notes.
+function EventEntryView({ e, keepTogether, datesWidth }: { e: EventEntry; keepTogether: boolean; datesWidth: number }) {
+  const meta = eventMeta(e)
   return (
-    <Card color={e.color} keepTogether={keepTogether}>
+    <View style={styles.event} wrap={!keepTogether}>
       <View style={styles.eventTitleRow}>
+        <Swatch color={e.color} fontSize={EVENT_ENTRY.titleSize} lineHeight={EVENT_ENTRY.titleLineHeight} />
         <Text style={styles.eventTitle}>{e.title}</Text>
         {e.dates && <Text style={[styles.eventDates, { width: datesWidth }]}>{e.dates}</Text>}
       </View>
-      {e.labels.length > 0 && (
-        <View style={styles.cardLabels}>
-          <Labels labels={e.labels} />
-        </View>
-      )}
-      {withAt && <Text style={styles.eventWithAt}>{withAt}</Text>}
-      <Paragraphs items={e.description} />
-      {e.notes.length > 0 && (
-        <>
-          <FieldLabel>Notes</FieldLabel>
-          <Paragraphs items={e.notes} />
-        </>
-      )}
-    </Card>
+      <View style={styles.eventBody}>
+        {meta && <Text style={styles.eventMeta}>{meta}</Text>}
+        {(e.description.length > 0 || e.notes.length > 0) && (
+          <View style={styles.eventText}>
+            <Paragraphs items={e.description} />
+            {e.notes.length > 0 && (
+              <>
+                <FieldLabel>Notes</FieldLabel>
+                <Paragraphs items={e.notes} />
+              </>
+            )}
+          </View>
+        )}
+      </View>
+    </View>
   )
 }
 
@@ -408,31 +464,30 @@ export async function renderStoryBibleToPdf(bible: StoryBible): Promise<Buffer> 
   registerPdfFonts(SERVER_FONTS_DIR)
   const pageNumbers: PageNumbers = new Map()
   const pages: React.ReactNode[] = [
-    <Page key="title" size="A4" style={pageStyle}>
-      <TitlePageContent title={bible.title} subtitle="Story Bible" byline={bible.author} textHeight={LAYOUT.textHeight} />
-    </Page>,
+    <CoverPage key="cover" bible={bible} />,
     <ContentsPage key="contents" bible={bible} pages={pageNumbers} />,
   ]
 
   if (bible.characters) {
     const { entries, familyTrees } = bible.characters
-    // A card that fits in CARD.keepTogetherShare of a page stays in one piece.
+    // An entry that fits in BIBLE_ENTRY.keepTogetherShare of a page stays in
+    // one piece.
     const keep = await Promise.all(
       entries.map(async (c) =>
-        hasDetails(c) ? keepCardTogether(await characterCardHeight(c, LAYOUT.textWidth), LAYOUT.textHeight) : true
+        hasDetails(c) ? keepEntryTogether(await characterEntryHeight(c, LAYOUT.textWidth), LAYOUT.textHeight) : true
       )
     )
     pages.push(
       <Section key="characters" bible={bible} section="characters" pages={pageNumbers}>
         {entries.map((c, i) => (
-          <CharacterCard key={i} c={c} keepTogether={keep[i]} />
+          <CharacterEntryView key={i} c={c} first={i === 0} keepTogether={keep[i]} />
         ))}
         {/* A group heading goes inside its first entry, so it stays with it
             (minPresenceAhead only holds for the Text that follows it). */}
         {familyTrees.length > 0 && (
           <View>
             {familyTrees.map((tree, i) => (
-              <View key={i} style={styles.entry}>
+              <View key={i} style={styles.familyTree}>
                 {i === 0 && (
                   <>
                     <Heading level={2} anchor={FAMILY_TREES_ANCHOR}>
@@ -447,7 +502,11 @@ export async function renderStoryBibleToPdf(bible: StoryBible): Promise<Buffer> 
                 {tree.relationships.length > 0 && (
                   <>
                     <FieldLabel>Relationships</FieldLabel>
-                    <Bullets items={tree.relationships} />
+                    {tree.relationships.map((text, j) => (
+                      <Text key={j} style={styles.bodyLine}>
+                        {text}
+                      </Text>
+                    ))}
                   </>
                 )}
               </View>
@@ -459,12 +518,13 @@ export async function renderStoryBibleToPdf(bible: StoryBible): Promise<Buffer> 
   }
 
   if (bible.places) {
-    // Kept in one piece as character cards are.
+    // Kept in one piece as characters are.
     const entries = await Promise.all(
       bible.places.map(async (p, i) =>
-        placeCard(
+        placeEntry(
           p,
-          placeHasDetails(p) && keepCardTogether(await placeCardHeight(p, LAYOUT.textWidth), LAYOUT.textHeight),
+          i === 0,
+          placeHasDetails(p) && keepEntryTogether(await placeEntryHeight(p, LAYOUT.textWidth), LAYOUT.textHeight),
           i
         )
       )
@@ -477,13 +537,13 @@ export async function renderStoryBibleToPdf(bible: StoryBible): Promise<Buffer> 
   }
 
   if (bible.timeline) {
-    // Each card's keep-together choice (as character cards) and dates column.
+    // Each event's keep-together choice (as characters) and dates column.
     const layouts = await Promise.all(
       bible.timeline.map((group) =>
         Promise.all(
           group.events.map(async (e) => ({
-            keep: keepCardTogether(await eventCardHeight(e, LAYOUT.textWidth), LAYOUT.textHeight),
-            datesWidth: e.dates ? await datesWidth(e.dates) : 0,
+            keep: keepEntryTogether(await eventEntryHeight(e, LAYOUT.textWidth), LAYOUT.textHeight),
+            datesWidth: e.dates ? await eventDatesWidth(e.dates) : 0,
           }))
         )
       )
@@ -491,11 +551,11 @@ export async function renderStoryBibleToPdf(bible: StoryBible): Promise<Buffer> 
     pages.push(
       <Section key="timeline" bible={bible} section="timeline" pages={pageNumbers}>
         {bible.timeline.map((group, gi) => {
-          const cards = group.events.map((e, ei) => (
-            <EventCard key={ei} e={e} keepTogether={layouts[gi][ei].keep} datesWidth={layouts[gi][ei].datesWidth} />
+          const events = group.events.map((e, ei) => (
+            <EventEntryView key={ei} e={e} keepTogether={layouts[gi][ei].keep} datesWidth={layouts[gi][ei].datesWidth} />
           ))
-          // The heading goes in one View with the first card, which keeps the
-          // two together when that card is kept in one piece (minPresenceAhead
+          // The heading goes in one View with the first event, which keeps the
+          // two together when that event is kept in one piece (minPresenceAhead
           // only holds for a Text after it).
           return (
             <View key={gi} style={gi > 0 ? { marginTop: EVENT_GROUP.before } : undefined}>
@@ -507,9 +567,9 @@ export async function renderStoryBibleToPdf(bible: StoryBible): Promise<Buffer> 
                   <Text style={styles.groupCount}>{eventCount(group)}</Text>
                 </View>
                 <PageMarker anchor={timelineGroupAnchor(gi)} pages={pageNumbers} />
-                {cards[0]}
+                {events[0]}
               </View>
-              {cards.slice(1)}
+              {events.slice(1)}
             </View>
           )
         })}

@@ -1,35 +1,32 @@
-// The story bible PDF's cards and labels (storyBibleToPdf), styled from
-// printTypography and coloured from printColors, as storyBibleDocxParts are
-// in the DOCX.
+// The story bible PDF's entries, swatches and labels (storyBibleToPdf), set
+// as a printed appendix from printTypography and coloured from printColors.
 
 import { View, Text } from '@react-pdf/renderer'
-import { cardColors, labelColors, type CardLabel } from './printColors'
-import { CARD, CARD_PADDING_BOTTOM, FIELD_LABEL, LABEL } from './printTypography'
+import { swatchColors } from './printColors'
+import { BIBLE_ENTRY, ENTRY_NAME, FIELD_LABEL, SWATCH } from './printTypography'
 
-// keepTogether: don't split the card across pages. Only for a card that fits
-// on one (the caller estimates); a taller one has to split anyway.
-export function Card({
-  color,
-  keepTogether,
-  children,
-}: {
-  color: string | null
-  keepTogether: boolean
-  children: React.ReactNode
-}) {
-  const { accent, tint } = cardColors(color)
+// Small capitals, as far as react-pdf goes: it has no small-caps feature, so
+// they're capitals at the label size, letter-spaced.
+export const SMALL_CAPS = {
+  fontSize: FIELD_LABEL.size,
+  letterSpacing: FIELD_LABEL.tracking,
+  textTransform: 'uppercase' as const,
+  color: FIELD_LABEL.color,
+  fontWeight: 400 as const,
+}
+
+// One entry (a character, a place): divided from the one before it by a
+// hairline rule with space either side. keepTogether: don't split it across
+// pages (only for one that fits on a page; the caller estimates).
+export function Entry({ first, keepTogether, children }: { first: boolean; keepTogether: boolean; children: React.ReactNode }) {
   return (
     <View
       wrap={!keepTogether}
       style={{
-        borderLeftWidth: CARD.accentWidth,
-        borderLeftColor: accent,
-        backgroundColor: tint,
-        borderRadius: CARD.radius,
-        paddingTop: CARD.paddingY,
-        paddingBottom: CARD_PADDING_BOTTOM,
-        paddingHorizontal: CARD.paddingX,
-        marginBottom: CARD.gap,
+        borderTopWidth: first ? 0 : BIBLE_ENTRY.ruleWidth,
+        borderTopColor: BIBLE_ENTRY.ruleColor,
+        paddingTop: first ? 0 : BIBLE_ENTRY.gap,
+        marginBottom: BIBLE_ENTRY.gap,
       }}
     >
       {children}
@@ -37,48 +34,66 @@ export function Card({
   )
 }
 
-// Labels in a row, wrapping onto another line when they don't fit.
-export function Labels({ labels }: { labels: CardLabel[] }) {
-  if (labels.length === 0) return null
+// How far below the middle of its line box a line's capitals are centred,
+// as a share of the font size: react-pdf sets Literata's glyphs low in the
+// box (measured on the rendered pages).
+const CAP_CENTER_DROP = 0.17
+
+// The square of an entry's colour before its name, centred on the capitals
+// of a line of text this size and line height, outlined when the colour is
+// too pale to see.
+export function Swatch({ color, fontSize, lineHeight }: { color: string | null; fontSize: number; lineHeight: number }) {
+  const { fill, outlined } = swatchColors(color)
   return (
-    <View style={{ flexDirection: 'row', flexWrap: 'wrap' }}>
-      {labels.map((label, i) => {
-        const { background, text } = labelColors(label.color)
-        return (
-          <Text
-            key={i}
-            style={{
-              fontSize: LABEL.size,
-              lineHeight: 1.2,
-              color: text,
-              backgroundColor: background,
-              // Fully rounded ends: half the pill's height.
-              borderRadius: (LABEL.size * 1.2) / 2 + LABEL.paddingY,
-              paddingHorizontal: LABEL.paddingX,
-              paddingVertical: LABEL.paddingY,
-              marginRight: LABEL.gap,
-              marginBottom: LABEL.gap,
-            }}
-          >
-            {label.text}
-          </Text>
-        )
-      })}
+    <View
+      style={{
+        width: SWATCH.size,
+        height: SWATCH.size,
+        marginTop: (fontSize * lineHeight - SWATCH.size) / 2 + fontSize * CAP_CENTER_DROP,
+        marginRight: SWATCH.gap,
+        backgroundColor: fill,
+        ...(outlined ? { borderWidth: SWATCH.outlineWidth, borderColor: SWATCH.outlineColor } : {}),
+      }}
+    />
+  )
+}
+
+// A name with its swatch, and after it the role or type in small capitals.
+// slim: an entry with no details, set a little smaller.
+export function NameLine({
+  color,
+  name,
+  detail,
+  slim = false,
+  marginBottom = 0,
+}: {
+  color: string | null
+  name: string
+  detail: string | null
+  slim?: boolean
+  marginBottom?: number
+}) {
+  const size = slim ? ENTRY_NAME.slimSize : ENTRY_NAME.size
+  const lineHeight = slim ? ENTRY_NAME.slimLineHeight : ENTRY_NAME.lineHeight
+  return (
+    <View style={{ flexDirection: 'row', alignItems: 'flex-start', marginBottom }}>
+      <Swatch color={color} fontSize={size} lineHeight={lineHeight} />
+      <Text style={{ flex: 1, fontSize: size, lineHeight, fontWeight: 700 }}>
+        {name}
+        {detail && <Text style={SMALL_CAPS}>{`   ${detail}`}</Text>}
+      </Text>
     </View>
   )
 }
 
-// A card's field heading ("NOTES"), kept with the line after it.
+// A field heading in small capitals ("NOTES"), kept with the line after it.
 export function FieldLabel({ children }: { children: string }) {
   return (
     <Text
       minPresenceAhead={FIELD_LABEL.size * 3}
       style={{
-        fontSize: FIELD_LABEL.size,
+        ...SMALL_CAPS,
         lineHeight: FIELD_LABEL.lineHeight,
-        letterSpacing: FIELD_LABEL.tracking,
-        textTransform: 'uppercase',
-        color: FIELD_LABEL.color,
         marginTop: FIELD_LABEL.before,
         marginBottom: FIELD_LABEL.after,
       }}

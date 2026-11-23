@@ -233,7 +233,7 @@ export async function exportStoryBible(
     eventPlacesRes,
   ] = await Promise.all([
     profileAuthor(supabase),
-    supabase.from('projects').select('title').eq('id', projectId).single(),
+    supabase.from('projects').select('title, description').eq('id', projectId).single(),
     supabase.from('characters').select('*').eq('project_id', projectId),
     supabase.from('character_relationships').select('*').eq('project_id', projectId),
     supabase.from('family_trees').select('*').eq('project_id', projectId),
@@ -262,7 +262,8 @@ export async function exportStoryBible(
   ].find((res) => res.error)
   if (failed?.error) return { error: failed.error.message }
 
-  const projectTitle = (projectRes.data as { title: string } | null)?.title ?? 'Untitled'
+  const project = projectRes.data as { title: string; description: string | null } | null
+  const projectTitle = project?.title ?? 'Untitled'
   const places = (placesRes.data ?? []) as Place[]
   const { covers, notice } = selected.has('places')
     ? await placeCovers(supabase, places)
@@ -270,6 +271,7 @@ export async function exportStoryBible(
 
   const built = buildStoryBible({
     projectTitle,
+    projectDescription: project?.description ?? null,
     author,
     sections: selected,
     characters: (charactersRes.data ?? []) as Character[],
