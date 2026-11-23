@@ -280,6 +280,10 @@ export interface EventFilters {
 
 // ── Search Types ──────────────────────────────────────────────
 
+// The actions take_rate_limit knows (its limits are set in the function,
+// supabase/schema.sql).
+export type RateLimitedAction = 'duplicate_project' | 'export'
+
 export interface SearchResult {
   entity_type: 'character' | 'event' | 'place' | 'chapter'
   id: string
@@ -400,6 +404,10 @@ export interface Database {
       search_entities: {
         Args: { p_query: string; p_project_id?: string | null }
         Returns: SearchResult[]
+      }
+      take_rate_limit: {
+        Args: { p_action: RateLimitedAction }
+        Returns: boolean
       }
     }
   }

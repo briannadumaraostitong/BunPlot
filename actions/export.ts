@@ -1,6 +1,7 @@
 'use server'
 
 import { createClient } from '@/lib/supabase/server'
+import { takeRateLimit } from '@/lib/rateLimit'
 import { tiptapToBlocks } from '@/lib/export/outlineIR'
 import { renderOutlinesToDocx, type OutlineSection } from '@/lib/export/outlineToDocx'
 import { layoutFor, renderOutlinesToPdf } from '@/lib/export/outlineToPdf'
@@ -167,6 +168,10 @@ export async function exportOutlines(
   if (outlineIds.length === 0) return { error: 'No documents selected' }
 
   const supabase = await createClient()
+  // Before any of the work (previews count: each is a full build).
+  const limited = await takeRateLimit(supabase, 'export')
+  if (limited) return { error: limited }
+
   const { data, error } = await supabase
     .from('outlines')
     .select('*')
@@ -217,6 +222,10 @@ export async function exportStoryBible(
   if (selected.size === 0) return { error: 'No sections selected' }
 
   const supabase = await createClient()
+  // Before any of the work (previews count: each is a full build).
+  const limited = await takeRateLimit(supabase, 'export')
+  if (limited) return { error: limited }
+
   const [
     author,
     projectRes,

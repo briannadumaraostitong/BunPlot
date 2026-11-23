@@ -685,6 +685,54 @@ ALTER TABLE layers REPLICA IDENTITY FULL;
 ALTER TABLE statuses REPLICA IDENTITY FULL;
 ALTER TABLE panels REPLICA IDENTITY FULL;
 
+-- RATE LIMITS
+-- Supabase Auth limits sign-ins, sign-ups and emails itself, but the Data
+-- API has no per-user limit: any signed-in user can call an RPC directly
+-- with their token. So the expensive operations take a slot here first:
+-- duplicate_project calls it inside the function (a limit in the server
+-- action alone wouldn't cover a direct RPC call), and the story bible and
+-- outline exports call it through .rpc() before building. The limits are
+-- fixed in take_rate_limit, not passed in, so a caller can't set its own.
+-- Calling it directly only uses up the caller's own slots.
+CREATE TABLE rate_limit_hits (
+  user_id UUID NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
+  action  TEXT NOT NULL,
+  hit_at  TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+CREATE INDEX idx_rate_limit_hits ON rate_limit_hits (user_id, action, hit_at);
+-- RLS on with no policies, no grants and not in the realtime publication:
+-- only take_rate_limit (SECURITY DEFINER) reads or writes it.
+ALTER TABLE rate_limit_hits ENABLE ROW LEVEL SECURITY;
+REVOKE ALL ON TABLE rate_limit_hits FROM PUBLIC, anon, authenticated;
+
+-- Takes one slot of p_action for the calling user, or returns false when
+-- they've used them all in the window. Old hits are cleared as it goes, so
+-- the table only ever holds each user's current window.
+CREATE OR REPLACE FUNCTION take_rate_limit(p_action TEXT)
+RETURNS BOOLEAN LANGUAGE plpgsql SECURITY DEFINER SET search_path = public AS $$
+DECLARE
+  v_user   UUID := auth.uid();
+  v_max    INT;
+  v_window INTERVAL;
+  v_count  INT;
+BEGIN
+  IF v_user IS NULL THEN RETURN FALSE; END IF;
+  CASE p_action
+    WHEN 'duplicate_project' THEN v_max := 10; v_window := INTERVAL '1 hour';
+    WHEN 'export'            THEN v_max := 10; v_window := INTERVAL '10 minutes';
+    ELSE RAISE EXCEPTION 'Unknown rate-limited action: %', p_action;
+  END CASE;
+  -- One at a time per user and action, so parallel calls can't all pass
+  -- the count before any of them records its hit.
+  PERFORM pg_advisory_xact_lock(hashtext(v_user::text || ':' || p_action));
+  DELETE FROM rate_limit_hits WHERE user_id = v_user AND action = p_action AND hit_at < NOW() - v_window;
+  SELECT count(*) INTO v_count FROM rate_limit_hits WHERE user_id = v_user AND action = p_action;
+  IF v_count >= v_max THEN RETURN FALSE; END IF;
+  INSERT INTO rate_limit_hits (user_id, action) VALUES (v_user, p_action);
+  RETURN TRUE;
+END;
+$$;
+
 -- DUPLICATE PROJECT
 -- Single-transaction deep clone: builds an old-id -> new-id temp table per
 -- entity type, then inserts every dependent/junction table joined against
@@ -708,6 +756,12 @@ BEGIN
 
   IF p_mode NOT IN ('full', 'structure') THEN
     RAISE EXCEPTION 'Invalid mode: %', p_mode;
+  END IF;
+
+  -- After the checks, so a refused or malformed call doesn't use a slot.
+  -- actions/projects.ts turns 'rate_limited' into a friendly message.
+  IF NOT take_rate_limit('duplicate_project') THEN
+    RAISE EXCEPTION 'rate_limited';
   END IF;
 
   -- 1. PROJECT
@@ -972,6 +1026,11 @@ GRANT  EXECUTE ON FUNCTION duplicate_project(uuid, text, text) TO authenticated;
 -- (useSearch calls it via .rpc()).
 REVOKE EXECUTE ON FUNCTION search_entities(text, uuid) FROM PUBLIC, anon;
 GRANT  EXECUTE ON FUNCTION search_entities(text, uuid) TO authenticated;
+
+-- take_rate_limit is called by duplicate_project and, through .rpc(), by the
+-- export actions; it needs a signed-in caller (auth.uid()).
+REVOKE EXECUTE ON FUNCTION take_rate_limit(text) FROM PUBLIC, anon;
+GRANT  EXECUTE ON FUNCTION take_rate_limit(text) TO authenticated;
 
 -- STORAGE POLICIES
 -- The private 'attachments' bucket itself was created in the Supabase

@@ -1,6 +1,7 @@
 'use server'
 
 import { createClient } from '@/lib/supabase/server'
+import { RATE_LIMIT_MESSAGES } from '@/lib/rateLimit'
 import { revalidatePath } from 'next/cache'
 import { attachmentPathFromSignedUrl, listFilesRecursive, removeInBatches } from '@/lib/storage/attachments'
 import { EXPORTS_BUCKET, EXPORTS_FOLDER } from '@/lib/storage/exports'
@@ -337,7 +338,9 @@ export async function duplicateProject(
     p_mode: mode,
   } as never)
 
-  if (error) return { error: error.message }
+  // duplicate_project takes its own rate-limit slot (supabase/schema.sql)
+  // and raises 'rate_limited' when there's none left.
+  if (error) return { error: error.message === 'rate_limited' ? RATE_LIMIT_MESSAGES.duplicate_project : error.message }
 
   const newProjectId = data as string
   try {
