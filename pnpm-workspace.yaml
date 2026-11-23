@@ -6,3 +6,11 @@ allowBuilds:
 # plugins don't support ESLint 10 yet. Remove this once ESLint 10 is possible.
 allowedDeprecatedVersions:
   eslint: "9"
+
+# Security fixes for dev-only copies that their parents allow but pnpm
+# wouldn't move on its own. zod: eslint-plugin-react-hooks,
+# zod-validation-error and shadcn's MCP server all accept 4.6.7, past
+# GHSA-mrhx-c7xc-m3w5 (fixed in 4.6.6). Remove once they resolve to a
+# patched zod without it.
+overrides:
+  "zod@<4.6.6": "4.6.7"
