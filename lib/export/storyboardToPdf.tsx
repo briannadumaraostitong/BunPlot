@@ -11,8 +11,10 @@ import type { PanelImageState } from './storyboardImages'
 // the shared, browser-safe pdfFonts, fetched from /fonts.
 
 // A4 portrait in points, 3×2 panels per page. Pagination is explicit — each
-// group of six panels is its own <Page wrap={false}> — so the grid never
-// depends on react-pdf's automatic page wrapping.
+// group of six panels is its own <Page>, sized to fit — so the grid never
+// depends on react-pdf's automatic page wrapping. Pages keep react-pdf's
+// default wrap: wrap={false} on a Page makes it as tall as its content
+// instead of A4.
 const PAGE_WIDTH = 595.28
 const PAGE_HEIGHT = 841.89
 const MARGIN = 36
@@ -98,7 +100,7 @@ function PanelCell({ panel, state, index }: { panel: StoryboardPanel; state: Pan
 function chapterPages(chapter: StoryboardChapter, images: Map<string, PanelImageState>) {
   if (chapter.panels.length === 0) {
     return [
-      <Page key={chapter.id} size="A4" style={styles.page} wrap={false}>
+      <Page key={chapter.id} size="A4" style={styles.page}>
         <View style={styles.header}>
           <Text style={styles.heading}>{chapter.title}</Text>
         </View>
@@ -113,7 +115,7 @@ function chapterPages(chapter: StoryboardChapter, images: Map<string, PanelImage
   }
 
   return groups.map((group, gi) => (
-    <Page key={`${chapter.id}-${gi}`} size="A4" style={styles.page} wrap={false}>
+    <Page key={`${chapter.id}-${gi}`} size="A4" style={styles.page}>
       <View style={styles.header}>
         {gi === 0 ? (
           <Text style={styles.heading}>{chapter.title}</Text>
