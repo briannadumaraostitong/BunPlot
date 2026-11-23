@@ -29,10 +29,11 @@ export function passwordErrorMessage(error: { code?: string; message: string }):
 // entries ({ method, timestamp }) or bare method names.
 type AmrClaim = ({ method: string; timestamp: number } | string)[] | undefined
 
-// The methods an emailed link signs in with. BunPlot has no code or magic
-// link logins of its own, so these only come from email links (a reset link
-// records `recovery` or `otp`), which prove the reader has the inbox.
-const EMAIL_LINK_METHODS = new Set(['recovery', 'otp', 'magiclink'])
+// The method an emailed link signs in with: Supabase records a session from
+// a reset link (verifyOtp with its token hash) as `otp` (seen on a real reset,
+// 2026-11-23). BunPlot has no code or magic link logins of its own, so it
+// only comes from email links, which prove the reader has the inbox.
+const EMAIL_LINK_METHODS = new Set(['otp'])
 
 // How long after following the link the reset page still accepts it.
 const RESET_WINDOW_SECONDS = 60 * 60

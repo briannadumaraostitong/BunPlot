@@ -2,8 +2,6 @@
 
 import { useEffect, useState } from 'react'
 import Link from 'next/link'
-import { useRouter } from 'next/navigation'
-import { toast } from 'sonner'
 import { Loader2 } from 'lucide-react'
 import { createClient } from '@/lib/supabase/client'
 import { Button } from '@/components/ui/button'
@@ -16,14 +14,15 @@ import { PASSWORD_HINT, isRecentEmailLinkSession, passwordErrorMessage, password
 // (lib/emailLinks.ts): choose a new password. Only for a session that came
 // from an emailed link in the last hour (lib/passwords.ts); anyone else is
 // asked to request a link, so this page isn't a way round Settings' check of
-// the current password. Saving signs out every other device.
+// the current password. Saving signs out every other device, then says so
+// here: going on to the app is a full page load from this rewritten page, so
+// a toast wouldn't survive it.
 
-type State = 'checking' | 'ready' | 'no-link'
+type State = 'checking' | 'ready' | 'no-link' | 'done'
 
 export default function ResetPasswordPage() {
   // One client for the page, so the session check below runs once.
   const [supabase] = useState(() => createClient())
-  const router = useRouter()
   const look = useAuthLook()
 
   const [state, setState] = useState<State>('checking')
@@ -64,9 +63,22 @@ export default function ResetPasswordPage() {
     // Best effort: the password is already changed if this fails.
     const { error: signOutError } = await supabase.auth.signOut({ scope: 'others' })
     if (signOutError) console.error('Sign out of other devices failed:', signOutError.message)
-    toast.success('Password updated')
-    router.push('/dashboard')
-    router.refresh()
+    setState('done')
+  }
+
+  if (state === 'done') {
+    return (
+      <AuthShell eyebrow="All set" title="Password updated" panelTitle="RESET PASSWORD">
+        <div className="space-y-4">
+          <p role="status" className="text-sm text-muted-foreground">
+            Your new password is saved, and you&apos;ve been signed out on every other device.
+          </p>
+          <Button asChild className={`w-full ${look.submit} ${look.button}`}>
+            <Link href="/dashboard">Open your workspace</Link>
+          </Button>
+        </div>
+      </AuthShell>
+    )
   }
 
   if (state === 'checking') {
