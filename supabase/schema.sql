@@ -447,13 +447,27 @@ CREATE POLICY "Users can update their own project folders"
 CREATE POLICY "Users can delete their own project folders"
   ON project_folders FOR DELETE USING (auth.uid() = owner_id);
 
+-- SAME-PROJECT REFERENCES
+-- Foreign keys ignore RLS, so checking only a row's own project_id would let
+-- a user point their rows at someone else's (an event at another user's
+-- character, a panel at another user's chapter): nothing becomes readable,
+-- but the other user's deletes would cascade into those rows, and the FK
+-- error would confirm the id exists. So every INSERT policy, and every
+-- UPDATE policy through an explicit WITH CHECK, also requires each
+-- referenced row to be in the same project (a project's folder: the same
+-- owner). The subqueries run under the caller's own RLS, so they grant no
+-- new access. duplicate_project (SECURITY DEFINER) and FK cascades bypass
+-- RLS, so neither is affected. A new reference column gets the same check.
+
 -- PROJECTS RLS
 CREATE POLICY "Users can view their own projects"
   ON projects FOR SELECT USING (auth.uid() = owner_id);
-CREATE POLICY "Users can insert their own projects"
-  ON projects FOR INSERT WITH CHECK (auth.uid() = owner_id);
-CREATE POLICY "Users can update their own projects"
-  ON projects FOR UPDATE USING (auth.uid() = owner_id);
+CREATE POLICY "Users can insert their own projects" ON projects FOR INSERT WITH CHECK (
+  auth.uid() = owner_id
+  AND (projects.folder_id IS NULL OR EXISTS (SELECT 1 FROM project_folders f WHERE f.id = projects.folder_id AND f.owner_id = auth.uid())));
+CREATE POLICY "Users can update their own projects" ON projects FOR UPDATE USING (auth.uid() = owner_id) WITH CHECK (
+  auth.uid() = owner_id
+  AND (projects.folder_id IS NULL OR EXISTS (SELECT 1 FROM project_folders f WHERE f.id = projects.folder_id AND f.owner_id = auth.uid())));
 CREATE POLICY "Users can delete their own projects"
   ON projects FOR DELETE USING (auth.uid() = owner_id);
 
@@ -473,8 +487,12 @@ CREATE POLICY "layer_groups_delete" ON layer_groups FOR DELETE USING (owns_proje
 
 -- LAYERS RLS
 CREATE POLICY "layers_select" ON layers FOR SELECT USING (owns_project(project_id));
-CREATE POLICY "layers_insert" ON layers FOR INSERT WITH CHECK (owns_project(project_id));
-CREATE POLICY "layers_update" ON layers FOR UPDATE USING (owns_project(project_id));
+CREATE POLICY "layers_insert" ON layers FOR INSERT WITH CHECK (
+  owns_project(layers.project_id)
+  AND (layers.group_id IS NULL OR EXISTS (SELECT 1 FROM layer_groups g WHERE g.id = layers.group_id AND g.project_id = layers.project_id)));
+CREATE POLICY "layers_update" ON layers FOR UPDATE USING (owns_project(project_id)) WITH CHECK (
+  owns_project(layers.project_id)
+  AND (layers.group_id IS NULL OR EXISTS (SELECT 1 FROM layer_groups g WHERE g.id = layers.group_id AND g.project_id = layers.project_id)));
 CREATE POLICY "layers_delete" ON layers FOR DELETE USING (owns_project(project_id));
 
 -- STATUSES RLS
@@ -485,8 +503,16 @@ CREATE POLICY "statuses_delete" ON statuses FOR DELETE USING (owns_project(proje
 
 -- EVENTS RLS
 CREATE POLICY "events_select" ON events FOR SELECT USING (owns_project(project_id));
-CREATE POLICY "events_insert" ON events FOR INSERT WITH CHECK (owns_project(project_id));
-CREATE POLICY "events_update" ON events FOR UPDATE USING (owns_project(project_id));
+CREATE POLICY "events_insert" ON events FOR INSERT WITH CHECK (
+  owns_project(events.project_id)
+  AND EXISTS (SELECT 1 FROM layers l WHERE l.id = events.layer_id AND l.project_id = events.project_id)
+  AND EXISTS (SELECT 1 FROM statuses s WHERE s.id = events.status_id AND s.project_id = events.project_id)
+  AND (events.chapter_id IS NULL OR EXISTS (SELECT 1 FROM chapters c WHERE c.id = events.chapter_id AND c.project_id = events.project_id)));
+CREATE POLICY "events_update" ON events FOR UPDATE USING (owns_project(project_id)) WITH CHECK (
+  owns_project(events.project_id)
+  AND EXISTS (SELECT 1 FROM layers l WHERE l.id = events.layer_id AND l.project_id = events.project_id)
+  AND EXISTS (SELECT 1 FROM statuses s WHERE s.id = events.status_id AND s.project_id = events.project_id)
+  AND (events.chapter_id IS NULL OR EXISTS (SELECT 1 FROM chapters c WHERE c.id = events.chapter_id AND c.project_id = events.project_id)));
 CREATE POLICY "events_delete" ON events FOR DELETE USING (owns_project(project_id));
 
 -- OUTLINES RLS
@@ -504,8 +530,11 @@ CREATE POLICY "characters_delete" ON characters FOR DELETE USING (owns_project(p
 -- EVENT_CHARACTERS RLS
 CREATE POLICY "ec_select" ON event_characters FOR SELECT
   USING (EXISTS (SELECT 1 FROM events e WHERE e.id = event_id AND owns_project(e.project_id)));
-CREATE POLICY "ec_insert" ON event_characters FOR INSERT
-  WITH CHECK (EXISTS (SELECT 1 FROM events e WHERE e.id = event_id AND owns_project(e.project_id)));
+-- No UPDATE policy (the app never updates these rows), so INSERT is the only
+-- place a reference is set: both ends must be in one project.
+CREATE POLICY "ec_insert" ON event_characters FOR INSERT WITH CHECK (EXISTS (
+  SELECT 1 FROM events e JOIN characters c ON c.project_id = e.project_id
+  WHERE e.id = event_characters.event_id AND c.id = event_characters.character_id AND owns_project(e.project_id)));
 CREATE POLICY "ec_delete" ON event_characters FOR DELETE
   USING (EXISTS (SELECT 1 FROM events e WHERE e.id = event_id AND owns_project(e.project_id)));
 
@@ -518,21 +547,34 @@ CREATE POLICY "places_delete" ON places FOR DELETE USING (owns_project(project_i
 -- EVENT_PLACES RLS
 CREATE POLICY "ep_select" ON event_places FOR SELECT
   USING (EXISTS (SELECT 1 FROM events e WHERE e.id = event_id AND owns_project(e.project_id)));
-CREATE POLICY "ep_insert" ON event_places FOR INSERT
-  WITH CHECK (EXISTS (SELECT 1 FROM events e WHERE e.id = event_id AND owns_project(e.project_id)));
+CREATE POLICY "ep_insert" ON event_places FOR INSERT WITH CHECK (EXISTS (
+  SELECT 1 FROM events e JOIN places p ON p.project_id = e.project_id
+  WHERE e.id = event_places.event_id AND p.id = event_places.place_id AND owns_project(e.project_id)));
 CREATE POLICY "ep_delete" ON event_places FOR DELETE
   USING (EXISTS (SELECT 1 FROM events e WHERE e.id = event_id AND owns_project(e.project_id)));
 
 -- EVENT_DEPENDENCIES RLS
 CREATE POLICY "deps_select" ON event_dependencies FOR SELECT USING (owns_project(project_id));
-CREATE POLICY "deps_insert" ON event_dependencies FOR INSERT WITH CHECK (owns_project(project_id));
-CREATE POLICY "deps_update" ON event_dependencies FOR UPDATE USING (owns_project(project_id));
+CREATE POLICY "deps_insert" ON event_dependencies FOR INSERT WITH CHECK (
+  owns_project(event_dependencies.project_id)
+  AND EXISTS (SELECT 1 FROM events e WHERE e.id = event_dependencies.source_id AND e.project_id = event_dependencies.project_id)
+  AND EXISTS (SELECT 1 FROM events e WHERE e.id = event_dependencies.target_id AND e.project_id = event_dependencies.project_id));
+CREATE POLICY "deps_update" ON event_dependencies FOR UPDATE USING (owns_project(project_id)) WITH CHECK (
+  owns_project(event_dependencies.project_id)
+  AND EXISTS (SELECT 1 FROM events e WHERE e.id = event_dependencies.source_id AND e.project_id = event_dependencies.project_id)
+  AND EXISTS (SELECT 1 FROM events e WHERE e.id = event_dependencies.target_id AND e.project_id = event_dependencies.project_id));
 CREATE POLICY "deps_delete" ON event_dependencies FOR DELETE USING (owns_project(project_id));
 
 -- CHARACTER_RELATIONSHIPS RLS
 CREATE POLICY "cr_select" ON character_relationships FOR SELECT USING (owns_project(project_id));
-CREATE POLICY "cr_insert" ON character_relationships FOR INSERT WITH CHECK (owns_project(project_id));
-CREATE POLICY "cr_update" ON character_relationships FOR UPDATE USING (owns_project(project_id));
+CREATE POLICY "cr_insert" ON character_relationships FOR INSERT WITH CHECK (
+  owns_project(character_relationships.project_id)
+  AND EXISTS (SELECT 1 FROM characters c WHERE c.id = character_relationships.source_character_id AND c.project_id = character_relationships.project_id)
+  AND EXISTS (SELECT 1 FROM characters c WHERE c.id = character_relationships.target_character_id AND c.project_id = character_relationships.project_id));
+CREATE POLICY "cr_update" ON character_relationships FOR UPDATE USING (owns_project(project_id)) WITH CHECK (
+  owns_project(character_relationships.project_id)
+  AND EXISTS (SELECT 1 FROM characters c WHERE c.id = character_relationships.source_character_id AND c.project_id = character_relationships.project_id)
+  AND EXISTS (SELECT 1 FROM characters c WHERE c.id = character_relationships.target_character_id AND c.project_id = character_relationships.project_id));
 CREATE POLICY "cr_delete" ON character_relationships FOR DELETE USING (owns_project(project_id));
 
 -- FAMILY_TREES RLS
@@ -544,31 +586,49 @@ CREATE POLICY "family_trees_delete" ON family_trees FOR DELETE USING (owns_proje
 -- FAMILY_TREE_MEMBERS RLS (ownership via family_trees.project_id)
 CREATE POLICY "ftm_select" ON family_tree_members FOR SELECT
   USING (EXISTS (SELECT 1 FROM family_trees ft WHERE ft.id = tree_id AND owns_project(ft.project_id)));
-CREATE POLICY "ftm_insert" ON family_tree_members FOR INSERT
-  WITH CHECK (EXISTS (SELECT 1 FROM family_trees ft WHERE ft.id = tree_id AND owns_project(ft.project_id)));
+CREATE POLICY "ftm_insert" ON family_tree_members FOR INSERT WITH CHECK (EXISTS (
+  SELECT 1 FROM family_trees ft JOIN characters c ON c.project_id = ft.project_id
+  WHERE ft.id = family_tree_members.tree_id AND c.id = family_tree_members.character_id AND owns_project(ft.project_id)));
 CREATE POLICY "ftm_update" ON family_tree_members FOR UPDATE
-  USING (EXISTS (SELECT 1 FROM family_trees ft WHERE ft.id = tree_id AND owns_project(ft.project_id)));
+  USING (EXISTS (SELECT 1 FROM family_trees ft WHERE ft.id = tree_id AND owns_project(ft.project_id)))
+  WITH CHECK (EXISTS (
+  SELECT 1 FROM family_trees ft JOIN characters c ON c.project_id = ft.project_id
+  WHERE ft.id = family_tree_members.tree_id AND c.id = family_tree_members.character_id AND owns_project(ft.project_id)));
 CREATE POLICY "ftm_delete" ON family_tree_members FOR DELETE
   USING (EXISTS (SELECT 1 FROM family_trees ft WHERE ft.id = tree_id AND owns_project(ft.project_id)));
 
 -- CHAPTER_LINKS RLS
 CREATE POLICY "chapter_links_select" ON chapter_links FOR SELECT USING (owns_project(project_id));
-CREATE POLICY "chapter_links_insert" ON chapter_links FOR INSERT WITH CHECK (owns_project(project_id));
-CREATE POLICY "chapter_links_update" ON chapter_links FOR UPDATE USING (owns_project(project_id));
+CREATE POLICY "chapter_links_insert" ON chapter_links FOR INSERT WITH CHECK (
+  owns_project(chapter_links.project_id)
+  AND EXISTS (SELECT 1 FROM chapters c WHERE c.id = chapter_links.chapter_id AND c.project_id = chapter_links.project_id)
+  AND EXISTS (SELECT 1 FROM chapters c WHERE c.id = chapter_links.continues_from_chapter_id AND c.project_id = chapter_links.project_id));
+CREATE POLICY "chapter_links_update" ON chapter_links FOR UPDATE USING (owns_project(project_id)) WITH CHECK (
+  owns_project(chapter_links.project_id)
+  AND EXISTS (SELECT 1 FROM chapters c WHERE c.id = chapter_links.chapter_id AND c.project_id = chapter_links.project_id)
+  AND EXISTS (SELECT 1 FROM chapters c WHERE c.id = chapter_links.continues_from_chapter_id AND c.project_id = chapter_links.project_id));
 CREATE POLICY "chapter_links_delete" ON chapter_links FOR DELETE USING (owns_project(project_id));
 
 -- CHAPTERS RLS
 -- Already live (created via the dashboard alongside the table); recorded here
 -- so a from-scratch run reproduces them.
 CREATE POLICY "chapters_select" ON chapters FOR SELECT USING (owns_project(project_id));
-CREATE POLICY "chapters_insert" ON chapters FOR INSERT WITH CHECK (owns_project(project_id));
-CREATE POLICY "chapters_update" ON chapters FOR UPDATE USING (owns_project(project_id));
+CREATE POLICY "chapters_insert" ON chapters FOR INSERT WITH CHECK (
+  owns_project(chapters.project_id)
+  AND (chapters.pov_character_id IS NULL OR EXISTS (SELECT 1 FROM characters c WHERE c.id = chapters.pov_character_id AND c.project_id = chapters.project_id)));
+CREATE POLICY "chapters_update" ON chapters FOR UPDATE USING (owns_project(project_id)) WITH CHECK (
+  owns_project(chapters.project_id)
+  AND (chapters.pov_character_id IS NULL OR EXISTS (SELECT 1 FROM characters c WHERE c.id = chapters.pov_character_id AND c.project_id = chapters.project_id)));
 CREATE POLICY "chapters_delete" ON chapters FOR DELETE USING (owns_project(project_id));
 
 -- PANELS RLS
 CREATE POLICY "panels_select" ON panels FOR SELECT USING (owns_project(project_id));
-CREATE POLICY "panels_insert" ON panels FOR INSERT WITH CHECK (owns_project(project_id));
-CREATE POLICY "panels_update" ON panels FOR UPDATE USING (owns_project(project_id));
+CREATE POLICY "panels_insert" ON panels FOR INSERT WITH CHECK (
+  owns_project(panels.project_id)
+  AND EXISTS (SELECT 1 FROM chapters c WHERE c.id = panels.chapter_id AND c.project_id = panels.project_id));
+CREATE POLICY "panels_update" ON panels FOR UPDATE USING (owns_project(project_id)) WITH CHECK (
+  owns_project(panels.project_id)
+  AND EXISTS (SELECT 1 FROM chapters c WHERE c.id = panels.chapter_id AND c.project_id = panels.project_id));
 CREATE POLICY "panels_delete" ON panels FOR DELETE USING (owns_project(project_id));
 
 -- GRANTS
@@ -907,17 +967,26 @@ REVOKE EXECUTE ON FUNCTION duplicate_project(uuid, text, text) FROM PUBLIC, anon
 GRANT  EXECUTE ON FUNCTION owns_project(uuid)                  TO authenticated;
 GRANT  EXECUTE ON FUNCTION duplicate_project(uuid, text, text) TO authenticated;
 
+-- search_entities is SECURITY INVOKER, so anon would only ever get empty
+-- results through RLS, but like the others it's for signed-in users only
+-- (useSearch calls it via .rpc()).
+REVOKE EXECUTE ON FUNCTION search_entities(text, uuid) FROM PUBLIC, anon;
+GRANT  EXECUTE ON FUNCTION search_entities(text, uuid) TO authenticated;
+
 -- STORAGE POLICIES
 -- The private 'attachments' bucket itself is created and configured in the
 -- Supabase dashboard; only its policies on storage.objects are recorded here.
 -- Every path is <folder>/<project_id>/... (projects/, places/, outlines/,
--- panels/, chapters/, and exports/ for finished export files until they're
--- downloaded), so access is scoped to projects the caller owns. The
+-- panels/, exports/ for finished export files until they're downloaded, and
+-- chapters/, which nothing uploads to any more but chapter deletes still
+-- clean up), so access is scoped to projects the caller owns. The
 -- project id is compared as text, so a malformed path just doesn't match
 -- (storage.foldername returns NULL for a missing segment) rather than making
 -- a ::uuid cast throw.
--- Deliberately no UPDATE policy: nothing in the app overwrites (upsert),
--- moves or copies objects, so those stay denied.
+-- Deliberately no UPDATE policy: nothing in the app overwrites (upsert) or
+-- moves objects, so those stay denied. duplicateProject does copy files into
+-- the new project (storage copy), which needs only SELECT on the source and
+-- INSERT on the destination, both in projects the caller owns.
 -- Files can only be read or deleted while their project row still exists, so
 -- any future project-delete cleanup must remove the files *before* deleting
 -- the project. Afterwards they're unreachable through the app.
