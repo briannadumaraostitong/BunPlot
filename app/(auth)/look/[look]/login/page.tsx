@@ -10,7 +10,7 @@ import { PasswordInput } from '@/components/ui/password-input'
 import { Label } from '@/components/ui/label'
 import { Loader2 } from 'lucide-react'
 import { AuthShell, AUTH_LABEL, useAuthLook, useAuthTurnstileTheme } from '@/components/auth/AuthShell'
-import { isCaptchaError, TURNSTILE_FAILED, TURNSTILE_WAITING, useTurnstile } from '@/components/auth/Turnstile'
+import { isCaptchaError, TURNSTILE_FAILED, useTurnstile } from '@/components/auth/Turnstile'
 import { useTheme } from '@/components/theme/ThemeProvider'
 import { normalizeThemeSetting } from '@/lib/themes'
 import { safeRedirectPath } from '@/lib/safeRedirect'
@@ -30,17 +30,21 @@ function LoginForm() {
 
   async function handleLogin(e: React.FormEvent) {
     e.preventDefault()
-    if (!turnstile.ready) {
-      setError(TURNSTILE_WAITING)
-      return
-    }
     setLoading(true)
     setError(null)
+
+    // Waits for the browser check if its token hasn't arrived yet.
+    const captcha = await turnstile.getToken()
+    if ('error' in captcha) {
+      setError(captcha.error)
+      setLoading(false)
+      return
+    }
 
     const { data, error } = await supabase.auth.signInWithPassword({
       email,
       password,
-      options: { captchaToken: turnstile.token },
+      options: { captchaToken: captcha.token },
     })
     // A token works once: get a fresh one for the next attempt.
     turnstile.reset()

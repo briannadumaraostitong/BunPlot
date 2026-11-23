@@ -10,7 +10,7 @@ import { PasswordInput } from '@/components/ui/password-input'
 import { Label } from '@/components/ui/label'
 import { Switch } from '@/components/ui/switch'
 import { PASSWORD_HINT, passwordErrorMessage, passwordProblem } from '@/lib/passwords'
-import { TURNSTILE_FAILED, TURNSTILE_WAITING, useTurnstile } from '@/components/auth/Turnstile'
+import { TURNSTILE_FAILED, useTurnstile } from '@/components/auth/Turnstile'
 
 // Change password in Settings: the current password is checked first, by a
 // separate sign-in that leaves this session alone (lib/supabase/
@@ -51,15 +51,19 @@ export function PasswordForm({ email }: { email: string }) {
       setError(problem)
       return
     }
-    if (!turnstile.ready) {
-      setError(TURNSTILE_WAITING)
-      return
-    }
     setSaving(true)
     setError(null)
     setSaved(null)
 
-    const check = await checkCurrentPassword(email, current, turnstile.token)
+    // Waits for the browser check if its token hasn't arrived yet.
+    const captcha = await turnstile.getToken()
+    if ('error' in captcha) {
+      setError(captcha.error)
+      setSaving(false)
+      return
+    }
+
+    const check = await checkCurrentPassword(email, current, captcha.token)
     // A token works once: get a fresh one for the next attempt.
     turnstile.reset()
     if (check !== 'ok') {

@@ -8,7 +8,7 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { AuthShell, AUTH_LABEL, useAuthLook, useAuthTurnstileTheme } from '@/components/auth/AuthShell'
-import { isCaptchaError, TURNSTILE_FAILED, TURNSTILE_WAITING, useTurnstile } from '@/components/auth/Turnstile'
+import { isCaptchaError, TURNSTILE_FAILED, useTurnstile } from '@/components/auth/Turnstile'
 import { emailLinkReturn } from '@/lib/emailLinks'
 
 // Asks Supabase to email a password reset link (supabase/email-templates/
@@ -41,15 +41,18 @@ export default function ForgotPasswordPage() {
   }, [wait])
 
   async function send(address: string) {
-    if (!turnstile.ready) {
-      setError(TURNSTILE_WAITING)
-      return
-    }
     setLoading(true)
     setError(null)
+    // Waits for the browser check if its token hasn't arrived yet.
+    const captcha = await turnstile.getToken()
+    if ('error' in captcha) {
+      setError(captcha.error)
+      setLoading(false)
+      return
+    }
     const { error } = await supabase.auth.resetPasswordForEmail(address, {
       redirectTo: emailLinkReturn(location.origin),
-      captchaToken: turnstile.token,
+      captchaToken: captcha.token,
     })
     // A token works once: get a fresh one for the next attempt.
     turnstile.reset()

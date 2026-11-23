@@ -9,7 +9,7 @@ import { PasswordInput } from '@/components/ui/password-input'
 import { Label } from '@/components/ui/label'
 import { Loader2, CheckCircle2 } from 'lucide-react'
 import { AuthShell, AUTH_LABEL, useAuthLook, useAuthTurnstileTheme } from '@/components/auth/AuthShell'
-import { isCaptchaError, TURNSTILE_FAILED, TURNSTILE_WAITING, useTurnstile } from '@/components/auth/Turnstile'
+import { isCaptchaError, TURNSTILE_FAILED, useTurnstile } from '@/components/auth/Turnstile'
 import { emailLinkReturn } from '@/lib/emailLinks'
 import { PASSWORD_HINT, passwordProblem } from '@/lib/passwords'
 
@@ -32,12 +32,16 @@ export default function SignupPage() {
       setError(problem)
       return
     }
-    if (!turnstile.ready) {
-      setError(TURNSTILE_WAITING)
-      return
-    }
     setLoading(true)
     setError(null)
+
+    // Waits for the browser check if its token hasn't arrived yet.
+    const captcha = await turnstile.getToken()
+    if ('error' in captcha) {
+      setError(captcha.error)
+      setLoading(false)
+      return
+    }
 
     const { error } = await supabase.auth.signUp({
       email,
@@ -46,7 +50,7 @@ export default function SignupPage() {
         data: { full_name: displayName },
         // The confirmation email's link is built on this (lib/emailLinks.ts).
         emailRedirectTo: emailLinkReturn(location.origin),
-        captchaToken: turnstile.token,
+        captchaToken: captcha.token,
       },
     })
     // A token works once: get a fresh one for the next attempt.

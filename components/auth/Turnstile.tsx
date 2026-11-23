@@ -31,40 +31,121 @@ declare global {
   }
 }
 
-// The form's side of the widget: the current token (null while there's
-// none), whether one is required at all, reset() after each attempt (a token
-// works once), and the widget element to place in the form.
+// Up to this long for a token when the form is sent before one has arrived
+// (the form shows its loading state meanwhile).
+const WAIT_MS = 10_000
+// After an error (a network blip, or Cloudflare's client errors such as
+// 300010), the widget is reset and tried again this many times, this far
+// apart; the next submit starts it over.
+const MAX_RETRIES = 3
+const RETRY_DELAY_MS = 2_000
+
+// The answer for one attempt: the token to send (undefined without a site
+// key, when none is needed), or the message to show instead.
+export type TurnstileResult = { token: string | undefined } | { error: string }
+
+// The form's side of the widget: getToken() before each attempt, reset()
+// after it (a token works once), and the widget element to place in the form.
 export function useTurnstile({ theme, action }: { theme: TurnstileTheme; action: string }) {
-  const [token, setToken] = useState<string | null>(null)
+  // Refs, not state: getToken() reads them while it waits.
+  const token = useRef<string | null>(null)
+  const waiters = useRef<((t: string) => void)[]>([])
+  const retries = useRef(0)
+  const retryTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
+  const widgetId = useRef<string | null>(null)
+  // Cloudflare wants an interactive check: the widget shows itself
+  // ("interaction-only"), and a line under it says why.
+  const [interactive, setInteractive] = useState(false)
+  const interactiveRef = useRef(false)
   // A callback ref, so the widget follows the element when a form swaps
   // views (forgot password's form, then its "Send again").
   const [container, setContainer] = useState<HTMLDivElement | null>(null)
-  const widgetId = useRef<string | null>(null)
   const [scriptReady, setScriptReady] = useState(() => typeof window !== 'undefined' && !!window.turnstile)
 
   useEffect(() => {
     if (!SITE_KEY || !scriptReady || !container || !window.turnstile) return
+    const showInteractive = (on: boolean) => {
+      interactiveRef.current = on
+      setInteractive(on)
+    }
     const id = window.turnstile.render(container, {
       sitekey: SITE_KEY,
       action,
       theme: theme === 'page' ? (container.closest('.dark') ? 'dark' : 'light') : theme,
       appearance: 'interaction-only',
       size: 'flexible',
-      callback: (t: string) => setToken(t),
-      'expired-callback': () => setToken(null),
-      'error-callback': () => setToken(null),
+      // Retries are ours (below), so they stop after a few and a submit can
+      // start them again.
+      retry: 'never',
+      'refresh-expired': 'auto',
+      callback: (t: string) => {
+        retries.current = 0
+        token.current = t
+        showInteractive(false)
+        const waiting = waiters.current
+        waiters.current = []
+        waiting.forEach((resolve) => resolve(t))
+      },
+      // An expired token is refreshed on its own (refresh-expired).
+      'expired-callback': () => {
+        token.current = null
+      },
+      // The interactive check was left too long: start a fresh one.
+      'timeout-callback': () => {
+        token.current = null
+        window.turnstile?.reset(id)
+      },
+      'error-callback': () => {
+        token.current = null
+        if (retries.current < MAX_RETRIES) {
+          retries.current += 1
+          retryTimer.current = setTimeout(() => {
+            if (widgetId.current === id) window.turnstile?.reset(id)
+          }, RETRY_DELAY_MS)
+        }
+        // Handled: Turnstile needn't log it as uncaught.
+        return true
+      },
+      'before-interactive-callback': () => showInteractive(true),
+      'after-interactive-callback': () => showInteractive(false),
     })
     widgetId.current = id
     return () => {
+      if (retryTimer.current) clearTimeout(retryTimer.current)
       window.turnstile?.remove(id)
       widgetId.current = null
       // That widget's token goes with it.
-      setToken(null)
+      token.current = null
+      showInteractive(false)
     }
   }, [container, scriptReady, theme, action])
 
+  const getToken = useCallback(async (): Promise<TurnstileResult> => {
+    if (!SITE_KEY) return { token: undefined }
+    if (token.current) return { token: token.current }
+    // The retries ran out: start over for this attempt.
+    if (retries.current >= MAX_RETRIES && widgetId.current) {
+      retries.current = 0
+      window.turnstile?.reset(widgetId.current)
+    }
+    const t = await new Promise<string | null>((resolve) => {
+      const done = (value: string) => {
+        clearTimeout(timer)
+        resolve(value)
+      }
+      const timer = setTimeout(() => {
+        waiters.current = waiters.current.filter((w) => w !== done)
+        resolve(null)
+      }, WAIT_MS)
+      waiters.current.push(done)
+    })
+    if (t) return { token: t }
+    return { error: interactiveRef.current ? TURNSTILE_INTERACT : TURNSTILE_SLOW }
+  }, [])
+
   const reset = useCallback(() => {
-    setToken(null)
+    token.current = null
+    retries.current = 0
     if (widgetId.current) window.turnstile?.reset(widgetId.current)
   }, [])
 
@@ -72,14 +153,21 @@ export function useTurnstile({ theme, action }: { theme: TurnstileTheme; action:
     <>
       <Script src={SCRIPT_SRC} strategy="afterInteractive" onReady={() => setScriptReady(true)} />
       <div ref={setContainer} data-slot="turnstile" />
+      {interactive && (
+        <p role="status" className="text-xs text-muted-foreground">
+          Cloudflare needs a quick check before you continue.
+        </p>
+      )}
     </>
   ) : null
 
-  return { token: token ?? undefined, required: !!SITE_KEY, ready: !SITE_KEY || !!token, reset, widget }
+  return { getToken, reset, widget }
 }
 
-// While the widget hasn't handed over a token yet.
-export const TURNSTILE_WAITING = 'Checking your browser… try again in a moment.'
+// No token within WAIT_MS.
+export const TURNSTILE_SLOW = 'The browser check is taking longer than usual. Try again in a moment.'
+// No token within WAIT_MS, and the interactive check is showing.
+export const TURNSTILE_INTERACT = 'Complete the browser check above, then try again.'
 
 // Supabase turned the token down (missing, expired or used). The widget has
 // been reset by then, so a second try normally passes.
